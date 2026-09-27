@@ -370,11 +370,163 @@ test.describe("content pages", () => {
   });
 });
 
+test.describe("session-4 parity: page shells", () => {
+  const SHELL_PAGES = [
+    "/Courses",
+    "/CourseDetail?id=seed-1",
+    "/Dashboard",
+    "/About",
+    "/Contact",
+    "/BecomeInstructor",
+    "/AIAssistant",
+  ];
+
+  // The reference wraps every non-landing page the same way:
+  // root > main.pt-20 > div.min-h-screen.bg-gray-50 > hero + content.
+  // (The clone keeps min-h-dvh on the ROOT for mobile-viewport robustness.)
+  for (const path of SHELL_PAGES) {
+    test(`${path} uses the reference shell (main.pt-20 + gray wrapper)`, async ({ page }) => {
+      await page.goto(path);
+      const main = page.locator("main");
+      await expect(main).toHaveClass(/(^|\s)pt-20(\s|$)/);
+      const wrapper = page.locator("main > div.min-h-screen.bg-gray-50");
+      await expect(wrapper).toBeVisible();
+    });
+  }
+
+  test("courses hero clears the fixed navbar", async ({ page }) => {
+    await page.goto("/Courses");
+    // The h1 lives inside the Suspense-wrapped catalog — wait for it before measuring.
+    const h1 = page.locator("h1");
+    await expect(h1).toBeVisible();
+    const box = await h1.boundingBox();
+    expect(box).not.toBeNull();
+    // Reference: h1 top at y=144 (80px main padding + 64px hero padding);
+    // the clone's old shell rendered it at y=64 — behind the 81px navbar.
+    expect(box!.y).toBeGreaterThanOrEqual(100);
+  });
+
+  test("nav Home link targets /Home (reference href)", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("nav a", { hasText: "Home" }).first()).toHaveAttribute("href", "/Home");
+  });
+
+  test("footer links match the reference targets", async ({ page }) => {
+    await page.goto("/");
+    const footer = page.getByRole("contentinfo");
+    await expect(footer.getByRole("link", { name: "Learning Paths" })).toHaveAttribute("href", "/Courses");
+    await expect(footer.getByRole("link", { name: "Help Center" })).toHaveAttribute("href", "/Contact");
+    await expect(footer.getByRole("link", { name: "FAQ" })).toHaveAttribute("href", "/Contact");
+    await expect(footer.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute("href", "/About");
+    await expect(footer.getByRole("link", { name: "Terms of Service" })).toHaveAttribute("href", "/About");
+  });
+});
+
+test.describe("session-4 parity: course detail About This Course", () => {
+  test("ML course shows the expandable About This Course section", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-3");
+    await expect(page.getByRole("heading", { name: "About This Course" })).toBeVisible();
+
+    // Long description, clamped to 6 lines
+    const desc = page.locator("p.line-clamp-6");
+    await expect(desc).toContainText("Dive deep into the world of artificial intelligence");
+
+    // Read More expands and removes the clamp
+    const toggle = page.getByRole("button", { name: "Read More" });
+    await expect(toggle).toBeVisible();
+    await toggle.click();
+    await expect(page.getByRole("button", { name: "Show Less" })).toBeVisible();
+    await expect(page.locator("p.line-clamp-6")).toHaveCount(0);
+  });
+
+  test("AWS course has no About This Course section (reference behavior)", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-1");
+    await expect(page.getByRole("heading", { name: "About This Course" })).toHaveCount(0);
+  });
+});
+
+test.describe("session-4 parity: AI assistant + contact shells", () => {
+  test("AI chat card matches the reference (min-h 60vh, flex column, textarea)", async ({ page }) => {
+    await page.goto("/AIAssistant");
+    const card = page.locator("div[class*='min-h-[60vh]']");
+    await expect(card).toBeVisible();
+    await expect(card).toHaveClass(/flex flex-col/);
+
+    // Messages area flexes with the card — the reference has no fixed height
+    await expect(card.locator("> div").first()).toHaveClass(/flex-1/);
+
+    // Composer is a textarea on the reference (auto-growing, max-h-32)
+    const composer = page.locator("textarea");
+    await expect(composer).toBeVisible();
+    await expect(composer).toHaveAttribute("placeholder", "Ask a question...");
+
+    // Hero icon is Sparkles inside the w-14 gradient box
+    await expect(page.locator("svg.lucide-sparkles").first()).toBeVisible();
+  });
+
+  test("contact page uses the reference overlapping max-w-6xl container", async ({ page }) => {
+    await page.goto("/Contact");
+    await expect(page.locator("main .max-w-6xl.-mt-6")).toBeVisible();
+
+    // Hero rhythm: pt-16 pb-12 (not py-20)
+    const hero = page.locator("main > div > div").first();
+    await expect(hero).toHaveClass(/pt-16/);
+    await expect(hero).toHaveClass(/pb-12/);
+  });
+});
+
+test.describe("session-4 parity: SEO files", () => {
+  test("robots.txt allows everything and links the sitemap (reference behavior)", async ({ page }) => {
+    const response = await page.request.get("/robots.txt");
+    expect(response.status()).toBe(200);
+    const body = await response.text();
+    // Robots directives are case-insensitive; Next serializes "User-Agent".
+    expect(body).toMatch(/user-agent: \*/i);
+    expect(body).toMatch(/allow: \//i);
+    expect(body).not.toMatch(/disallow/i);
+    expect(body).toMatch(/sitemap: .+\/sitemap\.xml/i);
+  });
+
+  test("sitemap.xml lists the 9 reference routes with weekly changefreq", async ({ page }) => {
+    const response = await page.request.get("/sitemap.xml");
+    expect(response.status()).toBe(200);
+    const body = await response.text();
+    for (const route of [
+      "/Courses",
+      "/CourseDetail",
+      "/AIAssistant",
+      "/Pricing",
+      "/BecomeInstructor",
+      "/About",
+      "/Contact",
+      "/Dashboard",
+    ]) {
+      expect(body).toContain(`${route}<`);
+    }
+    expect(body.match(/<url>/g)?.length).toBe(9);
+    expect(body.match(/<changefreq>weekly<\/changefreq>/g)?.length).toBe(9);
+    // Landing is highest priority (serialized as 1 or 1.0 depending on Next version)
+    expect(body).toMatch(/<priority>1(\.0)?<\/priority>/);
+    expect(body).toMatch(/<priority>0\.8<\/priority>/);
+  });
+});
+
 test.describe("404", () => {
-  test("unknown route shows the branded 404", async ({ page }) => {
+  test("unknown route shows the reference 404 (light slate design)", async ({ page }) => {
     await page.goto("/ThisPageDoesNotExist");
     await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Page Not Found" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Go Home" })).toBeVisible();
+
+    // The dynamic path appears in the message (quoted, no leading slash)
+    await expect(page.getByText('"ThisPageDoesNotExist"')).toBeVisible();
+    await expect(page.getByText("could not be found in this application")).toBeVisible();
+
+    // Light slate shell — the reference 404 is not the dark cosmic gradient
+    await expect(page.locator(".bg-slate-50")).toBeVisible();
+
+    const goHome = page.getByRole("button", { name: "Go Home" });
+    await expect(goHome).toBeVisible();
+    await goHome.click();
+    await expect(page).toHaveURL("/");
   });
 });

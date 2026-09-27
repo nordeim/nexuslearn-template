@@ -72,3 +72,20 @@ Stage Summary:
 - Repo at full parity with the live reference after the session-3 sub-section pass; every reworked structure now pinned by TDD e2e specs.
 - Test pyramid: 16 unit + 34 e2e = 50, all green.
 - Ready for commit + SSH-wrapper push to main.
+
+---
+Task ID: 4
+Agent: Super Z (main)
+Task: Session 4 — parity re-audit pass: refresh repo, review session_3.md + remediation-plan-session3.md + worklog, re-audit live-site parity, remediate residual gaps with TDD, screenshots, docs alignment, commit + push to main.
+
+Work Log:
+- Workspace reset → re-cloned (main @ 46d825c). Reviewed the five project docs + session_3.md + remediation-plan-session3.md + worklog.md; validated against the codebase (install, db:push + db:seed with pinned DATABASE_URL, skills/ exclusion, baseline gates all green: lint ✓ typecheck ✓ 16/16 unit ✓ build ✓ 34/34 e2e ✓).
+- PARITY RE-AUDIT (agent-browser, live vs clone, 1920×1080 + 375×667): 13 findings (docs/remediation-plan-session4.md). Systematic shell gap: live wraps every non-landing page in main.pt-20 > div.min-h-screen.bg-gray-50 — clone rendered heroes under a bare main, leaving /Courses + /Dashboard h1 at y=64 behind the 81px fixed navbar (live 144). Content gaps: missing expandable "About This Course" (4 courses), 3 course images + 6 avatars mismatched, AI assistant shell drift (max-w-4xl, Bot icon, h-[480px] messages, input composer), Contact container, hero rhythms, BI decor, nav Home href, 5 footer hrefs, invented dark 404. Verification found live lesson-count drift (Python 178, ML 245, WebDev 380, Business 156).
+- REMEDIATION (TDD): 3 new unit + 16 new/updated e2e specs RED first (14/15 failing pre-SEO) → page-shell restructures on 7 routes (root min-h-dvh bg-white > main.pt-20 > gray wrapper; dvh hardening kept), AboutCourse component + nullable Course.longDescription, seed imagery + lesson counts fixed (1,904 lessons), hero rhythm + decor fixes, Contact overlap container, AIAssistantChat rework (max-w-3xl, Sparkles icon, min-h-[60vh] flex card, flex-1 messages, textarea composer), Navbar/Footer hrefs, 404 rebuilt as the light-slate reference design with dynamic path. Follow-ups: AI hero icon wrapper mb-4; SEO files — stale public/robots.txt (Disallow: /api/, no sitemap link, conflicted with the app-router route) replaced by src/app/robots.ts + src/app/sitemap.ts matching the live 9-route sitemap, making NEXT_PUBLIC_SITE_URL real.
+- GATES (final): lint ✓ typecheck ✓ 21/21 unit ✓ build ✓ 50/50 e2e ✓ (34 → 50). Visual re-verify: all 7 routes match live (main classes, gray wrapper, h1 y-positions on desktop + mobile); body heights byte-exact on Dashboard/Contact/AIAssistant/Pricing/login; CourseDetail 1px; landing/Courses ±31px font/image variance (classes identical). Mobile menu re-verified on both sites (ARIA, scroll lock, route-close).
+- Screenshots: 17 fresh captures in docs/screenshots/. Docs updated: README, AGENTS, CLAUDE, PAD ([S4] + schema + test distribution), nexuslearn-template_SKILL.md v2.2.0, session_4.md. .env.example re-verified.
+
+Stage Summary:
+- Full shell-level + content parity with the live reference; test pyramid 21 unit + 50 e2e = 71, all green.
+- The reference page-shell pattern (main.pt-20 + gray wrapper) is now a documented gotcha + regression spec.
+- Ready for commit + SSH-wrapper push to main.

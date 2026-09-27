@@ -141,40 +141,47 @@ export function AIAssistantChat() {
   return (
     <div className="min-h-dvh bg-white">
       <Navbar />
-      <main className="pt-16 md:pt-20">
-        <div className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-12 px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-cyan-500 to-purple-600 flex items-center justify-center mx-auto mb-6">
-              <Bot className="h-8 w-8 text-white" aria-hidden="true" />
+      <main className="pt-20">
+        {/* Reference shell: gray wrapper under the navbar offset holds the
+            dark hero + the overlapping chat card. */}
+        <div className="min-h-screen bg-gray-50">
+          {/* Hero — reference: max-w-3xl, Sparkles in a w-14 gradient box */}
+          <div className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-12 px-4">
+            <div className="max-w-3xl mx-auto text-center">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-cyan-500 to-purple-600 flex items-center justify-center">
+                  <Sparkles className="h-7 w-7 text-white" aria-hidden="true" />
+                </div>
+              </div>
+              <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
+                AI Study Assistant
+              </h1>
+              <p className="mt-4 text-lg text-gray-400">
+                Ask anything — get instant, expert-level answers to accelerate your learning.
+              </p>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
-              AI Study Assistant
-            </h1>
-            <p className="mt-4 text-lg text-gray-400 max-w-2xl mx-auto">
-              Ask anything — get instant, expert-level answers to accelerate your learning.
-            </p>
           </div>
-        </div>
 
-        <div className="max-w-4xl mx-auto px-4 -mt-8 pb-24">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-2xl shadow-purple-500/5 overflow-hidden">
-            {/* Messages */}
-            <div ref={scrollRef} className="h-[480px] overflow-y-auto p-6 space-y-6">
+          {/* Chat card — reference: max-w-3xl overlapping -mt-6, min-h-60vh flex column */}
+          <div className="max-w-3xl mx-auto px-4 -mt-6 pb-24">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 min-h-[60vh] flex flex-col overflow-hidden">
+            {/* Messages — reference: flex-1 (grows with the card, no fixed height) */}
+            <div ref={scrollRef} className="flex-1 p-6 space-y-6 overflow-y-auto">
               {messages.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-center py-12">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-cyan-500 to-purple-600 flex items-center justify-center mb-6">
-                    <Sparkles className="h-7 w-7 text-white" aria-hidden="true" />
+                <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mb-6">
+                    <Bot className="h-8 w-8 text-purple-500" aria-hidden="true" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Ready to help you learn</h3>
-                  <p className="text-sm text-gray-500 max-w-sm mb-8">
+                  <p className="text-gray-500 max-w-sm">
                     Ask me about any topic — programming, business, design, data science, and more.
                   </p>
-                  <div className="flex flex-wrap justify-center gap-3">
+                  <div className="mt-8 flex flex-wrap justify-center gap-2">
                     {SUGGESTIONS.map((s) => (
                       <button
                         key={s}
                         onClick={() => send(s)}
-                        className="px-4 py-2 rounded-full border border-gray-200 text-sm text-gray-600 hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200"
+                        className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-700 transition-all"
                       >
                         {s}
                       </button>
@@ -184,14 +191,17 @@ export function AIAssistantChat() {
               )}
 
               {messages.map((m, i) => (
-                <div key={i} className={`flex gap-3 ${m.role === "user" ? "justify-end" : ""}`}>
+                <div
+                  key={i}
+                  className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                >
                   {m.role === "assistant" && (
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 flex items-center justify-center shrink-0 mt-1">
                       <Bot className="h-4 w-4 text-white" aria-hidden="true" />
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                    className={`max-w-[80%] rounded-2xl px-5 py-3 ${
                       m.role === "user"
                         ? "bg-gradient-to-r from-cyan-500 to-purple-600 text-white"
                         : "bg-gray-50 text-gray-700 border border-gray-100"
@@ -200,7 +210,7 @@ export function AIAssistantChat() {
                     {m.role === "assistant" ? renderMarkdown(m.content) : m.content}
                   </div>
                   {m.role === "user" && (
-                    <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center shrink-0 mt-1">
                       <User className="h-4 w-4 text-gray-500" aria-hidden="true" />
                     </div>
                   )}
@@ -223,8 +233,8 @@ export function AIAssistantChat() {
               )}
             </div>
 
-            {/* Composer */}
-            <div className="border-t border-gray-100 p-4 bg-white">
+            {/* Composer — reference: auto-growing textarea + self-end gradient send */}
+            <div className="p-4 border-t border-gray-100">
               <form
                 className="flex gap-3"
                 onSubmit={(e) => {
@@ -232,23 +242,31 @@ export function AIAssistantChat() {
                   send(input);
                 }}
               >
-                <input
+                <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      send(input);
+                    }
+                  }}
+                  rows={1}
                   placeholder="Ask a question..."
-                  className="flex-1 h-12 px-4 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   aria-label="Ask a question"
+                  className="flex w-full border bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm flex-1 resize-none rounded-xl border-gray-200 focus:border-purple-500 min-h-[48px] max-h-32"
                 />
                 <button
                   type="submit"
                   disabled={!input.trim() || loading}
                   aria-label="Send message"
-                  className="inline-flex items-center justify-center gap-2 w-12 h-12 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-lg shadow-purple-500/25 transition-all duration-300 hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-9 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white rounded-xl px-5 shadow-lg shadow-purple-500/20 transition-all duration-300 hover:scale-105 self-end disabled:hover:scale-100 disabled:cursor-not-allowed"
                 >
-                  <Send className="h-5 w-5" aria-hidden="true" />
+                  <Send className="h-4 w-4" aria-hidden="true" />
                 </button>
               </form>
             </div>
+          </div>
           </div>
         </div>
       </main>

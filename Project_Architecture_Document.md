@@ -15,6 +15,7 @@ Nothing is here "because it's popular."
 - `[SYN]` Initial PAD for the NexusLearn clone build, generated after the full pipeline (recon → extraction → design spec → architecture → build → QA convergence) completed with all gates green: 26/26 computed-style assertions, 5/5 unit tests, 16/16 e2e tests, production build passing.
 - `[SAN]` Three production defects found and remediated during QA are recorded as ADR-004 (Tailwind v4 HSL triplets), ADR-005 (pinned v3 palette), and §4.4 (SQLite path resolution).
 - `[S3]` Session 3 parity pass (see `docs/remediation-plan-session3.md`): 11 residual gaps closed — landing AI section rebuilt as the reference 2-column layout (badge + `<br>` gradient h2 left, 4 glass cards right), instructor section rebuilt with image + floating "$12.5M+ Paid to Instructors" stat + CTA-after-features, pricing cards reworked (rounded-3xl, dark cosmic popular card, desc lines, check icons — landing + /Pricing), /Pricing hero rhythm (pt-16 pb-12) + FAQ single-column stack with CircleHelp icons + the 4 reference Q&As, category grid (sm:3/lg:4 + cursor-pointer overflow-hidden), eyebrows → text-sm spans, learning-path cards → borderless gray surface, newsletter centered 600px blur, hero "Start Learning" → /Courses, nav logo → /Home, login "Need an account? Sign up" single button. Test pyramid now 16 unit + 34 e2e (9 new parity specs, TDD red-first).
+- `[S4]` Session 4 parity pass (see `docs/remediation-plan-session4.md`): 14 findings closed — every non-landing page rebuilt on the reference shell (root > `main.pt-20` > `div.min-h-screen.bg-gray-50`; the old shells rendered the /Courses + /Dashboard h1 at y=64 behind the 81px fixed navbar), CourseDetail "About This Course" expandable section (nullable `Course.longDescription`, 4 reference texts, Read More/Show Less toggle), seed imagery corrected (3 course covers + per-instructor avatar map), live lesson-count drift re-captured (Python 178, ML 245, WebDev 380, Business 156 → 1,904 total), hero rhythms (About/Contact/BecomeInstructor pt-16 pb-XX + direct-child blurs), Contact overlapping max-w-6xl container, AI assistant shell rework (max-w-3xl, Sparkles hero icon, min-h-[60vh] flex card, flex-1 messages, textarea composer, px-5 bubbles), nav Home → /Home, 5 footer href fixes, 404 rebuilt as the reference light-slate design with dynamic path. Test pyramid now 21 unit + 50 e2e (16 new session-4 specs, TDD red-first).
 
 ---
 
@@ -352,6 +353,7 @@ erDiagram
       string id PK
       string title
       string description
+      string? longDescription "About This Course (4 of 9 courses; null -> section not rendered)"
       string category "7 reference categories"
       string level "Beginner|Intermediate|Advanced|All Levels"
       float rating
@@ -502,15 +504,15 @@ Single role (authenticated learner). `POST /api/auth/login` verifies scrypt, set
 |---|---|---|---|---|
 | Unit (auth crypto) | 1 | 5 | `tests/auth.test.ts` | Vitest (node env) |
 | Unit (course tags) | 1 | 5 | `tests/course-tags.test.ts` | Vitest (node env) |
-| Unit (seed data shape) | 1 | 6 | `tests/seed-data.test.ts` | Vitest (node env) |
+| Unit (seed data shape + imagery + lesson counts) | 1 | 11 | `tests/seed-data.test.ts` | Vitest (node env) |
 | E2E mobile navigation | 1 | 6 | `tests/e2e/mobile-navigation.spec.ts` | Playwright (Chromium, 375×667 touch) |
-| E2E user journeys + parity | 1 | 19 | `tests/e2e/nexuslearn.spec.ts` | Playwright (Desktop Chrome) |
+| E2E user journeys + parity | 1 | 44 | `tests/e2e/nexuslearn.spec.ts` | Playwright (Desktop Chrome) |
 | Computed-style parity | harness | 26 assertions + VLM band comparisons | recorded vs `src/app/globals.css` + components | measured via browser (see §5) |
 
 ### 7.2 Test Patterns
 
 - **Regression guards as specs:** the mobile-navigation suite pins the exact Tailwind v4 failure classes (display mismatch, scroll lock, ARIA, icon swap, route-change close).
-- **Parity behaviors as specs:** sign-in landing on `/`, the signed-out dashboard render, the `/Home` landing render, the reference curriculum ("Lesson N: Module Content"), What-You'll-Learn topics, footer tagline and the reference content-page outlines are all pinned by e2e assertions.
+- **Parity behaviors as specs:** sign-in landing on `/`, the signed-out dashboard render, the `/Home` landing render, the reference curriculum ("Lesson N: Module Content"), What-You'll-Learn topics, footer tagline and the reference content-page outlines are all pinned by e2e assertions. Session 4 added the page-shell guards (main.pt-20 + gray wrapper + navbar clearance on all 7 non-landing pages), the About-Course expand/collapse, footer/nav href targets, the AI chat shell (min-h-[60vh] flex card, textarea composer) and the light-slate 404.
 - **Real-form authentication:** e2e signs in through `/login` with the seeded demo user — the auth flow itself is coverage.
 - **Idempotent e2e:** global-setup pushes + seeds `db/e2e.db` and resets enrollments, so repeated runs start from the same baseline.
 - **Production-fidelity e2e:** the suite boots the standalone build, which is how the SQLite path defect (§4.4) was caught.
@@ -523,8 +525,8 @@ No numeric gate configured; the required **pre-push gate** is the sequence `lint
 
 - [ ] `bun run lint` clean
 - [ ] `bun run typecheck` clean
-- [ ] `bun run test` 16/16
-- [ ] `bun run test:e2e` 34/34 (incl. 6 mobile-nav guards)
+- [ ] `bun run test` 21/21
+- [ ] `bun run test:e2e` 50/50 (incl. 6 mobile-nav guards)
 - [ ] `bun run build` compiles (standalone)
 - [ ] Mobile menu manually eyeballed at 375×667 (screenshot diff vs `docs/screenshots/`)
 - [ ] No new `tailwind.config.js` (Tailwind v4 is CSS-first)
@@ -628,7 +630,7 @@ TypeScript strict; function-declaration components; `cn()` for classes; CVA for 
 | `prisma/db-url.ts` | ~55 | SQLite path resolver (one DB everywhere) |
 | `prisma/schema.prisma` | ~125 | LMS domain model (incl. Course.tags) |
 | `prisma/seed-data.ts` | ~230 | Pure reference catalog + curriculum builder (test-pinned) |
-| `prisma/seed.ts` | ~75 | Seed runner (demo user + 1,900 reference lessons) |
+| `prisma/seed.ts` | ~75 | Seed runner (demo user + 1,904 reference lessons) |
 | `tests/e2e/mobile-navigation.spec.ts` | ~90 | The Tailwind v4 mobile-nav regression guard |
 
 ---

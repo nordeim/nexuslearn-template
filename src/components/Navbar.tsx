@@ -8,7 +8,7 @@ import { GraduationCap, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
-  { href: "/", label: "Home" },
+  { href: "/Home", label: "Home" },
   { href: "/Courses", label: "Courses" },
   { href: "/AIAssistant", label: "AI Assistant" },
   { href: "/Pricing", label: "Pricing" },

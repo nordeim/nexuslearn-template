@@ -18,16 +18,20 @@ export default async function CoursesPage() {
   });
 
   return (
-    <div className="min-h-dvh bg-gray-50">
+    <div className="min-h-dvh bg-white">
       <Navbar />
-      <main>
-        <Suspense
-          fallback={
-            <div className="py-24 text-center text-gray-500">Loading courses…</div>
-          }
-        >
-          <CourseCatalog courses={courses} />
-        </Suspense>
+      <main className="pt-20">
+        {/* Reference shell: gray wrapper under the navbar offset holds the
+            dark hero + the floating filter/catalog area. */}
+        <div className="min-h-screen bg-gray-50">
+          <Suspense
+            fallback={
+              <div className="py-24 text-center text-gray-500">Loading courses…</div>
+            }
+          >
+            <CourseCatalog courses={courses} />
+          </Suspense>
+        </div>
       </main>
       <Footer />
     </div>

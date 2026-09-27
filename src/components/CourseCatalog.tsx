@@ -113,8 +113,8 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
         </div>
       </div>
 
-      {/* Results area — floating filter card overlapping the hero */}
-      <div className="min-h-screen bg-gray-50">
+      {/* Results area — floating filter card overlapping the hero (the page
+          shell provides the min-h-screen bg-gray-50 wrapper) */}
         <div className="max-w-7xl mx-auto px-4 -mt-6">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 flex flex-wrap items-center gap-4">
             <Select value={category} onValueChange={setCategory}>
@@ -197,7 +197,6 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
             )}
           </div>
         </div>
-      </div>
     </div>
   );
 }

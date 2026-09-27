@@ -28,6 +28,9 @@ model Course {
   id              String   @id @default(cuid())
   title           String
   description     String
+  // "About This Course" long text (reference app populates it for 4 courses;
+  // absent -> the section is not rendered)
+  longDescription String?
   category        String // Business | Technology | Marketing | Design | Personal Development | Programming | AI & Innovation
   level           String   @default("Beginner") // Beginner | Intermediate | Advanced | All Levels
   rating          Float    @default(4.8)

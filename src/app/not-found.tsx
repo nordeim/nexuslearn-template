@@ -1,21 +1,57 @@
-import Link from "next/link";
+"use client";
 
+import { usePathname, useRouter } from "next/navigation";
+
+/**
+ * Branded 404 — mirrors the reference app's not-found screen: a light
+ * slate-50 page with a large light "404", a hairline divider, the dynamic
+ * missing path quoted in the message, and a white "Go Home" button.
+ */
 export default function NotFound() {
+  const pathname = usePathname();
+  const router = useRouter();
+  // Reference shows the path without the leading slash ("this-page").
+  const missingPath = pathname.replace(/^\//, "");
+
   return (
-    <main className="min-h-dvh bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] flex items-center justify-center px-4">
-      <div className="text-center">
-        <h1 className="text-8xl md:text-9xl font-bold bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-          404
-        </h1>
-        <h2 className="mt-6 text-2xl md:text-3xl font-bold text-white">Page Not Found</h2>
-        <p className="mt-4 text-gray-400 max-w-md mx-auto">
-          The page you&apos;re looking for doesn&apos;t exist or has been moved.
-        </p>
-        <Link href="/">
-          <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 mt-8 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-8 py-3 rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:scale-105">
-            Go Home
-          </button>
-        </Link>
+    <main className="min-h-dvh flex items-center justify-center p-6 bg-slate-50">
+      <div className="max-w-md w-full">
+        <div className="text-center space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-7xl font-light text-slate-300">404</h1>
+            <div className="h-0.5 w-16 bg-slate-200 mx-auto" />
+          </div>
+          <div className="space-y-3">
+            <h2 className="text-2xl font-medium text-slate-800">Page Not Found</h2>
+            <p className="text-slate-600 leading-relaxed">
+              The page <span className="font-medium text-slate-700">&quot;{missingPath}&quot;</span> could
+              not be found in this application.
+            </p>
+          </div>
+          <div className="pt-6">
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
+            >
+              <svg
+                className="w-4 h-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
+              </svg>
+              Go Home
+            </button>
+          </div>
+        </div>
       </div>
     </main>
   );

@@ -42,17 +42,20 @@ export default function AboutPage() {
   return (
     <div className="min-h-dvh bg-white">
       <Navbar />
-      <main className="pt-16 md:pt-20">
-        {/* Hero */}
-        <section className="py-20 px-4 bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a]">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">About NexusLearn</h1>
-            <p className="mt-6 text-lg text-gray-400 leading-relaxed max-w-2xl mx-auto">
-              We&apos;re on a mission to democratize education by combining expert-led courses with
-              AI-powered tools, making world-class learning accessible to everyone.
-            </p>
+      <main className="pt-20">
+        {/* Reference shell: gray wrapper under the navbar offset holds the
+            dark hero + all content sections. */}
+        <div className="min-h-screen bg-gray-50">
+          {/* Hero */}
+          <div className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-20 px-4">
+            <div className="max-w-4xl mx-auto text-center">
+              <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">About NexusLearn</h1>
+              <p className="mt-6 text-lg text-gray-400 leading-relaxed max-w-2xl mx-auto">
+                We&apos;re on a mission to democratize education by combining expert-led courses with
+                AI-powered tools, making world-class learning accessible to everyone.
+              </p>
+            </div>
           </div>
-        </section>
 
         {/* Stats */}
         <section className="py-20 px-4 bg-white">
@@ -132,6 +135,7 @@ export default function AboutPage() {
             </div>
           </div>
         </section>
+        </div>
       </main>
       <Footer />
     </div>

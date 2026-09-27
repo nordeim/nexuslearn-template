@@ -44,21 +44,24 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-dvh bg-gray-50">
+    <div className="min-h-dvh bg-white">
       <Navbar />
-      <main>
-        {/* Hero */}
-        <section className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-20 px-4">
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-3xl md:text-4xl font-bold text-white">
-              {session ? `Welcome back, ${session.name}` : "Welcome back"}
-            </h1>
-            <p className="mt-2 text-gray-400">Continue your learning journey</p>
+      <main className="pt-20">
+        {/* Reference shell: gray wrapper under the navbar offset holds the
+            dark hero + the overlapping stats/My-Courses area. */}
+        <div className="min-h-screen bg-gray-50">
+          {/* Hero */}
+          <div className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-20 px-4">
+            <div className="max-w-7xl mx-auto">
+              <h1 className="text-3xl md:text-4xl font-bold text-white">
+                {session ? `Welcome back, ${session.name}` : "Welcome back"}
+              </h1>
+              <p className="mt-2 text-gray-400">Continue your learning journey</p>
+            </div>
           </div>
-        </section>
 
-        {/* Stats (overlapping the hero) */}
-        <div className="max-w-7xl mx-auto px-4 -mt-10">
+          {/* Stats (overlapping the hero) */}
+          <div className="max-w-7xl mx-auto px-4 -mt-10">
           <div className="dashboard-stats grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {statCards.map((card) => (
               <div
@@ -114,6 +117,7 @@ export default async function DashboardPage() {
             },
             lessons: e.course.lessons.map((l) => ({ id: l.id, title: l.title })),
           }))} />
+          </div>
         </div>
       </main>
       <Footer />

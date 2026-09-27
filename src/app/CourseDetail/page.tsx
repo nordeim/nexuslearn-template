@@ -13,6 +13,7 @@ import {
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { EnrollButton } from "@/components/course-detail/EnrollButton";
+import { AboutCourse } from "@/components/course-detail/AboutCourse";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { whatYouLearnTopics } from "@/lib/course-tags";
@@ -54,11 +55,14 @@ export default async function CourseDetailPage({
   const topics = whatYouLearnTopics(course.tags, course.level);
 
   return (
-    <div className="min-h-dvh bg-gray-50">
+    <div className="min-h-dvh bg-white">
       <Navbar />
-      <main>
-        {/* Dark hero — header info + price card (reference structure) */}
-        <div className="bg-[linear-gradient(to_right_bottom,#0a0a1a,#0d0d2b,#0a0a1a)] pt-8 pb-16 px-4">
+      <main className="pt-20">
+        {/* Reference shell: gray wrapper under the navbar offset holds the
+            dark hero + the curriculum body. */}
+        <div className="min-h-screen bg-gray-50">
+          {/* Dark hero — header info + price card (reference structure) */}
+          <div className="bg-[linear-gradient(to_right_bottom,#0a0a1a,#0d0d2b,#0a0a1a)] pt-8 pb-16 px-4">
           <div className="max-w-7xl mx-auto">
             <Link
               href="/Courses"
@@ -159,24 +163,29 @@ export default async function CourseDetailPage({
           </div>
         </div>
 
-        {/* Body — curriculum + What You'll Learn */}
-        <div className="max-w-7xl mx-auto px-4 py-16">
+        {/* Body — About (when present) + curriculum + What You'll Learn */}
+          <div className="max-w-7xl mx-auto px-4 py-16">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-            <div className="lg:col-span-2">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Course Curriculum</h2>
-              <div className="space-y-3">
-                {course.lessons.map((lesson, i) => (
-                  <div
-                    key={lesson.id}
-                    className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:border-purple-200 hover:shadow-sm transition-all"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500">
-                      {i + 1}
+            <div className={course.longDescription ? "lg:col-span-2 space-y-12" : "lg:col-span-2"}>
+              {course.longDescription && (
+                <AboutCourse description={course.longDescription} />
+              )}
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Course Curriculum</h2>
+                <div className="space-y-3">
+                  {course.lessons.map((lesson, i) => (
+                    <div
+                      key={lesson.id}
+                      className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:border-purple-200 hover:shadow-sm transition-all"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500">
+                        {i + 1}
+                      </div>
+                      <span className="text-gray-700 font-medium">{lesson.title}</span>
+                      <CirclePlay className="h-5 w-5 text-gray-400 ml-auto" aria-hidden="true" />
                     </div>
-                    <span className="text-gray-700 font-medium">{lesson.title}</span>
-                    <CirclePlay className="h-5 w-5 text-gray-400 ml-auto" aria-hidden="true" />
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -196,6 +205,7 @@ export default async function CourseDetailPage({
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </main>

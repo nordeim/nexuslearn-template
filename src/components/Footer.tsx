@@ -13,7 +13,7 @@ const COLUMNS = [
     title: "Platform",
     links: [
       { label: "Browse Courses", href: "/Courses" },
-      { label: "Learning Paths", href: "/" },
+      { label: "Learning Paths", href: "/Courses" },
       { label: "AI Assistant", href: "/AIAssistant" },
       { label: "Pricing", href: "/Pricing" },
     ],
@@ -29,10 +29,10 @@ const COLUMNS = [
   {
     title: "Support",
     links: [
-      { label: "Help Center", href: "#" },
-      { label: "FAQ", href: "#" },
-      { label: "Privacy Policy", href: "#" },
-      { label: "Terms of Service", href: "#" },
+      { label: "Help Center", href: "/Contact" },
+      { label: "FAQ", href: "/Contact" },
+      { label: "Privacy Policy", href: "/About" },
+      { label: "Terms of Service", href: "/About" },
     ],
   },
 ];

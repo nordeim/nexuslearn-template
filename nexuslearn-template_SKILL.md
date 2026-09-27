@@ -1,9 +1,9 @@
 ---
 name: nexuslearn-template
-description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from a 3-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons), the three Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients), the hardened mobile navigation pattern, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing, 2-col AI section, dark popular pricing card, FAQ stack), and the full test pyramid (16 Vitest unit + 34 Playwright e2e incl. 6 mobile-nav guards)."
-version: 2.1.0
+description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from a 4-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons), the three Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients), the hardened mobile navigation pattern, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference page-shell pattern (main.pt-20 + gray wrapper under the fixed navbar), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing, 2-col AI section, dark popular pricing card, FAQ stack, expandable About This Course, light-slate 404), and the full test pyramid (21 Vitest unit + 50 Playwright e2e incl. 6 mobile-nav guards)."
+version: 2.2.0
 last_updated: "2026-09-27"
-project_state: "50 tests green (16 unit + 34 e2e); lint/typecheck/build clean; parity verified vs live reference (session-3 pass: AI/instructor/pricing sections, FAQ, eyebrows, category grid)"
+project_state: "71 tests green (21 unit + 50 e2e); lint/typecheck/build clean; parity verified vs live reference (session-4 pass: page shells, About This Course, seed imagery, lesson-count drift, AI chat shell, footer hrefs, 404)"
 ---
 
 # NexusLearn — Complete Engineering Skill
@@ -97,12 +97,14 @@ excluded from tsconfig/eslint/vitest/playwright.
 | `AUTH_SECRET` | production | HMAC session secret (`openssl rand -hex 32`); insecure dev fallback warns |
 | `NEXT_PUBLIC_SITE_URL` | optional | Canonical origin for metadata/robots |
 
-**Test inventory (verified green):** 16 unit tests across 3 files
-(`auth.test.ts` 5, `course-tags.test.ts` 5, `seed-data.test.ts` 6) +
-34 e2e specs across 2 files (`mobile-navigation.spec.ts` 6,
-`nexuslearn.spec.ts` 28 — incl. the 9 session-3 parity specs for the
-AI/instructor/pricing sections, eyebrows, category grid, pricing FAQ,
-hero CTA targets, nav logo href and login signup button).
+**Test inventory (verified green):** 21 unit tests across 3 files
+(`auth.test.ts` 5, `course-tags.test.ts` 5, `seed-data.test.ts` 11 — incl.
+the reference imagery/avatar map and lesson-count pins) + 50 e2e specs
+across 2 files (`mobile-navigation.spec.ts` 6, `nexuslearn.spec.ts` 44 —
+incl. the 9 session-3 parity specs and the 16 session-4 specs: page shells
+on all 7 non-landing routes, navbar clearance, About-Course expand/collapse,
+footer/nav href targets, AI chat shell, Contact overlap container, the
+light-slate 404 and the robots/sitemap SEO files).
 
 ---
 
@@ -111,7 +113,7 @@ hero CTA targets, nav logo href and login signup button).
 ```bash
 bun install
 bun run db:push     # create db/custom.db from prisma/schema.prisma
-bun run db:seed     # 9-course reference catalog + 1,900 lessons + demo user
+bun run db:seed     # 9-course reference catalog + 1,904 lessons + demo user
 bun run dev         # http://localhost:3000
 ```
 
@@ -303,7 +305,9 @@ that array and calls `router.refresh()` so server stat cards update live.
   comma-separated What-You'll-Learn topics (SQLite has no scalar lists).
 - `Lesson` (courseId, title, sortOrder) — seeded as `lessonsCount` rows per
   course titled `Lesson N: Module Content` (the reference's auto-generated
-  curriculum: 220 for AWS, 375 for the bootcamp, 1,900 total).
+  curriculum: 220 for AWS, 380 for the bootcamp, 1,904 total — re-captured
+  in session 4 after live drift). `Course.longDescription` (nullable) feeds
+  the expandable "About This Course" block on 4 of the 9 courses.
 - `Enrollment` — unique `[userId, courseId]` (idempotent upsert), derived
   `progress` 0–100, `completedAt`.
 - `LessonProgress` — unique `[enrollmentId, lessonId]`, `completed`,
@@ -407,9 +411,9 @@ pinning per command: `DATABASE_URL="file:../db/custom.db" bun run db:seed`.
 ```bash
 bun run lint         # eslint clean
 bun run typecheck    # tsc --noEmit clean
-bun run test         # 16/16 unit
+bun run test         # 21/21 unit
 bun run build        # standalone compiles
-bun run test:e2e     # 34/34 incl. 6 mobile-nav
+bun run test:e2e     # 50/50 incl. 6 mobile-nav
 ```
 
 - [ ] Mobile menu manually eyeballed at 375×667 (screenshot vs `docs/screenshots/`)
