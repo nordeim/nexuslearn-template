@@ -5,7 +5,7 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.3.3-06b6d4?logo=tailwindcss)
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2d3748?logo=prisma)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?logo=typescript)
-![Tests](https://img.shields.io/badge/tests-41_passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-50_passing-brightgreen)
 
 A production-grade e-learning platform — marketing site, searchable course catalog, enrollment with per-lesson progress tracking, a learner dashboard, and an AI study assistant. Built as a faithful, fully-functional clone of the NexusLearn reference app, rebuilt on the modern Next.js 16 stack.
 
@@ -24,6 +24,7 @@ Everything runs from one Next.js app with a zero-config SQLite database, first-p
 | 📊 Learner dashboard | Enrolled/In-Progress/Completed/Avg-Progress stat cards + course progress cards |
 | ✅ Progress tracking | Per-lesson completion that recomputes enrollment percentage server-side |
 | 🤖 AI study assistant | Chat UI backed by a server-only LLM route with markdown-rendered answers |
+| 💎 Reference pricing | Dark cosmic popular card, desc lines, FAQ stack with help icons — matched 1:1 |
 | 🔐 First-party auth | HMAC-SHA256 signed cookie sessions + scrypt password hashing (no provider lock-in) |
 | 📱 Mobile-first nav | Animated dropdown menu with ARIA wiring, scroll lock, symmetric breakpoints |
 | ✉️ Lead capture | Contact form and newsletter subscription persisted to the database |
@@ -126,7 +127,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```bash
 bun run test          # Vitest unit tests (auth crypto, tag parsing, seed shape)
 bun run build         # required before e2e
-bun run test:e2e      # Playwright: 25 specs incl. 6 mobile-navigation guards
+bun run test:e2e      # Playwright: 34 specs incl. 6 mobile-navigation guards
 ```
 
 The e2e suite boots the **production standalone server** on `:3100` with an isolated, seeded `db/e2e.db` and resets enrollment state on every run. The mobile-navigation specs pin the behaviors most prone to Tailwind v4 regressions: symmetric `md:` breakpoints, dropdown open/close, route-change close, Escape close, icon swap, and scroll lock.

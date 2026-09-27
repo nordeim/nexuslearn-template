@@ -15,7 +15,7 @@ NexusLearn — an e-learning platform (marketing site + course catalog + enrollm
 | DB schema push | `bun run db:push` |
 | DB seed | `bun run db:seed` |
 | Unit tests | `bun run test` (Vitest) |
-| E2E tests | `bun run test:e2e` (Playwright; **requires `bun run build` first** — boots the standalone server on :3100 with `db/e2e.db`; 25 specs incl. the 6 mobile-nav guards) |
+| E2E tests | `bun run test:e2e` (Playwright; **requires `bun run build` first** — boots the standalone server on :3100 with `db/e2e.db`; 34 specs incl. the 6 mobile-nav guards) |
 | Lint / typecheck | `bun run lint` / `bun run typecheck` |
 | Production build | `bun run build` (standalone output) |
 

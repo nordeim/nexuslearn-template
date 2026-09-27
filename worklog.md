@@ -51,3 +51,24 @@ Stage Summary:
 - DB convention: file:../db/custom.db → <repo>/db/custom.db everywhere; shell-export trap documented.
 - Test pyramid: 16 unit + 25 e2e, all green; parity behaviors are now regression-guarded specs.
 - Ready for commit + SSH-wrapper push to main.
+
+---
+Task ID: 3
+Agent: Super Z (main)
+Task: Session 3 — parity re-audit pass: refresh repo, review session_2.md + remediation-plan-session2.md + worklog, re-audit live-site parity, remediate residual gaps with TDD, screenshots, docs alignment, commit + push to main.
+
+Work Log:
+- Pulled main (5bb4416): docs/session_2.md + repo worklog.md. Re-read AGENTS/CLAUDE/README/PAD/SKILL.md; validated against the codebase (.env DATABASE_URL=file:../db/custom.db, db/ at repo root with custom.db + e2e.db, skills/ excluded from tsconfig+eslint+vitest+playwright, package name nexuslearn-template, 16 screenshots from session 2).
+- BASELINE GATES (pre-remediation): lint ✓ typecheck ✓ 16/16 unit ✓ build ✓ 25/25 e2e ✓ — session-2 state confirmed green.
+- PARITY RE-AUDIT (agent-browser, live vs clone, 1920x1080 + 375x667): 11 residual gaps found (docs/remediation-plan-session3.md) — session 2 had focused on hero/Courses/CourseDetail/chrome, leaving landing sub-section internals drifted: AI section (live = 2-col: badge + <br> gradient h2 left, 4 glass cards right; clone = centered + 4-cards row), instructor section (live = unsplash image + floating $12.5M stat + CTA after features; clone = text + 3 white cards, CTA before), pricing cards (live = rounded-3xl + dark cosmic popular card + desc lines + check icons; clone = rounded-2xl white border-2 card, no desc) on BOTH landing + /Pricing, /Pricing hero rhythm (pt-16 pb-12 vs py-20) + FAQ (live = space-y-6 stack w/ CircleHelp icons + 4 different Q&As; clone = space-y-4 white grid, invented Q&As), category grid (sm:3/lg:4 + cursor-pointer overflow-hidden vs lg:7), eyebrows (text-sm span Title-Case vs text-xs p UPPERCASE), paths cards (borderless bg-gray-50 vs white border), newsletter decor (single centered 600px blur vs radial+corners), hero Start Learning → /Courses (clone: /login), nav logo → /Home (clone: /), login "Need an account? Sign up" single button (clone: p + button split; Forgot password? text-sm vs text-xs).
+- Verified matching (no action): Courses, CourseDetail (220 lessons), Dashboard both states, AIAssistant, About/Contact/BecomeInstructor, footer, testimonials, h1/hero SVG/stats, featured cards, login flow → /, mobile menu on BOTH sites (opens, ARIA, route-change close; live has no ARIA — clone's hardening kept; 6 e2e guards).
+- REMEDIATION (TDD): 9 new e2e specs + 1 updated written RED first (verified failing) → landing page.tsx reworks (AI 2-col + quarter blurs, instructor image+stat+CTA-after-features, pricing cards + desc + badge + check icons, category grid, eyebrows, paths cards, newsletter blur, Start Learning → /Courses) → /Pricing rewrite (pt-20 main, min-h-screen bg-gray-50 wrapper, pt-16 pb-12 hero, shared card pattern, FAQ stack + CircleHelp + live Q&As) → Navbar logo → /Home → LoginForm single signup button + text-sm forgot + live container classes → GREEN.
+- Bug during implementation: template-literal closing brace dropped in pricing card className (TS17002) — fixed; e2e boundingBox() await precedence — fixed; nav-logo assertion moved from login (no nav there) to landing test.
+- GATES (final): lint ✓ typecheck ✓ 16/16 unit ✓ build ✓ 34/34 e2e ✓ (25 → 34: +9 parity specs). Visual re-verify: landing height diff 243px → 31px (image-load variance); /Pricing byte-identical height (2369 = 2369, 5.6% pixel diff = live's scroll-reveal animation states); mobile layouts match (AI 1-col, stat card hidden, category 2-col on both).
+- Screenshots: 16 fresh captures in docs/screenshots/ (11 desktop incl. signed-out dashboard, 4 mobile, mobile-menu-open).
+- Docs updated: README (badge 50 passing, 34 specs, pricing feature row), AGENTS (34 specs), CLAUDE (28 nexuslearn specs), PAD ([S3] revision entry + checklist + spec count), nexuslearn-template_SKILL.md (v2.1.0: 3-session build, 50 tests, §4.5 cosmic recipe variants per section, pre-ship 34/34). .env.example re-verified (DATABASE_URL/AUTH_SECRET/NEXT_PUBLIC_SITE_URL cover all code references).
+
+Stage Summary:
+- Repo at full parity with the live reference after the session-3 sub-section pass; every reworked structure now pinned by TDD e2e specs.
+- Test pyramid: 16 unit + 34 e2e = 50, all green.
+- Ready for commit + SSH-wrapper push to main.

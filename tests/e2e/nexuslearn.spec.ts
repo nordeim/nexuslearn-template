@@ -20,6 +20,118 @@ test.describe("landing page", () => {
     }
   });
 
+  test("hero CTAs match the reference targets (Start Learning -> /Courses)", async ({ page }) => {
+    await page.goto("/");
+    const browse = page.getByRole("button", { name: "Browse Courses" });
+    const start = page.getByRole("button", { name: "Start Learning" });
+    await expect(browse).toBeVisible();
+    await expect(start).toBeVisible();
+    // Both hero CTAs link to /Courses on the reference app.
+    await expect(page.locator("a:has(button:text('Start Learning'))")).toHaveAttribute("href", "/Courses");
+    // Nav logo links to /Home (reference behavior; /Home renders the landing)
+    await expect(page.locator("nav a").first()).toHaveAttribute("href", "/Home");
+  });
+
+  test("section eyebrows are text-sm spans with Title-Case source text", async ({ page }) => {
+    await page.goto("/");
+    // Reference eyebrows: <span class="text-sm font-semibold text-purple-600 tracking-wider uppercase">
+    for (const label of ["Explore", "Top Picks", "Career Tracks", "Testimonials", "Pricing"]) {
+      const eyebrow = page.locator(`span.text-sm.text-purple-600.uppercase`, { hasText: label }).first();
+      await expect(eyebrow).toBeVisible();
+      // Source text is Title Case (the CSS `uppercase` class renders it as caps).
+      await expect(eyebrow).toHaveText(label, { ignoreCase: false });
+    }
+  });
+
+  test("category grid wraps into 4 columns with linked cards", async ({ page }) => {
+    await page.goto("/");
+    // Reference grid: grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6
+    const grid = page.locator("main section", { has: page.getByRole("heading", { name: "Browse by Category" }) }).locator(".grid").first();
+    await expect(grid).toHaveClass(/lg:grid-cols-4/);
+    await expect(grid).toHaveClass(/sm:grid-cols-3/);
+    // Cards are links to the filtered catalog
+    await expect(grid.locator("a[href*='/Courses?category=']").first()).toBeVisible();
+    // Card surface matches the reference (cursor-pointer overflow-hidden)
+    await expect(grid.locator("a > div").first()).toHaveClass(/cursor-pointer/);
+  });
+
+  test("AI section is the reference 2-column layout with glass feature cards", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("main section", { has: page.getByRole("heading", { name: "AI Study Companion" }) });
+
+    // Badge above the h2, purple-tinted (left column)
+    await expect(section.getByText("✨ Powered by AI")).toBeVisible();
+    await expect(section.getByText("✨ Powered by AI")).toHaveClass(/bg-purple-500\/10/);
+
+    // h2 breaks after "Your Personal"; gradient span carries the rest
+    const h2 = section.getByRole("heading", { name: "AI Study Companion" });
+    await expect(h2.locator("br")).toHaveCount(1);
+    await expect(h2.locator("span.bg-gradient-to-r")).toBeVisible();
+
+    // 2-col wrapper + 4 glass cards in a 2x2 grid on the right
+    await expect(section.locator(".grid.grid-cols-1.lg\\:grid-cols-2").first()).toBeVisible();
+    const glassGrid = section.locator(".grid.sm\\:grid-cols-2").first();
+    await expect(glassGrid).toBeVisible();
+    await expect(glassGrid.locator("> div")).toHaveCount(4);
+    await expect(glassGrid.locator("> div").first()).toHaveClass(/bg-white\/5/);
+    // Bare lucide icons, cyan, no gradient boxes
+    await expect(glassGrid.locator("> div").first()).toHaveClass(/backdrop-blur-sm/);
+  });
+
+  test("instructor section has the image + floating $12.5M stat and CTA after features", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("main section", { has: page.getByRole("heading", { name: "Become an Instructor" }) });
+
+    // Left image column (unsplash instructor photo + purple overlay)
+    await expect(section.locator("img[alt='Instructor']")).toBeVisible();
+    await expect(section.locator(".aspect-\\[4\\/3\\]")).toBeVisible();
+
+    // Floating stat card
+    await expect(section.getByText("$12.5M+")).toBeVisible();
+    await expect(section.getByText("Paid to Instructors")).toBeVisible();
+
+    // CTA comes AFTER the feature list in DOM order
+    const cta = section.getByRole("button", { name: "Start Teaching Today" });
+    await expect(cta).toBeVisible();
+    const lastFeature = section.getByRole("heading", { name: "Analytics Dashboard" });
+    const ctaBox = await cta.boundingBox();
+    const featureBox = await lastFeature.boundingBox();
+    expect(ctaBox?.y ?? 0).toBeGreaterThan(featureBox?.y ?? 0);
+  });
+
+  test("pricing cards match the reference (rounded-3xl, dark popular card, desc line)", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("main section", { has: page.getByRole("heading", { name: "Choose Your Plan" }) });
+    const cards = section.locator(".grid > div");
+    await expect(cards).toHaveCount(3);
+
+    // rounded-3xl on all cards
+    await expect(cards.first()).toHaveClass(/rounded-3xl/);
+
+    // Middle card is the dark gradient popular card
+    const popular = cards.nth(1);
+    await expect(popular).toHaveClass(/bg-gradient-to-br/);
+    await expect(popular).toHaveClass(/scale-105/);
+    await expect(popular.getByText("Most Popular")).toBeVisible();
+
+    // Desc line under the price (missing on the pre-session-3 clone)
+    await expect(section.getByText("Perfect for getting started")).toBeVisible();
+    await expect(section.getByText("For serious learners")).toBeVisible();
+    await expect(section.getByText("Best value for committed learners")).toBeVisible();
+
+    // Reference buttons
+    await expect(section.getByRole("button", { name: "Start Pro Trial" })).toBeVisible();
+    await expect(section.getByRole("button", { name: "Get Lifetime Access" })).toBeVisible();
+  });
+
+  test("learning-path cards use the reference gray surface without borders", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("main section", { has: page.getByRole("heading", { name: "Structured Learning Paths" }) });
+    const card = section.locator(".grid > div").first();
+    await expect(card).toHaveClass(/bg-gray-50/);
+    await expect(card).not.toHaveClass(/border/);
+  });
+
   test("hero illustration is the reference flowing-lines SVG", async ({ page }) => {
     await page.goto("/");
     // The decorative SVG sits behind the hero content (aria-hidden).
@@ -136,6 +248,8 @@ test.describe("auth + dashboard", () => {
     await expect(page.getByLabel("Email")).toBeVisible();
     await expect(page.getByLabel("Password")).toBeVisible();
     await expect(page).toHaveTitle("NexusLearn");
+    // Reference signup CTA: one button "Need an account? Sign up"
+    await expect(page.getByRole("button", { name: "Need an account? Sign up" })).toBeVisible();
   });
 
   test("dashboard renders for signed-out visitors (reference behavior)", async ({ page }) => {
@@ -191,6 +305,44 @@ test.describe("auth + dashboard", () => {
 });
 
 test.describe("content pages", () => {
+  test("pricing page FAQ matches the reference questions and stack layout", async ({ page }) => {
+    await page.goto("/Pricing");
+    await expect(page).toHaveTitle("Pricing | NexusLearn");
+
+    // Reference FAQ: single-column stack (space-y-6), gray cards with help icons
+    const faqSection = page.locator("main section", { has: page.getByRole("heading", { name: "Frequently Asked Questions" }) });
+    const stack = faqSection.locator(".space-y-6").first();
+    await expect(stack).toBeVisible();
+    await expect(stack.locator("> div")).toHaveCount(4);
+    await expect(stack.locator("> div").first()).toHaveClass(/bg-gray-50/);
+    // h3 rows carry the circle-help icon
+    await expect(stack.locator("h3 svg").first()).toBeVisible();
+
+    // The 4 reference questions (verbatim)
+    for (const q of [
+      "Can I switch plans at any time?",
+      "Is there a free trial for Pro?",
+      "What payment methods do you accept?",
+      "Can I get a refund?",
+    ]) {
+      await expect(faqSection.getByRole("heading", { name: q })).toBeVisible();
+    }
+    await expect(faqSection.getByText("30-day money-back guarantee", { exact: false })).toBeVisible();
+  });
+
+  test("pricing page hero uses the reference pt-16 pb-12 rhythm", async ({ page }) => {
+    await page.goto("/Pricing");
+    const h1 = page.getByRole("heading", { name: "Simple, Transparent Pricing" });
+    await expect(h1).toBeVisible();
+    // Hero container: same cosmic gradient, pt-16 pb-12 (not py-20)
+    await expect(page.locator("main .bg-gradient-to-br.pt-16.pb-12").first()).toBeVisible();
+    // Plans section headline
+    await expect(page.getByRole("heading", { name: "Choose Your Plan" })).toBeVisible();
+    // Dark popular card on the pricing page too
+    const cards = page.locator("main .grid > div", { has: page.getByRole("button", { name: "Start Pro Trial" }) });
+    await expect(cards).toHaveClass(/bg-gradient-to-br/);
+  });
+
   test("about page shows the four reference values", async ({ page }) => {
     await page.goto("/About");
     for (const value of ["Mission-Driven", "Student-First", "Innovation", "Global Impact"]) {

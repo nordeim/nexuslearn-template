@@ -1,9 +1,9 @@
 ---
 name: nexuslearn-template
-description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from a 2-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons), the three Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients), the hardened mobile navigation pattern, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing), and the full test pyramid (16 Vitest unit + 25 Playwright e2e incl. 6 mobile-nav guards)."
-version: 2.0.0
+description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from a 3-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons), the three Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients), the hardened mobile navigation pattern, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing, 2-col AI section, dark popular pricing card, FAQ stack), and the full test pyramid (16 Vitest unit + 34 Playwright e2e incl. 6 mobile-nav guards)."
+version: 2.1.0
 last_updated: "2026-09-27"
-project_state: "41 tests green (16 unit + 25 e2e); lint/typecheck/build clean; parity verified vs live reference"
+project_state: "50 tests green (16 unit + 34 e2e); lint/typecheck/build clean; parity verified vs live reference (session-3 pass: AI/instructor/pricing sections, FAQ, eyebrows, category grid)"
 ---
 
 # NexusLearn — Complete Engineering Skill
@@ -99,8 +99,10 @@ excluded from tsconfig/eslint/vitest/playwright.
 
 **Test inventory (verified green):** 16 unit tests across 3 files
 (`auth.test.ts` 5, `course-tags.test.ts` 5, `seed-data.test.ts` 6) +
-25 e2e specs across 2 files (`mobile-navigation.spec.ts` 6,
-`nexuslearn.spec.ts` 19).
+34 e2e specs across 2 files (`mobile-navigation.spec.ts` 6,
+`nexuslearn.spec.ts` 28 — incl. the 9 session-3 parity specs for the
+AI/instructor/pricing sections, eyebrows, category grid, pricing FAQ,
+hero CTA targets, nav logo href and login signup button).
 
 ---
 
@@ -198,8 +200,13 @@ Dark sections (landing hero, Courses/CourseDetail/Dashboard/About/Contact/
 BecomeInstructor heroes, AI section, CTA) share:
 
 - cosmic gradient background (see 4.4)
-- radial purple glow: `bg-[radial-gradient(ellipse_at_center,rgba(99,68,245,0.15),transparent_70%)]`
-- corner blurs: `bg-purple-600/10 rounded-full blur-3xl` / `bg-cyan-500/8`
+- landing hero: radial purple glow
+  `bg-[radial-gradient(ellipse_at_center,rgba(99,68,245,0.15),transparent_70%)]`
+  + corner blurs (`bg-purple-600/10` / `bg-cyan-500/8`, `rounded-full blur-3xl`)
+- AI section (session-3 parity): quarter-position blurs — `top-0 left-1/4
+  w-96 h-96 bg-purple-600/10` + `bottom-0 right-1/4 w-96 h-96 bg-cyan-500/10`
+- newsletter CTA (session-3 parity): one centered 600px blur — `top-1/2 left-1/2
+  -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-600/10`
 - white headline, `text-gray-400` body, cyan→purple CTA buttons
 
 ---
@@ -402,7 +409,7 @@ bun run lint         # eslint clean
 bun run typecheck    # tsc --noEmit clean
 bun run test         # 16/16 unit
 bun run build        # standalone compiles
-bun run test:e2e     # 25/25 incl. 6 mobile-nav
+bun run test:e2e     # 34/34 incl. 6 mobile-nav
 ```
 
 - [ ] Mobile menu manually eyeballed at 375×667 (screenshot vs `docs/screenshots/`)

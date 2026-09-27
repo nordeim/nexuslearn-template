@@ -98,22 +98,19 @@ export function LoginForm() {
         {loading ? "Signing in…" : "Sign in"}
       </button>
 
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
         <button
           type="button"
-          className="text-xs text-slate-500 hover:text-slate-700 font-medium transition-colors"
+          className="text-sm text-slate-500 hover:text-slate-700 font-medium transition-colors"
         >
           Forgot password?
         </button>
-        <p className="text-center text-sm text-slate-500">
-          Need an account?{" "}
-          <button
-            type="button"
-            className="font-semibold text-purple-600 hover:text-purple-700 transition-colors"
-          >
-            Sign up
-          </button>
-        </p>
+        <button
+          type="button"
+          className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+        >
+          Need an account? <span className="font-medium text-slate-700">Sign up</span>
+        </button>
       </div>
     </form>
   );

@@ -95,7 +95,7 @@ bun run dev         # http://localhost:3000
 
 ### Test Pyramid
 - **Unit Tests** (Vitest, `tests/*.test.ts`): pure domain seams — session token sign/verify, scrypt password hashing, course-tag parsing, seed-data shape
-- **E2E Tests** (Playwright, `tests/e2e/*.spec.ts`): mobile navigation (6 specs — the Tailwind v4 regression guard), landing/catalog/course-detail/auth/enrollment/dashboard/content-page flows (19 specs) against the production standalone server
+- **E2E Tests** (Playwright, `tests/e2e/*.spec.ts`): mobile navigation (6 specs — the Tailwind v4 regression guard), landing/catalog/course-detail/auth/enrollment/dashboard/content-page/pricing-FAQ flows (28 specs) against the production standalone server
 - **Visual parity**: computed-style assertions and VLM screenshot comparisons against the reference app (see PAD §5 and `docs/screenshots/`)
 
 ### Test Commands

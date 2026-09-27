@@ -9,17 +9,16 @@ import {
   Heart,
   Code,
   Sparkles,
-  Bot,
+  MessageSquare,
   Lightbulb,
-  BarChart3,
-  FileText,
-  Award,
-  CheckCircle2,
+  ChartColumn,
+  Check,
+  ChevronRight,
   DollarSign,
   Globe,
-  LineChart,
   Star,
   Quote,
+  Award,
 } from "lucide-react";
 
 import { Navbar } from "@/components/Navbar";
@@ -109,6 +108,7 @@ const PRICING = [
     name: "Free",
     price: "$0",
     period: "forever",
+    desc: "Perfect for getting started",
     features: ["Access to 50+ free courses", "Community forum access", "Basic progress tracking", "Mobile app access"],
     cta: "Get Started",
     popular: false,
@@ -117,6 +117,7 @@ const PRICING = [
     name: "Pro",
     price: "$19",
     period: "/month",
+    desc: "For serious learners",
     features: [
       "Unlimited course access",
       "AI study assistant",
@@ -132,6 +133,7 @@ const PRICING = [
     name: "Lifetime",
     price: "$299",
     period: "one-time",
+    desc: "Best value for committed learners",
     features: [
       "Everything in Pro",
       "Lifetime access",
@@ -188,7 +190,7 @@ export default async function LandingPage() {
                     <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
                   </button>
                 </Link>
-                <Link href="/login">
+                <Link href="/Courses">
                   <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border shadow-sm h-9 border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white px-8 py-6 text-lg rounded-xl backdrop-blur-sm transition-all duration-300 hover:scale-105">
                     <Play className="mr-2 h-5 w-5" aria-hidden="true" />
                     Start Learning
@@ -264,7 +266,7 @@ export default async function LandingPage() {
         <section className="py-24 px-4 bg-white">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-3">EXPLORE</p>
+              <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Explore</span>
               <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
                 Browse by Category
               </h2>
@@ -273,10 +275,10 @@ export default async function LandingPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
               {CATEGORIES.map((cat) => (
                 <Link key={cat.slug} href={`/Courses?category=${cat.slug}`}>
-                  <div className="group relative bg-gray-50 rounded-2xl p-6 md:p-8 text-center hover:bg-white hover:shadow-xl transition-all duration-500 border border-transparent hover:border-gray-100">
+                  <div className="group relative bg-gray-50 rounded-2xl p-6 md:p-8 text-center hover:bg-white hover:shadow-xl transition-all duration-500 border border-transparent hover:border-gray-100 cursor-pointer overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-transparent to-transparent group-hover:from-purple-50/50 group-hover:to-cyan-50/50 transition-all duration-500 rounded-2xl" />
                     <div className="relative z-10">
                       <div
@@ -300,7 +302,7 @@ export default async function LandingPage() {
         <section className="py-24 px-4 bg-gray-50">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-3">TOP PICKS</p>
+              <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Top Picks</span>
               <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
                 Featured Courses
               </h2>
@@ -330,7 +332,7 @@ export default async function LandingPage() {
         <section className="py-24 px-4 bg-white">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-3">CAREER TRACKS</p>
+              <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Career Tracks</span>
               <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
                 Structured Learning Paths
               </h2>
@@ -343,7 +345,7 @@ export default async function LandingPage() {
               {LEARNING_PATHS.map((path) => (
                 <div
                   key={path.title}
-                  className="group relative bg-white rounded-3xl p-8 border border-gray-100 hover:border-purple-200 hover:shadow-2xl hover:shadow-purple-500/5 transition-all duration-500"
+                  className="group relative bg-gray-50 rounded-3xl p-8 hover:bg-white hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-500"
                 >
                   <div className={`inline-flex p-3 rounded-2xl bg-gradient-to-r ${path.gradient} mb-6`}>
                     <Code className="h-6 w-6 text-white" aria-hidden="true" />
@@ -362,14 +364,14 @@ export default async function LandingPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-500 pb-6 border-b border-gray-50">
-                    <Award className="h-4 w-4 text-purple-600" aria-hidden="true" />
-                    Certification upon completion
+                  <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-yellow-500" aria-hidden="true" />
+                    <span className="text-sm font-medium text-gray-600">Certification upon completion</span>
                   </div>
                   <Link href="/Courses">
-                    <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 px-4 py-2 mt-6 w-full text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-xl transition-all duration-300">
+                    <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 px-4 py-2 mt-6 w-full text-purple-600 hover:text-purple-700 hover:bg-purple-50 group/btn rounded-xl transition-all duration-300">
                       Start This Path
-                      <ArrowRight className="ml-1 h-4 w-4" aria-hidden="true" />
+                      <ChevronRight className="ml-1 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" aria-hidden="true" />
                     </button>
                   </Link>
                 </div>
@@ -381,49 +383,52 @@ export default async function LandingPage() {
         {/* ------------------------------ AI SECTION -------------------------- */}
         <section className="py-24 px-4 bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] relative overflow-hidden">
           <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(99,68,245,0.15),transparent_70%)]" />
-            <div className="absolute top-20 right-20 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-20 left-20 w-96 h-96 bg-cyan-500/8 rounded-full blur-3xl" />
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
           </div>
 
-          <div className="relative z-10 max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-cyan-400 text-sm font-medium mb-6 backdrop-blur-sm">
-                ✨ Powered by AI
-              </span>
-              <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
-                Your Personal AI Study Companion
-              </h2>
-              <p className="mt-4 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
-                Our AI-powered tools adapt to your learning style, helping you study smarter — not harder.
-                Get real-time help, track your progress, and master concepts faster than ever.
-              </p>
-              <Link href="/AIAssistant">
-                <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 mt-8 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
-                  Try AI Assistant
-                  <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
-                </button>
-              </Link>
-            </div>
+          <div className="max-w-7xl mx-auto relative z-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+              <div>
+                <span className="inline-block px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-medium mb-6">
+                  ✨ Powered by AI
+                </span>
+                <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight leading-tight">
+                  Your Personal
+                  <br />
+                  <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
+                    AI Study Companion
+                  </span>
+                </h2>
+                <p className="mt-6 text-lg text-gray-400 leading-relaxed max-w-lg">
+                  Our AI-powered tools adapt to your learning style, helping you study smarter — not harder.
+                  Get real-time help, track your progress, and master concepts faster than ever.
+                </p>
+                <Link href="/AIAssistant">
+                  <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 mt-8 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
+                    Try AI Assistant
+                    <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
+                  </button>
+                </Link>
+              </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[
-                { icon: Bot, title: "AI Study Assistant", text: "Get instant answers to your course questions, 24/7." },
-                { icon: Lightbulb, title: "Smart Recommendations", text: "Personalized course suggestions based on your goals." },
-                { icon: BarChart3, title: "Progress Analytics", text: "Track your learning with detailed insights and stats." },
-                { icon: FileText, title: "Course Summaries", text: "AI-generated summaries to reinforce key concepts." },
-              ].map((f) => (
-                <div
-                  key={f.title}
-                  className="group p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                    <f.icon className="h-6 w-6 text-white" aria-hidden="true" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { icon: MessageSquare, title: "AI Study Assistant", text: "Get instant answers to your course questions, 24/7." },
+                  { icon: Lightbulb, title: "Smart Recommendations", text: "Personalized course suggestions based on your goals." },
+                  { icon: ChartColumn, title: "Progress Analytics", text: "Track your learning with detailed insights and stats." },
+                  { icon: Sparkles, title: "Course Summaries", text: "AI-generated summaries to reinforce key concepts." },
+                ].map((f) => (
+                  <div
+                    key={f.title}
+                    className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300"
+                  >
+                    <f.icon className="h-8 w-8 text-cyan-400 mb-4" aria-hidden="true" />
+                    <h3 className="font-semibold text-white mb-2">{f.title}</h3>
+                    <p className="text-sm text-gray-400 leading-relaxed">{f.text}</p>
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">{f.title}</h3>
-                  <p className="text-sm text-gray-400 leading-relaxed">{f.text}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -431,41 +436,61 @@ export default async function LandingPage() {
         {/* ------------------------- BECOME INSTRUCTOR ------------------------ */}
         <section className="py-24 px-4 bg-gray-50">
           <div className="max-w-7xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+              <div className="relative">
+                <div className="relative rounded-3xl overflow-hidden aspect-[4/3]">
+                  <img
+                    src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=80"
+                    alt="Instructor"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-tr from-purple-600/30 to-transparent" />
+                </div>
+                <div className="absolute -bottom-6 -right-6 bg-white rounded-2xl p-5 shadow-xl hidden md:block">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                      <DollarSign className="h-6 w-6 text-green-600" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">$12.5M+</p>
+                      <p className="text-sm text-gray-500">Paid to Instructors</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div>
-                <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-3">TEACH WITH US</p>
-                <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
+                <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Teach With Us</span>
+                <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
                   Become an Instructor
                 </h2>
-                <p className="mt-4 text-lg text-gray-500 leading-relaxed">
+                <p className="mt-6 text-lg text-gray-500 leading-relaxed">
                   Share your knowledge with thousands of eager learners. Our platform gives you the tools,
                   audience, and support to build a thriving teaching business.
                 </p>
+                <div className="mt-8 space-y-6">
+                  {[
+                    { icon: DollarSign, title: "Competitive Revenue", text: "Earn up to 70% revenue share on every enrollment." },
+                    { icon: Globe, title: "Global Reach", text: "Reach students from over 150 countries worldwide." },
+                    { icon: ChartColumn, title: "Analytics Dashboard", text: "Track your course performance with real-time analytics." },
+                  ].map((f) => (
+                    <div key={f.title} className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center shrink-0">
+                        <f.icon className="h-5 w-5 text-purple-600" aria-hidden="true" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{f.title}</h3>
+                        <p className="text-sm text-gray-500 mt-1">{f.text}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
                 <Link href="/BecomeInstructor">
                   <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 mt-10 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
                     Start Teaching Today
                     <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
                   </button>
                 </Link>
-              </div>
-
-              <div className="grid sm:grid-cols-3 gap-6">
-                {[
-                  { icon: DollarSign, title: "Competitive Revenue", text: "Earn up to 70% revenue share on every enrollment." },
-                  { icon: Globe, title: "Global Reach", text: "Reach students from over 150 countries worldwide." },
-                  { icon: LineChart, title: "Analytics Dashboard", text: "Track your course performance with real-time analytics." },
-                ].map((f) => (
-                  <div
-                    key={f.title}
-                    className="p-6 bg-white rounded-2xl border border-gray-100 hover:shadow-xl hover:shadow-purple-500/5 hover:-translate-y-1 transition-all duration-300"
-                  >
-                    <div className="w-11 h-11 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center mb-4">
-                      <f.icon className="h-5 w-5" aria-hidden="true" />
-                    </div>
-                    <h3 className="font-semibold text-gray-900 mb-2">{f.title}</h3>
-                    <p className="text-sm text-gray-500 leading-relaxed">{f.text}</p>
-                  </div>
-                ))}
               </div>
             </div>
           </div>
@@ -475,7 +500,7 @@ export default async function LandingPage() {
         <section className="py-24 px-4 bg-white">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-3">TESTIMONIALS</p>
+              <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Testimonials</span>
               <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
                 What Our Students Say
               </h2>
@@ -520,7 +545,7 @@ export default async function LandingPage() {
         <section className="py-24 px-4 bg-gray-50">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-3">PRICING</p>
+              <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Pricing</span>
               <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
                 Choose Your Plan
               </h2>
@@ -529,47 +554,50 @@ export default async function LandingPage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               {PRICING.map((plan) => (
                 <div
                   key={plan.name}
-                  className={`group relative bg-white rounded-2xl p-8 transition-all duration-300 ${
+                  className={`relative rounded-3xl p-8 transition-all duration-500 ${
                     plan.popular
-                      ? "border-2 border-purple-600 shadow-2xl shadow-purple-500/10 md:-translate-y-4"
-                      : "border border-gray-100 hover:shadow-xl hover:shadow-purple-500/5"
+                      ? "bg-gradient-to-br from-[#0a0a1a] to-[#1a1a3a] text-white shadow-2xl shadow-purple-500/20 scale-105 border border-purple-500/30"
+                      : "bg-white border border-gray-100 hover:shadow-xl hover:border-gray-200"
                   }`}
                 >
                   {plan.popular && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                      <span className="inline-flex items-center gap-1 px-4 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-xs font-semibold shadow-lg shadow-purple-500/25">
+                      <span className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-xs font-bold px-4 py-1.5 rounded-full flex items-center gap-1">
                         <Sparkles className="h-3 w-3" aria-hidden="true" />
                         Most Popular
                       </span>
                     </div>
                   )}
-                  <h3 className={`text-xl font-bold ${plan.popular ? "text-purple-600" : "text-gray-900"}`}>
+                  <h3 className={`text-lg font-semibold ${plan.popular ? "text-gray-300" : "text-gray-500"}`}>
                     {plan.name}
                   </h3>
                   <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                    <span className="text-gray-500">{plan.period}</span>
+                    <span className={`text-5xl font-bold ${plan.popular ? "text-white" : "text-gray-900"}`}>
+                      {plan.price}
+                    </span>
+                    <span className={`text-sm ${plan.popular ? "text-gray-400" : "text-gray-500"}`}>{plan.period}</span>
                   </div>
+                  <p className={`mt-2 text-sm ${plan.popular ? "text-gray-400" : "text-gray-500"}`}>{plan.desc}</p>
                   <div className="mt-8 space-y-4">
                     {plan.features.map((f) => (
-                      <div key={f} className="flex items-center gap-3 text-sm">
-                        <CheckCircle2
-                          className={`h-5 w-5 ${plan.popular ? "text-purple-600" : "text-green-500"}`}
+                      <div key={f} className="flex items-center gap-3">
+                        <Check
+                          className={`h-5 w-5 shrink-0 ${plan.popular ? "text-cyan-400" : "text-purple-600"}`}
                           aria-hidden="true"
                         />
-                        <span className="text-gray-600">{f}</span>
+                        <span className={`text-sm ${plan.popular ? "text-gray-300" : "text-gray-600"}`}>{f}</span>
                       </div>
                     ))}
                   </div>
                   <button
-                    className={`inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring shadow h-9 mt-8 w-full py-6 rounded-xl text-base transition-all duration-300 hover:scale-105 ${
+                    className={`inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 px-4 mt-8 w-full py-6 rounded-xl text-base transition-all duration-300 hover:scale-105 ${
                       plan.popular
                         ? "bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-lg shadow-purple-500/25"
-                        : "bg-gray-900 hover:bg-gray-800 text-white"
+                        : "shadow bg-gray-900 hover:bg-gray-800 text-white"
                     }`}
                   >
                     {plan.cta}
@@ -583,9 +611,7 @@ export default async function LandingPage() {
         {/* ---------------------------- NEWSLETTER CTA ------------------------ */}
         <section className="py-24 px-4 bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] relative overflow-hidden">
           <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(99,68,245,0.15),transparent_70%)]" />
-            <div className="absolute top-20 left-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-20 right-10 w-96 h-96 bg-cyan-500/8 rounded-full blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-3xl" />
           </div>
 
           <div className="relative z-10 max-w-2xl mx-auto text-center">

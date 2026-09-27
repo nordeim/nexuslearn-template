@@ -14,6 +14,7 @@ Nothing is here "because it's popular."
 
 - `[SYN]` Initial PAD for the NexusLearn clone build, generated after the full pipeline (recon → extraction → design spec → architecture → build → QA convergence) completed with all gates green: 26/26 computed-style assertions, 5/5 unit tests, 16/16 e2e tests, production build passing.
 - `[SAN]` Three production defects found and remediated during QA are recorded as ADR-004 (Tailwind v4 HSL triplets), ADR-005 (pinned v3 palette), and §4.4 (SQLite path resolution).
+- `[S3]` Session 3 parity pass (see `docs/remediation-plan-session3.md`): 11 residual gaps closed — landing AI section rebuilt as the reference 2-column layout (badge + `<br>` gradient h2 left, 4 glass cards right), instructor section rebuilt with image + floating "$12.5M+ Paid to Instructors" stat + CTA-after-features, pricing cards reworked (rounded-3xl, dark cosmic popular card, desc lines, check icons — landing + /Pricing), /Pricing hero rhythm (pt-16 pb-12) + FAQ single-column stack with CircleHelp icons + the 4 reference Q&As, category grid (sm:3/lg:4 + cursor-pointer overflow-hidden), eyebrows → text-sm spans, learning-path cards → borderless gray surface, newsletter centered 600px blur, hero "Start Learning" → /Courses, nav logo → /Home, login "Need an account? Sign up" single button. Test pyramid now 16 unit + 34 e2e (9 new parity specs, TDD red-first).
 
 ---
 
@@ -228,7 +229,7 @@ nexuslearn-template/
 │   └── e2e/
 │       ├── global-setup.ts     # push + seed db/e2e.db, reset enrollments
 │       ├── mobile-navigation.spec.ts   # 6 specs — the Tailwind v4 regression guard
-│       └── nexuslearn.spec.ts           # 10 specs — landing, catalog, auth, enrollment, 404
+│       └── nexuslearn.spec.ts           # 28 specs — landing (incl. session-3 parity: AI/instructor/pricing sections, eyebrows, category grid), catalog, auth, enrollment, 404
 ├── docs/
 │   ├── screenshots/            # QA captures (desktop + mobile + open mobile menu)
 │   ├── DEPLOYMENT.md           # production deployment guide
@@ -523,8 +524,8 @@ No numeric gate configured; the required **pre-push gate** is the sequence `lint
 - [ ] `bun run lint` clean
 - [ ] `bun run typecheck` clean
 - [ ] `bun run test` 16/16
+- [ ] `bun run test:e2e` 34/34 (incl. 6 mobile-nav guards)
 - [ ] `bun run build` compiles (standalone)
-- [ ] `bun run test:e2e` 25/25
 - [ ] Mobile menu manually eyeballed at 375×667 (screenshot diff vs `docs/screenshots/`)
 - [ ] No new `tailwind.config.js` (Tailwind v4 is CSS-first)
 - [ ] No SDK/secret imports in client components
