@@ -5,7 +5,7 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.3.3-06b6d4?logo=tailwindcss)
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2d3748?logo=prisma)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?logo=typescript)
-![Tests](https://img.shields.io/badge/tests-21_passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-41_passing-brightgreen)
 
 A production-grade e-learning platform — marketing site, searchable course catalog, enrollment with per-lesson progress tracking, a learner dashboard, and an AI study assistant. Built as a faithful, fully-functional clone of the NexusLearn reference app, rebuilt on the modern Next.js 16 stack.
 
@@ -102,8 +102,9 @@ bun run dev         # http://localhost:3000
 
 1. `curl http://localhost:3000/api/health` → `{"ok":true,"service":"nexuslearn"}`
 2. Open `http://localhost:3000/Courses` → 9 course cards render
-3. Sign in at `/login` with `sepnetflix2023@outlook.com` / `$Abcd1234` → redirected to `/Dashboard`
-4. Enroll in any course → it appears on the dashboard with a progress bar; mark lessons done and watch the stat cards update
+3. Sign in at `/login` with `sepnetflix2023@outlook.com` / `$Abcd1234` → returned to the landing page (reference behavior)
+4. Visit `/Dashboard` — signed in you'll see your stats; signed out it renders the zeroed "Welcome back" state (reference behavior — no redirect)
+5. Enroll in any course → it appears on the dashboard with a progress bar; mark lessons done and watch the stat cards update
 
 ## Environment Variables
 
@@ -123,9 +124,9 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ## Testing
 
 ```bash
-bun run test          # Vitest unit tests (auth crypto)
+bun run test          # Vitest unit tests (auth crypto, tag parsing, seed shape)
 bun run build         # required before e2e
-bun run test:e2e      # Playwright: 16 specs incl. 6 mobile-navigation guards
+bun run test:e2e      # Playwright: 25 specs incl. 6 mobile-navigation guards
 ```
 
 The e2e suite boots the **production standalone server** on `:3100` with an isolated, seeded `db/e2e.db` and resets enrollment state on every run. The mobile-navigation specs pin the behaviors most prone to Tailwind v4 regressions: symmetric `md:` breakpoints, dropdown open/close, route-change close, Escape close, icon swap, and scroll lock.
@@ -139,7 +140,7 @@ The e2e suite boots the **production standalone server** on `:3100` with an isol
 | `/api/auth/me` | GET | public | Current session user or `null` |
 | `/api/enrollments` | GET | session | My enrollments with course data |
 | `/api/enrollments` | POST | session | Enroll in a course (idempotent upsert) |
-| `/api/enrollments/progress` | POST | session | Mark a lesson complete, recompute progress % |
+| `/api/enrollments/progress` | POST | session | Mark a lesson complete, recompute progress % (returns `completedLessonIds`) |
 | `/api/ai/chat` | POST | public | AI study assistant (server-only SDK) |
 | `/api/contact` | POST | public | Persist a contact message |
 | `/api/newsletter` | POST | public | Subscribe an email |
@@ -164,7 +165,7 @@ Full token reference with evidence: `Project_Architecture_Document.md` §5.
 | Issue | Solution |
 |---|---|
 | Everything renders transparent / no theme colors | `:root` vars must be `hsl()`-wrapped full values, not v3 bare triplets (Tailwind v4 `@theme inline` rule) |
-| "Unable to open the database file" | Ensure every PrismaClient uses `datasourceUrl: resolveDatabaseUrl()`; check `db/` exists after `bun run db:push` |
+| "Unable to open the database file" | Ensure every PrismaClient uses `datasourceUrl: resolveDatabaseUrl()`; check `db/` exists after `bun run db:push`; a stale `DATABASE_URL` shell export overrides the repo `.env` — unset it |
 | E2E "Enroll Now" not found | Run `bun run build` before `test:e2e`; the suite resets enrollments in global-setup — a stale build is the usual culprit |
 | Colors slightly off vs reference | The v3-era palette must stay pinned in `@theme` (do not revert to v4 oklch defaults) |
 | Login fails on standalone build | `AUTH_SECRET` must be set (any 32-hex value) — sessions won't verify across restarts otherwise |

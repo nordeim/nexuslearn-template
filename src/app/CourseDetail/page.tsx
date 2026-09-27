@@ -6,29 +6,29 @@ import {
   Users,
   Clock,
   BookOpen,
-  Play,
-  CheckCircle2,
-  Monitor,
-  Award,
-  ShieldCheck,
-  Smartphone,
+  CirclePlay,
+  Check,
 } from "lucide-react";
 
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { Badge } from "@/components/ui/badge";
 import { EnrollButton } from "@/components/course-detail/EnrollButton";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { whatYouLearnTopics } from "@/lib/course-tags";
 
 export const dynamic = "force-dynamic";
 
-const LEVEL_BADGE: Record<string, string> = {
-  Beginner: "bg-green-100 text-green-700",
-  Intermediate: "bg-amber-100 text-amber-700",
-  Advanced: "bg-red-100 text-red-700",
-  "All Levels": "bg-blue-100 text-blue-700",
+export const metadata = {
+  title: "Course Detail",
 };
+
+const COURSE_PERKS = [
+  "Full lifetime access",
+  "Certificate of completion",
+  "30-day money-back guarantee",
+  "Access on mobile and desktop",
+];
 
 export default async function CourseDetailPage({
   searchParams,
@@ -51,167 +51,153 @@ export default async function CourseDetailPage({
       })
     : null;
 
-  const perks = [
-    { icon: Monitor, text: "Full lifetime access" },
-    { icon: Award, text: "Certificate of completion" },
-    { icon: ShieldCheck, text: "30-day money-back guarantee" },
-    { icon: Smartphone, text: "Access on mobile and desktop" },
-  ];
+  const topics = whatYouLearnTopics(course.tags, course.level);
 
   return (
-    <div className="min-h-dvh bg-white">
+    <div className="min-h-dvh bg-gray-50">
       <Navbar />
-      <main className="pt-16 md:pt-20">
-        {/* Breadcrumb + header */}
-        <section className="py-12 px-4 bg-gray-50 border-b border-gray-100">
+      <main>
+        {/* Dark hero — header info + price card (reference structure) */}
+        <div className="bg-[linear-gradient(to_right_bottom,#0a0a1a,#0d0d2b,#0a0a1a)] pt-8 pb-16 px-4">
           <div className="max-w-7xl mx-auto">
             <Link
               href="/Courses"
-              className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-purple-600 transition-colors mb-6"
+              className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               Back to Courses
             </Link>
 
-            <Badge className={`${LEVEL_BADGE[course.level] ?? "bg-blue-100 text-blue-700"} font-medium mb-4`}>
-              {course.category}
-            </Badge>
-            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight max-w-3xl">
-              {course.title}
-            </h1>
-            <p className="mt-4 text-lg text-gray-500 max-w-2xl leading-relaxed">
-              {course.description}
-            </p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+              {/* Left column — course info */}
+              <div className="lg:col-span-2">
+                <div className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 shadow hover:bg-primary/80 bg-purple-500/20 text-purple-300 border-purple-500/30 mb-4">
+                  {course.category}
+                </div>
+                <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
+                  {course.title}
+                </h1>
+                <p className="mt-4 text-lg text-gray-400 leading-relaxed">
+                  {course.description}
+                </p>
 
-            <div className="mt-6 flex flex-wrap items-center gap-6 text-sm text-gray-600">
-              <span className="flex items-center gap-2">
-                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" aria-hidden="true" />
-                <span className="font-semibold text-gray-900">{course.rating.toFixed(1)}</span>
-              </span>
-              <span className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-gray-400" aria-hidden="true" />
-                {course.students.toLocaleString()} students
-              </span>
-              <span className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-gray-400" aria-hidden="true" />
-                {course.hours} hours
-              </span>
-              <span className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-gray-400" aria-hidden="true" />
-                {course.lessonsCount} lessons
-              </span>
-            </div>
+                <div className="flex flex-wrap items-center gap-6 mt-8 text-gray-300">
+                  <span className="flex items-center gap-2">
+                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" aria-hidden="true" />
+                    <span className="font-semibold text-white">{course.rating.toFixed(1)}</span>
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <Users className="h-5 w-5" aria-hidden="true" />
+                    {course.students.toLocaleString()} students
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <Clock className="h-5 w-5" aria-hidden="true" />
+                    {course.hours} hours
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5" aria-hidden="true" />
+                    {course.lessonsCount} lessons
+                  </span>
+                </div>
 
-            <div className="mt-6 flex items-center gap-3">
-              { }
-              <img
-                src={course.instructorAvatar}
-                alt={course.instructorName}
-                className="w-12 h-12 rounded-full object-cover"
-              />
+                <div className="flex items-center gap-3 mt-6">
+                  <img
+                    src={course.instructorAvatar}
+                    alt={course.instructorName}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <div>
+                    <p className="text-white font-medium">{course.instructorName}</p>
+                    <p className="text-sm text-gray-500">{course.instructorTitle}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right column — price / enroll card */}
               <div>
-                <p className="font-semibold text-gray-900">{course.instructorName}</p>
-                <p className="text-sm text-gray-500">{course.instructorTitle}</p>
+                <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+                  <div className="aspect-video relative">
+                    <img
+                      src={course.image}
+                      alt={course.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                      <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                        <CirclePlay className="h-10 w-10 text-white" aria-hidden="true" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-baseline gap-3 mb-6">
+                      <span className="text-3xl font-bold text-gray-900">
+                        ${course.price.toFixed(2)}
+                      </span>
+                      <span className="text-lg text-gray-400 line-through">
+                        ${course.originalPrice.toFixed(2)}
+                      </span>
+                    </div>
+
+                    <EnrollButton
+                      courseId={course.id}
+                      isLoggedIn={Boolean(session)}
+                      alreadyEnrolled={Boolean(enrollment)}
+                    />
+
+                    <div className="mt-6 space-y-3 text-sm text-gray-600">
+                      {COURSE_PERKS.map((perk) => (
+                        <div key={perk} className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-500" aria-hidden="true" />
+                          {perk}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Content + sidebar */}
-        <section className="py-12 px-4">
-          <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-12">
-            {/* Main column */}
-            <div className="lg:col-span-2 space-y-12">
-              {/* Course curriculum */}
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Course Curriculum</h2>
+        {/* Body — curriculum + What You'll Learn */}
+        <div className="max-w-7xl mx-auto px-4 py-16">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div className="lg:col-span-2">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Course Curriculum</h2>
+              <div className="space-y-3">
+                {course.lessons.map((lesson, i) => (
+                  <div
+                    key={lesson.id}
+                    className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:border-purple-200 hover:shadow-sm transition-all"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500">
+                      {i + 1}
+                    </div>
+                    <span className="text-gray-700 font-medium">{lesson.title}</span>
+                    <CirclePlay className="h-5 w-5 text-gray-400 ml-auto" aria-hidden="true" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 sticky top-24">
+                <h3 className="font-bold text-gray-900 mb-4">What You&apos;ll Learn</h3>
                 <div className="space-y-3">
-                  {course.lessons.map((lesson, i) => (
-                    <div
-                      key={lesson.id}
-                      className="group flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:border-purple-200 hover:shadow-md transition-all duration-300"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center text-sm font-semibold shrink-0">
-                        {i + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 truncate">{lesson.title}</p>
-                        <p className="text-sm text-gray-500">Lesson {i + 1}: Module Content</p>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
-                        <Clock className="h-4 w-4" aria-hidden="true" />
-                        {lesson.duration}m
-                      </div>
-                      <Play
-                        className="h-5 w-5 text-gray-300 group-hover:text-purple-600 transition-colors shrink-0"
+                  {topics.map((topic) => (
+                    <div key={topic} className="flex items-start gap-2">
+                      <Check
+                        className="h-5 w-5 text-purple-600 mt-0.5 shrink-0"
                         aria-hidden="true"
                       />
+                      <span className="text-sm text-gray-600">{topic}</span>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* What you'll learn */}
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">What You&apos;ll Learn</h2>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {[
-                    `Master the core concepts of ${course.category.toLowerCase()}`,
-                    "Build real-world projects for your portfolio",
-                    "Apply industry best practices and patterns",
-                    "Prepare for certification and interviews",
-                  ].map((item) => (
-                    <div key={item} className="flex items-start gap-3 p-4 rounded-xl bg-gray-50">
-                      <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" aria-hidden="true" />
-                      <span className="text-sm text-gray-700">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Sidebar */}
-            <div className="lg:sticky lg:top-28 h-fit space-y-6">
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-xl shadow-gray-500/5 overflow-hidden">
-                <div className="relative aspect-video">
-                  { }
-                  <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center group cursor-pointer hover:scale-110 transition-transform duration-300">
-                      <Play className="h-7 w-7 text-purple-600 ml-1" fill="currentColor" aria-hidden="true" />
-                    </div>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <div className="flex items-baseline gap-3 mb-6">
-                    <span className="text-3xl font-bold text-gray-900">${course.price.toFixed(2)}</span>
-                    <span className="text-lg text-gray-400 line-through">
-                      ${course.originalPrice.toFixed(2)}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md bg-red-100 text-red-600 text-xs font-semibold">
-                      {Math.round((1 - course.price / course.originalPrice) * 100)}% OFF
-                    </span>
-                  </div>
-
-                  <EnrollButton
-                    courseId={course.id}
-                    isLoggedIn={Boolean(session)}
-                    alreadyEnrolled={Boolean(enrollment)}
-                  />
-
-                  <div className="mt-6 space-y-3">
-                    {perks.map((perk) => (
-                      <div key={perk.text} className="flex items-center gap-3 text-sm text-gray-600">
-                        <perk.icon className="h-4 w-4 text-purple-600" aria-hidden="true" />
-                        {perk.text}
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
       </main>
       <Footer />
     </div>

@@ -158,14 +158,14 @@ export default async function LandingPage() {
 
       <main>
         {/* ------------------------------- HERO ------------------------------- */}
-        <section className="w-full h-screen relative flex items-center justify-center antialiased overflow-hidden min-h-[100vh] bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a]">
+        <div className="w-full h-screen relative flex items-center justify-center antialiased overflow-hidden bg-[linear-gradient(to_right_bottom,#0a0a1a,#0d0d2b,#0a0a1a)]">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(99,68,245,0.15),transparent_70%)]" />
             <div className="absolute top-20 left-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
             <div className="absolute bottom-20 right-10 w-96 h-96 bg-cyan-500/8 rounded-full blur-3xl" />
           </div>
 
-          <div className="relative z-10 pt-16">
+          <div className="relative z-10">
             <div className="text-center px-4 max-w-4xl mx-auto">
               <span className="inline-block px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-cyan-400 text-sm font-medium mb-8 backdrop-blur-sm">
                 🚀 Over 10,000+ students already learning
@@ -177,11 +177,11 @@ export default async function LandingPage() {
                   Shape Your Future
                 </span>
               </h1>
-              <p className="mt-6 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              <p className="mt-6 text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
                 Master the most in-demand skills with expert-led courses, AI-powered study tools, and
                 structured learning paths designed for real-world success.
               </p>
-              <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link href="/Courses">
                   <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
                     Browse Courses
@@ -195,76 +195,70 @@ export default async function LandingPage() {
                   </button>
                 </Link>
               </div>
-            </div>
-
-            {/* Hero illustration — floating course cards */}
-            <div className="mt-16 mx-auto max-w-4xl px-4" aria-hidden="true">
-              <svg viewBox="0 0 858 220" fill="none" className="w-full h-auto" role="presentation">
-                <defs>
-                  <linearGradient id="heroCardA" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#18CCFC" stopOpacity="0.9" />
-                    <stop offset="100%" stopColor="#6344F5" stopOpacity="0.9" />
-                  </linearGradient>
-                  <linearGradient id="heroCardB" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#6344F5" stopOpacity="0.85" />
-                    <stop offset="100%" stopColor="#AE48FF" stopOpacity="0.85" />
-                  </linearGradient>
-                  <linearGradient id="heroCardC" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#6366f1" stopOpacity="0.8" />
-                  </linearGradient>
-                </defs>
-                {/* connector line */}
-                <path d="M110 110 C 300 -40, 560 260, 750 110" stroke="rgba(99,68,245,0.25)" strokeWidth="2" strokeDasharray="4 8" />
-                {/* card A */}
-                <g transform="translate(20 40)">
-                  <rect width="240" height="140" rx="16" fill="url(#heroCardA)" opacity="0.95" />
-                  <rect x="16" y="16" width="208" height="56" rx="10" fill="rgba(255,255,255,0.18)" />
-                  <rect x="28" y="30" width="120" height="8" rx="4" fill="rgba(255,255,255,0.85)" />
-                  <rect x="28" y="46" width="80" height="8" rx="4" fill="rgba(255,255,255,0.55)" />
-                  <circle cx="196" cy="44" r="16" fill="rgba(255,255,255,0.9)" />
-                  <path d="M191 37 L206 44 L191 51 Z" fill="#6344F5" />
-                  <rect x="16" y="90" width="140" height="8" rx="4" fill="rgba(255,255,255,0.45)" />
-                  <rect x="16" y="108" width="208" height="10" rx="5" fill="rgba(255,255,255,0.2)" />
-                  <rect x="16" y="108" width="132" height="10" rx="5" fill="rgba(255,255,255,0.75)" />
-                </g>
-                {/* card B */}
-                <g transform="translate(310 20)">
-                  <rect width="240" height="140" rx="16" fill="url(#heroCardB)" opacity="0.95" />
-                  <circle cx="36" cy="44" r="18" fill="rgba(255,255,255,0.25)" />
-                  <rect x="66" y="32" width="110" height="8" rx="4" fill="rgba(255,255,255,0.85)" />
-                  <rect x="66" y="48" width="76" height="8" rx="4" fill="rgba(255,255,255,0.55)" />
-                  <rect x="16" y="90" width="208" height="10" rx="5" fill="rgba(255,255,255,0.2)" />
-                  <rect x="16" y="90" width="170" height="10" rx="5" fill="rgba(255,255,255,0.75)" />
-                  <rect x="16" y="112" width="90" height="8" rx="4" fill="rgba(255,255,255,0.45)" />
-                </g>
-                {/* card C */}
-                <g transform="translate(600 60)">
-                  <rect width="230" height="120" rx="16" fill="url(#heroCardC)" opacity="0.95" />
-                  <rect x="16" y="16" width="60" height="24" rx="12" fill="rgba(255,255,255,0.25)" />
-                  <rect x="16" y="52" width="150" height="9" rx="4" fill="rgba(255,255,255,0.85)" />
-                  <rect x="16" y="68" width="100" height="9" rx="4" fill="rgba(255,255,255,0.55)" />
-                  <rect x="16" y="92" width="198" height="10" rx="5" fill="rgba(255,255,255,0.2)" />
-                  <rect x="16" y="92" width="120" height="10" rx="5" fill="rgba(255,255,255,0.8)" />
-                </g>
-              </svg>
-            </div>
-
-            <div className="mt-12 flex items-center justify-center gap-8 flex-wrap pb-16">
-              {[
-                ["10K+", "Students"],
-                ["500+", "Courses"],
-                ["50+", "Instructors"],
-                ["95%", "Satisfaction"],
-              ].map(([value, label]) => (
-                <div key={label} className="text-center">
-                  <p className="text-2xl md:text-3xl font-bold text-white">{value}</p>
-                  <p className="text-sm text-gray-500 mt-1">{label}</p>
-                </div>
-              ))}
+              <div className="mt-16 flex items-center justify-center gap-8 flex-wrap">
+                {[
+                  ["10K+", "Students"],
+                  ["500+", "Courses"],
+                  ["50+", "Instructors"],
+                  ["95%", "Satisfaction"],
+                ].map(([value, label]) => (
+                  <div key={label} className="text-center">
+                    <p className="text-2xl md:text-3xl font-bold text-white">{value}</p>
+                    <p className="text-sm text-gray-500 mt-1">{label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </section>
+
+          {/* Hero illustration — the reference app's flowing gradient lines,
+              absolutely positioned behind the content (opacity-60) */}
+          <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+            <svg
+              width="858"
+              height="434"
+              viewBox="0 0 858 434"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="flex flex-shrink-0 opacity-60"
+            >
+              <path d="M0 220 Q200 180 429 217 Q600 250 858 200" stroke="rgba(99, 68, 245, 0.15)" strokeWidth="1" />
+              <path d="M0 220 Q200 180 429 217 Q600 250 858 200" stroke="url(#heroLineA)" strokeWidth="2" strokeLinecap="round" />
+              <path d="M0 300 Q250 260 429 300 Q650 340 858 280" stroke="rgba(99, 68, 245, 0.15)" strokeWidth="1" />
+              <path d="M0 300 Q250 260 429 300 Q650 340 858 280" stroke="url(#heroLineB)" strokeWidth="2" strokeLinecap="round" />
+              <path d="M0 140 Q300 100 500 140 Q700 180 858 120" stroke="rgba(99, 68, 245, 0.15)" strokeWidth="1" />
+              <path d="M0 140 Q300 100 500 140 Q700 180 858 120" stroke="url(#heroLineC)" strokeWidth="2" strokeLinecap="round" />
+              <path d="M0 380 Q200 340 429 380 Q600 420 858 360" stroke="rgba(99, 68, 245, 0.15)" strokeWidth="1" />
+              <path d="M0 380 Q200 340 429 380 Q600 420 858 360" stroke="url(#heroLineD)" strokeWidth="2" strokeLinecap="round" />
+              <defs>
+                <linearGradient id="heroLineA" gradientUnits="userSpaceOnUse" x1="571.40387" x2="571.40387" y1="220" y2="220">
+                  <stop offset="0%" stopColor="#18CCFC" stopOpacity="0" />
+                  <stop offset="20%" stopColor="#18CCFC" stopOpacity="1" />
+                  <stop offset="50%" stopColor="#6344F5" stopOpacity="1" />
+                  <stop offset="100%" stopColor="#AE48FF" stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="heroLineB" gradientUnits="userSpaceOnUse" x1="858" x2="858" y1="280" y2="280">
+                  <stop offset="0%" stopColor="#18CCFC" stopOpacity="0" />
+                  <stop offset="20%" stopColor="#18CCFC" stopOpacity="1" />
+                  <stop offset="50%" stopColor="#6344F5" stopOpacity="1" />
+                  <stop offset="100%" stopColor="#AE48FF" stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="heroLineC" gradientUnits="userSpaceOnUse" x1="627.22539" x2="627.22539" y1="140" y2="140">
+                  <stop offset="0%" stopColor="#18CCFC" stopOpacity="0" />
+                  <stop offset="20%" stopColor="#18CCFC" stopOpacity="1" />
+                  <stop offset="50%" stopColor="#6344F5" stopOpacity="1" />
+                  <stop offset="100%" stopColor="#AE48FF" stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="heroLineD" gradientUnits="userSpaceOnUse" x1="858" x2="858" y1="360" y2="360">
+                  <stop offset="0%" stopColor="#18CCFC" stopOpacity="0" />
+                  <stop offset="20%" stopColor="#18CCFC" stopOpacity="1" />
+                  <stop offset="50%" stopColor="#6344F5" stopOpacity="1" />
+                  <stop offset="100%" stopColor="#AE48FF" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
 
         {/* ---------------------------- CATEGORIES ---------------------------- */}
         <section className="py-24 px-4 bg-white">

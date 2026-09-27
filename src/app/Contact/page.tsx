@@ -1,4 +1,4 @@
-import { Mail, Phone, MapPin, Send } from "lucide-react";
+import { Mail, Phone, MapPin } from "lucide-react";
 
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -30,44 +30,35 @@ export default function ContactPage() {
         </section>
 
         <section className="py-24 px-4 bg-gray-50">
-          <div className="max-w-5xl mx-auto grid lg:grid-cols-5 gap-12">
+          <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Info cards */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="space-y-6">
               {INFO.map((item) => (
                 <div
                   key={item.title}
-                  className="group flex items-start gap-4 p-6 bg-white rounded-2xl border border-gray-100 hover:shadow-xl hover:shadow-purple-500/5 transition-all duration-300"
+                  className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-all duration-300"
                 >
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 flex items-center justify-center shrink-0">
-                    <item.icon className="h-5 w-5 text-white" aria-hidden="true" />
+                  <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center mb-4">
+                    <item.icon className="h-5 w-5 text-purple-600" aria-hidden="true" />
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">{item.title}</h3>
-                    {item.href ? (
-                      <a
-                        href={item.href}
-                        className="text-sm text-gray-500 hover:text-purple-600 transition-colors"
-                      >
-                        {item.value}
-                      </a>
-                    ) : (
-                      <p className="text-sm text-gray-500">{item.value}</p>
-                    )}
-                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-1">{item.title}</h3>
+                  {item.href ? (
+                    <a
+                      href={item.href}
+                      className="text-sm text-gray-500 hover:text-purple-600 transition-colors"
+                    >
+                      {item.value}
+                    </a>
+                  ) : (
+                    <p className="text-sm text-gray-500">{item.value}</p>
+                  )}
                 </div>
               ))}
-
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-[#0a0a1a] to-[#0d0d2b] text-center">
-                <Send className="h-8 w-8 text-cyan-400 mx-auto mb-3" aria-hidden="true" />
-                <p className="text-white font-semibold">Quick response guaranteed</p>
-                <p className="text-sm text-gray-400 mt-1">Average reply time: under 24 hours</p>
-              </div>
             </div>
 
             {/* Form */}
-            <div className="lg:col-span-3">
-              <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a message</h2>
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
                 <ContactForm />
               </div>
             </div>

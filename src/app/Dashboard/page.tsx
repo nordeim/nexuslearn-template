@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
-
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { MyCourses } from "@/components/dashboard/MyCourses";
@@ -13,17 +11,21 @@ export const metadata = {
 };
 
 export default async function DashboardPage() {
+  // The reference app renders the dashboard for signed-out visitors too —
+  // a generic "Welcome back" heading, zeroed stats and the empty course
+  // state. No server-side redirect happens.
   const session = await getSession();
-  if (!session) redirect("/login");
 
-  const enrollments = await db.enrollment.findMany({
-    where: { userId: session.userId },
-    include: {
-      course: { include: { lessons: { orderBy: { sortOrder: "asc" } } } },
-      lessons: { where: { completed: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const enrollments = session
+    ? await db.enrollment.findMany({
+        where: { userId: session.userId },
+        include: {
+          course: { include: { lessons: { orderBy: { sortOrder: "asc" } } } },
+          lessons: { where: { completed: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      })
+    : [];
 
   const stats = {
     enrolled: enrollments.length,
@@ -49,7 +51,7 @@ export default async function DashboardPage() {
         <section className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-20 px-4">
           <div className="max-w-7xl mx-auto">
             <h1 className="text-3xl md:text-4xl font-bold text-white">
-              Welcome back, {session.name}
+              {session ? `Welcome back, ${session.name}` : "Welcome back"}
             </h1>
             <p className="mt-2 text-gray-400">Continue your learning journey</p>
           </div>
@@ -101,8 +103,7 @@ export default async function DashboardPage() {
           <MyCourses enrollments={enrollments.map((e) => ({
             id: e.id,
             progress: e.progress,
-            completedLessons: e.lessons.length,
-            totalLessons: e.course.lessons.length,
+            completedLessonIds: e.lessons.map((l) => l.lessonId),
             course: {
               id: e.course.id,
               title: e.course.title,

@@ -34,9 +34,11 @@ export async function POST(req: NextRequest) {
     });
 
     const total = enrollment.course.lessons.length || 1;
-    const done = await db.lessonProgress.count({
+    const completedRows = await db.lessonProgress.findMany({
       where: { enrollmentId, completed: true },
+      select: { lessonId: true },
     });
+    const done = completedRows.length;
     const progress = Math.min(100, Math.round((done / total) * 100));
 
     const updated = await db.enrollment.update({
@@ -47,7 +49,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ enrollment: updated, completedLessons: done, totalLessons: total });
+    return NextResponse.json({
+      enrollment: updated,
+      completedLessons: done,
+      totalLessons: total,
+      completedLessonIds: completedRows.map((row) => row.lessonId),
+    });
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }

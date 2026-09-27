@@ -10,8 +10,7 @@ import { cn } from "@/lib/utils";
 export interface EnrollmentView {
   id: string;
   progress: number;
-  completedLessons: number;
-  totalLessons: number;
+  completedLessonIds: string[];
   course: {
     id: string;
     title: string;
@@ -22,6 +21,10 @@ export interface EnrollmentView {
   };
   lessons: { id: string; title: string }[];
 }
+
+/** Checklist rows rendered before the "show all" expander — keeps the DOM
+ * bounded for the 100–375-lesson reference curricula. */
+const CHECKLIST_PREVIEW = 12;
 
 export function MyCourses({ enrollments }: { enrollments: EnrollmentView[] }) {
   return (
@@ -61,10 +64,9 @@ export function MyCourses({ enrollments }: { enrollments: EnrollmentView[] }) {
 function CourseProgressCard({ enrollment }: { enrollment: EnrollmentView }) {
   const router = useRouter();
   const [progress, setProgress] = useState(enrollment.progress);
-  const [completed, setCompleted] = useState(
-    new Set(enrollment.lessons.slice(0, enrollment.completedLessons).map((l) => l.id))
-  );
+  const [completed, setCompleted] = useState(new Set(enrollment.completedLessonIds));
   const [open, setOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const markLesson = async (lessonId: string) => {
     if (completed.has(lessonId)) return;
@@ -76,7 +78,7 @@ function CourseProgressCard({ enrollment }: { enrollment: EnrollmentView }) {
     if (res.ok) {
       const data = await res.json();
       setProgress(data.enrollment.progress);
-      setCompleted(new Set([...enrollment.lessons.slice(0, data.completedLessons).map((l) => l.id)]));
+      setCompleted(new Set(data.completedLessonIds as string[]));
       // Refresh server-rendered stat cards (Enrolled/In Progress/Avg. Progress)
       router.refresh();
     }
@@ -135,7 +137,7 @@ function CourseProgressCard({ enrollment }: { enrollment: EnrollmentView }) {
 
         {open && (
           <div className="mt-4 space-y-1 border-t border-gray-50 pt-4">
-            {enrollment.lessons.map((lesson, i) => {
+            {(showAll ? enrollment.lessons : enrollment.lessons.slice(0, CHECKLIST_PREVIEW)).map((lesson, i) => {
               const done = completed.has(lesson.id);
               return (
                 <button
@@ -163,6 +165,14 @@ function CourseProgressCard({ enrollment }: { enrollment: EnrollmentView }) {
                 </button>
               );
             })}
+            {!showAll && enrollment.lessons.length > CHECKLIST_PREVIEW && (
+              <button
+                onClick={() => setShowAll(true)}
+                className="w-full py-2 text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+              >
+                Show all {enrollment.lessons.length} lessons
+              </button>
+            )}
           </div>
         )}
       </div>

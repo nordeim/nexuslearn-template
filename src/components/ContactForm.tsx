@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -10,6 +9,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+const SUBJECT_OPTIONS = [
+  "General Inquiry",
+  "Technical Support",
+  "Become an Instructor",
+  "Partnership",
+];
+
+const INPUT_CLASS =
+  "flex h-9 w-full border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-2 rounded-xl";
 
 export function ContactForm() {
   const [name, setName] = useState("");
@@ -62,21 +71,25 @@ export function ContactForm() {
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
-      <div className="grid sm:grid-cols-2 gap-5">
-        <div className="space-y-2">
-          <Label htmlFor="contact-name">Full Name</Label>
+    <form className="space-y-6" onSubmit={handleSubmit}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div>
+          <label className="text-sm font-medium text-gray-700" htmlFor="contact-name">
+            Full Name
+          </label>
           <input
             id="contact-name"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="John Doe"
-            className="flex h-11 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className={INPUT_CLASS}
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="contact-email">Email</Label>
+        <div>
+          <label className="text-sm font-medium text-gray-700" htmlFor="contact-email">
+            Email
+          </label>
           <input
             id="contact-email"
             type="email"
@@ -84,29 +97,33 @@ export function ContactForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="john@example.com"
-            className="flex h-11 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className={INPUT_CLASS}
           />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>Subject</Label>
+      <div>
+        <label className="text-sm font-medium text-gray-700" htmlFor="contact-subject">
+          Subject
+        </label>
         <Select value={subject} onValueChange={setSubject}>
-          <SelectTrigger className="w-full h-11 rounded-xl border-gray-200 bg-gray-50/50">
+          <SelectTrigger id="contact-subject" className="w-full mt-2 rounded-xl">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="General Inquiry">General Inquiry</SelectItem>
-            <SelectItem value="Technical Support">Technical Support</SelectItem>
-            <SelectItem value="Billing Question">Billing Question</SelectItem>
-            <SelectItem value="Partnership">Partnership</SelectItem>
-            <SelectItem value="Other">Other</SelectItem>
+            {SUBJECT_OPTIONS.map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="contact-message">Message</Label>
+      <div>
+        <label className="text-sm font-medium text-gray-700" htmlFor="contact-message">
+          Message
+        </label>
         <textarea
           id="contact-message"
           required
@@ -114,7 +131,7 @@ export function ContactForm() {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="How can we help you?"
-          className="flex min-h-[120px] w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          className="flex min-h-[120px] w-full mt-2 rounded-xl border border-input bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
         />
       </div>
 

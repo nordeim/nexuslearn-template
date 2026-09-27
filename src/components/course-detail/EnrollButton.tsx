@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { GraduationCap, CheckCircle2 } from "lucide-react";
 
+const CARD_BUTTON =
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 px-4 w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white py-6 rounded-xl text-lg shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-[1.02]";
+
 export function EnrollButton({
   courseId,
   isLoggedIn,
@@ -60,7 +63,7 @@ export function EnrollButton({
     <button
       onClick={handleEnroll}
       disabled={loading}
-      className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-lg shadow-purple-500/25 transition-all duration-300 hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
+      className={`${CARD_BUTTON} disabled:pointer-events-none disabled:opacity-60`}
     >
       {loading ? "Enrolling…" : "Enroll Now"}
     </button>

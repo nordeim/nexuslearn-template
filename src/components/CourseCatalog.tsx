@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { CourseCard, type CourseCardData } from "@/components/CourseCard";
 import {
@@ -77,121 +77,127 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
     [courses]
   );
 
+  const hasActiveFilters = query.trim() !== "" || category !== "all" || level !== "all";
+
+  const clearFilters = () => {
+    setQuery("");
+    setCategory("all");
+    setLevel("all");
+  };
+
   return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* Header */}
-      <section className="pt-16 pb-12 px-4 bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">
+    <div>
+      {/* Dark hero with the search field (reference structure) */}
+      <div className="bg-[linear-gradient(to_right_bottom,#0a0a1a,#0d0d2b,#0a0a1a)] pt-16 pb-20 px-4">
+        <div className="max-w-7xl mx-auto text-center">
+          <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
             Explore Our Courses
           </h1>
-          <p className="mt-3 text-lg text-gray-500">
+          <p className="mt-4 text-lg text-gray-400 max-w-2xl mx-auto">
             Discover hundreds of expert-led courses to advance your career
           </p>
-        </div>
-      </section>
-
-      {/* Search + filters */}
-      <section className="py-8 px-4 bg-white border-b border-gray-100 sticky top-16 md:top-20 z-30">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
-                aria-hidden="true"
-              />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search courses, topics, or instructors..."
-                className="w-full h-11 pl-10 pr-4 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                aria-label="Search courses"
-              />
-            </div>
-            <div className="flex gap-3 flex-wrap">
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-gray-400" aria-hidden="true" />
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="w-[160px] h-11 rounded-xl border-gray-200 bg-white">
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories
-                      .filter((c) => c !== "all")
-                      .map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Select value={level} onValueChange={setLevel}>
-                <SelectTrigger className="w-[140px] h-11 rounded-xl border-gray-200 bg-white">
-                  <SelectValue placeholder="All Levels" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Levels</SelectItem>
-                  {levels
-                    .filter((l) => l !== "all")
-                    .map((l) => (
-                      <SelectItem key={l} value={l}>
-                        {l}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              <Select value={sort} onValueChange={setSort}>
-                <SelectTrigger className="w-[140px] h-11 rounded-xl border-gray-200 bg-white">
-                  <SelectValue placeholder="Newest" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest</SelectItem>
-                  <SelectItem value="popular">Most Popular</SelectItem>
-                  <SelectItem value="rating">Highest Rated</SelectItem>
-                  <SelectItem value="price-low">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high">Price: High to Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="mt-10 max-w-2xl mx-auto relative">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"
+              aria-hidden="true"
+            />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search courses, topics, or instructors..."
+              aria-label="Search courses"
+              className="flex w-full border px-3 shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pl-12 py-6 bg-white/10 border-white/20 text-white placeholder:text-gray-500 rounded-xl text-base focus:border-purple-500 focus:bg-white/15"
+            />
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Grid */}
-      <section className="py-12 px-4">
-        <div className="max-w-7xl mx-auto">
-          <p className="text-sm text-gray-500 mb-6">
-            {filtered.length} course{filtered.length === 1 ? "" : "s"}
-            {category !== "all" ? ` in ${category}` : ""}
-          </p>
-          {filtered.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
-              <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" aria-hidden="true" />
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">No courses found</h3>
-              <p className="text-gray-500 mb-6">Try adjusting your search or filters</p>
+      {/* Results area — floating filter card overlapping the hero */}
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 -mt-6">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 flex flex-wrap items-center gap-4">
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger
+                className="w-[180px] rounded-xl border-gray-200"
+                aria-label="Filter by category"
+              >
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories
+                  .filter((c) => c !== "all")
+                  .map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Select value={level} onValueChange={setLevel}>
+              <SelectTrigger
+                className="w-[150px] rounded-xl border-gray-200"
+                aria-label="Filter by level"
+              >
+                <SelectValue placeholder="All Levels" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Levels</SelectItem>
+                {levels
+                  .filter((l) => l !== "all")
+                  .map((l) => (
+                    <SelectItem key={l} value={l}>
+                      {l}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Select value={sort} onValueChange={setSort}>
+              <SelectTrigger
+                className="w-[160px] rounded-xl border-gray-200"
+                aria-label="Sort courses"
+              >
+                <SelectValue placeholder="Newest" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="popular">Most Popular</SelectItem>
+                <SelectItem value="rating">Highest Rated</SelectItem>
+                <SelectItem value="price-low">Price: Low to High</SelectItem>
+                <SelectItem value="price-high">Price: High to Low</SelectItem>
+              </SelectContent>
+            </Select>
+            {hasActiveFilters && (
               <button
-                onClick={() => {
-                  setQuery("");
-                  setCategory("all");
-                  setLevel("all");
-                }}
-                className="inline-flex items-center justify-center gap-2 text-sm font-medium shadow h-9 bg-gradient-to-r from-cyan-500 to-purple-600 text-white rounded-xl px-8 py-3 hover:scale-105 transition-all duration-300"
+                type="button"
+                onClick={clearFilters}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 ml-auto"
               >
                 Clear Filters
               </button>
-            </div>
-          ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filtered.map((course) => (
-                <CourseCard key={course.id} course={course} />
-              ))}
-            </div>
-          )}
+            )}
+            <p className={hasActiveFilters ? "text-sm text-gray-500" : "ml-auto text-sm text-gray-500"}>
+              {filtered.length} course{filtered.length === 1 ? "" : "s"}
+            </p>
+          </div>
+
+          <div className="mt-10 pb-24">
+            {filtered.length === 0 ? (
+              <div className="text-center py-20">
+                <p className="text-xl text-gray-400 mb-2">No courses found</p>
+                <p className="text-gray-500">Try adjusting your search or filters</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {filtered.map((course) => (
+                  <CourseCard key={course.id} course={course} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

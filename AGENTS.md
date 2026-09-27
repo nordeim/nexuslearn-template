@@ -15,7 +15,7 @@ NexusLearn — an e-learning platform (marketing site + course catalog + enrollm
 | DB schema push | `bun run db:push` |
 | DB seed | `bun run db:seed` |
 | Unit tests | `bun run test` (Vitest) |
-| E2E tests | `bun run test:e2e` (Playwright; **requires `bun run build` first** — boots the standalone server on :3100 with `db/e2e.db`) |
+| E2E tests | `bun run test:e2e` (Playwright; **requires `bun run build` first** — boots the standalone server on :3100 with `db/e2e.db`; 25 specs incl. the 6 mobile-nav guards) |
 | Lint / typecheck | `bun run lint` / `bun run typecheck` |
 | Production build | `bun run build` (standalone output) |
 
@@ -32,9 +32,9 @@ NexusLearn — an e-learning platform (marketing site + course catalog + enrollm
 3. **The v3-era palette is pinned in `@theme`** (gray/slate/cyan/purple/pink/...). Do not remove — Tailwind v4's default oklch palette drifts 1–3 sRGB units per channel from the reference app's colors and breaks the computed-style parity tests.
 4. **Prisma SQLite paths are resolved by `prisma/db-url.ts`** — the Prisma CLI resolves `file:` URLs against `prisma/schema.prisma`, the runtime against process CWD (and the standalone server `chdir()`s into `.next/standalone/`, which contains its own traced copy of `prisma/schema.prisma`). Never construct a PrismaClient without `datasourceUrl: resolveDatabaseUrl()` (see `src/lib/db.ts` and `prisma/seed.ts`). `DATABASE_URL="file:../db/custom.db"` resolves to `<repo>/db/custom.db` for CLI, dev, seed, standalone and e2e alike.
 5. **`datasources: { db: { url } }` is ignored by Prisma 6** — use `datasourceUrl` instead.
-6. **Route casing is intentional**: `/Courses`, `/AIAssistant`, `/CourseDetail?id=…`, `/BecomeInstructor`, `/Pricing`, `/About`, `/Contact`, `/Dashboard`, `/login` — they mirror the original app 1:1. `/` is the landing page; `/Home` redirects to `/`.
+6. **Route casing is intentional**: `/Courses`, `/AIAssistant`, `/CourseDetail?id=…`, `/BecomeInstructor`, `/Pricing`, `/About`, `/Contact`, `/Dashboard`, `/login` — they mirror the original app 1:1. `/` is the landing page; `/Home` renders the landing directly (the reference footer links there — no redirect).
 7. **The mobile menu is the highest-regression-risk chrome** (Tailwind v4 display-mismatch bugs). Rules: trigger + panel use symmetric `md:hidden`; desktop row `hidden md:flex`; page roots use `min-h-dvh`; body scroll lock while open; real `<button>` with `aria-expanded`/`aria-controls`. `tests/e2e/mobile-navigation.spec.ts` pins all of this — run it after any nav change.
-8. **Auth is first-party**: HMAC-SHA256 signed cookie (`nexus_session`) + scrypt password hashing, in `src/lib/session.ts` (pure, testable) and `src/lib/auth.ts` (Next `cookies()` adapter). `/Dashboard` server-redirects to `/login` without a session. There is no auth provider dependency.
+8. **Auth is first-party**: HMAC-SHA256 signed cookie (`nexus_session`) + scrypt password hashing, in `src/lib/session.ts` (pure, testable) and `src/lib/auth.ts` (Next `cookies()` adapter). **Reference parity behaviors**: signing in returns to `/` (not `/Dashboard`), and `/Dashboard` renders for signed-out visitors (generic "Welcome back", zeroed stats, empty state — no server redirect). There is no auth provider dependency.
 9. **`z-ai-web-dev-sdk` is server-only** — it must never be imported into client components. The AI chat goes through `POST /api/ai/chat`.
 10. **Images are remote Unsplash URLs** — allowlisted in `next.config.ts` `remotePatterns`. Cards intentionally use plain `<img>` (matching the reference markup), so `@next/next/no-img-element` is disabled in `eslint.config.mjs`.
 
@@ -42,11 +42,11 @@ NexusLearn — an e-learning platform (marketing site + course catalog + enrollm
 
 - `src/app/` — routes (one dir per route, original casing), `api/` for route handlers
 - `src/components/ui/` — shadcn-style primitives (button uses `rounded-xl` variants matching the reference)
-- `src/components/` — Navbar (2 visual states + mobile dropdown), Footer, CourseCard, CourseCatalog, ContactForm, LoginForm, `course-detail/`, `dashboard/`
-- `src/lib/` — `db.ts` (Prisma singleton), `session.ts` + `auth.ts`, `utils.ts` (`cn`)
-- `prisma/` — `schema.prisma`, `seed.ts` (the exact 9-course reference catalog), `db-url.ts`
+- `src/components/` — Navbar (2 visual states + mobile dropdown), Footer, CourseCard, CourseCatalog, ContactForm, LoginForm, AIAssistantChat, `course-detail/`, `dashboard/`
+- `src/lib/` — `db.ts` (Prisma singleton), `session.ts` + `auth.ts`, `course-tags.ts` (What You'll Learn topics), `utils.ts` (`cn`)
+- `prisma/` — `schema.prisma`, `seed.ts`, `seed-data.ts` (pure reference catalog — pinned by tests), `db-url.ts`
 - `docs/screenshots/` — QA captures of the running app
-- `skills/` — reference skill library (excluded from tsconfig; not app code)
+- `skills/` — reference skill library (excluded from tsconfig/eslint; not app code)
 
 ## Conventions
 

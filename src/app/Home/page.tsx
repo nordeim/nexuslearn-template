@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
+// The reference app's footer logo links to /Home — the landing page renders
+// there directly (no redirect, matching the original behavior).
+export const dynamic = "force-dynamic";
 
-// The original app's logo links to /Home; canonical landing lives at `/`.
-export default function HomeAlias() {
-  redirect("/");
-}
+export { default } from "../page";

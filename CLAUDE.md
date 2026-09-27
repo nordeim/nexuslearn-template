@@ -94,9 +94,9 @@ bun run dev         # http://localhost:3000
 ## Testing Strategy
 
 ### Test Pyramid
-- **Unit Tests** (Vitest, `tests/*.test.ts`): pure domain seams — session token sign/verify, scrypt password hashing
-- **E2E Tests** (Playwright, `tests/e2e/*.spec.ts`): mobile navigation (6 specs — the Tailwind v4 regression guard), landing/catalog/course-detail/auth/enrollment/dashboard flows (10 specs) against the production standalone server
-- **Visual parity**: computed-style assertions against the recorded reference values (see PAD §5 and `docs/screenshots/`)
+- **Unit Tests** (Vitest, `tests/*.test.ts`): pure domain seams — session token sign/verify, scrypt password hashing, course-tag parsing, seed-data shape
+- **E2E Tests** (Playwright, `tests/e2e/*.spec.ts`): mobile navigation (6 specs — the Tailwind v4 regression guard), landing/catalog/course-detail/auth/enrollment/dashboard/content-page flows (19 specs) against the production standalone server
+- **Visual parity**: computed-style assertions and VLM screenshot comparisons against the reference app (see PAD §5 and `docs/screenshots/`)
 
 ### Test Commands
 
@@ -106,7 +106,7 @@ bun run build         # prerequisite for e2e
 bun run test:e2e      # full e2e on :3100 with isolated db/e2e.db
 ```
 
-E2E resets enrollment state in global-setup, so runs are idempotent. Specs sign in through the real `/login` form with the seeded demo user.
+E2E resets enrollment state in global-setup, so runs are idempotent. Specs sign in through the real `/login` form with the seeded demo user and land on `/` (reference behavior).
 
 ## Code Quality Standards
 
@@ -128,7 +128,7 @@ E2E resets enrollment state in global-setup, so runs are idempotent. Specs sign 
 ### Error Handling Approach
 - Route handlers validate input, return `{ error }` JSON with correct status codes (400/401/404/502).
 - The AI chat route degrades gracefully (502 + friendly client message) when the SDK is unavailable.
-- Server components `notFound()` for missing courses; `/Dashboard` redirects to `/login` without a session.
+- Server components `notFound()` for missing courses.
 
 ### Debugging Tools
 - `bun run dev` tees to `dev.log`; standalone `server.log`.
@@ -146,16 +146,17 @@ E2E resets enrollment state in global-setup, so runs are idempotent. Specs sign 
 ## Project-Specific Standards
 
 ### Architecture
-- Routes mirror the original app's casing: `/Courses`, `/AIAssistant`, `/Pricing`, `/BecomeInstructor`, `/About`, `/Contact`, `/CourseDetail?id=…`, `/Dashboard`, `/login`; `/` is the landing page, `/Home` redirects to `/`.
+- Routes mirror the original app's casing: `/Courses`, `/AIAssistant`, `/Pricing`, `/BecomeInstructor`, `/About`, `/Contact`, `/CourseDetail?id=…`, `/Dashboard`, `/login`; `/` is the landing page, `/Home` renders the landing directly (reference footer target).
 - Fixed Navbar has two visual states (transparent over the dark hero; `bg-white/95 backdrop-blur-xl` otherwise) and an animated mobile dropdown.
+- Reference parity behaviors: sign-in returns to `/`; `/Dashboard` renders for signed-out visitors ("Welcome back", zeroed stats, empty state — no redirect); CourseDetail uses a dark hero with a white price card, an auto-generated curriculum (`lessonsCount` × "Lesson N: Module Content") and a "What You'll Learn" card built from `Course.tags` + level (`src/lib/course-tags.ts`).
 
 ### API Design
 - `POST /api/auth/login|logout`, `GET /api/auth/me`
-- `GET|POST /api/enrollments`, `POST /api/enrollments/progress` (recomputes enrollment % from completed lessons)
+- `GET|POST /api/enrollments`, `POST /api/enrollments/progress` (recomputes enrollment % from completed lessons; returns `completedLessonIds` so the dashboard checklist reflects out-of-order completion)
 - `POST /api/ai/chat` (server-only SDK), `POST /api/contact`, `POST /api/newsletter`, `GET /api/health`
 
 ### Database / Data Layer
-- Models: `User`, `Course`, `Lesson`, `Enrollment` (unique `[userId, courseId]`), `LessonProgress` (unique `[enrollmentId, lessonId]`), `ContactMessage`, `Subscriber`.
+- Models: `User`, `Course` (incl. `tags` — comma-separated "What You'll Learn" topics), `Lesson`, `Enrollment` (unique `[userId, courseId]`), `LessonProgress` (unique `[enrollmentId, lessonId]`), `ContactMessage`, `Subscriber`.
 - Progress is derived, never stored as a guess: `completed lessons / total lessons * 100`.
 
 ### Environment Variables

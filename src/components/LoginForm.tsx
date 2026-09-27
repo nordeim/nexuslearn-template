@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Mail, Lock, GraduationCap } from "lucide-react";
+import { Mail, Lock } from "lucide-react";
 
 export function LoginForm() {
   const router = useRouter();
@@ -27,7 +26,8 @@ export function LoginForm() {
         setError(data.error ?? "Invalid email or password");
         return;
       }
-      router.push("/Dashboard");
+      // The reference app returns to the landing page after signing in.
+      router.push("/");
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
@@ -62,17 +62,9 @@ export function LoginForm() {
         </div>
 
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-slate-700" htmlFor="password">
-              Password
-            </label>
-            <button
-              type="button"
-              className="text-xs text-slate-500 hover:text-slate-700 font-medium transition-colors"
-            >
-              Forgot password?
-            </button>
-          </div>
+          <label className="text-sm font-medium text-slate-700" htmlFor="password">
+            Password
+          </label>
           <div className="relative">
             <Lock
               className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500"
@@ -106,16 +98,22 @@ export function LoginForm() {
         {loading ? "Signing in…" : "Sign in"}
       </button>
 
-      <p className="text-center text-sm text-slate-500">
-        Need an account?{" "}
-        <Link href="/login" className="font-semibold text-purple-600 hover:text-purple-700 transition-colors">
-          Sign up
-        </Link>
-      </p>
-
-      <div className="flex items-center justify-center gap-2 pt-2 text-xs text-slate-400">
-        <GraduationCap className="h-3.5 w-3.5" aria-hidden="true" />
-        <span>Demo: sepnetflix2023@outlook.com · $Abcd1234</span>
+      <div className="flex flex-col items-center gap-3">
+        <button
+          type="button"
+          className="text-xs text-slate-500 hover:text-slate-700 font-medium transition-colors"
+        >
+          Forgot password?
+        </button>
+        <p className="text-center text-sm text-slate-500">
+          Need an account?{" "}
+          <button
+            type="button"
+            className="font-semibold text-purple-600 hover:text-purple-700 transition-colors"
+          >
+            Sign up
+          </button>
+        </p>
       </div>
     </form>
   );

@@ -404,7 +404,7 @@ erDiagram
 
 ### 4.2 Data Models
 
-Course rows carry display-only aggregates (`rating`, `students`) exactly as the reference catalog reports them; they are seeded, not computed. Progress (§3.3-b) is the only computed aggregate.
+Course rows carry display-only aggregates (`rating`, `students`) exactly as the reference catalog reports them; they are seeded, not computed. `Course.tags` holds the comma-separated "What You'll Learn" topics (SQLite has no scalar lists; parsed by `src/lib/course-tags.ts`, level appended at render time). The seed reproduces the reference curriculum model: `lessonsCount` Lesson rows per course, each titled `Lesson N: Module Content` (`prisma/seed-data.ts`). Progress (§3.3-b) is the only computed aggregate.
 
 ### 4.3 Persistence Strategy
 
@@ -412,7 +412,7 @@ Single Prisma client per process (`src/lib/db.ts` singleton on `globalThis` in n
 
 ### 4.4 SQLite Path Resolution (hard-won)
 
-Relative `file:` URLs resolve differently per Prisma surface: **CLI** → against `prisma/schema.prisma`; **runtime** → against process CWD; the **standalone server** `chdir()`s into `.next/standalone/`, which even contains its own traced `prisma/schema.prisma` (a false anchor). `prisma/db-url.ts` therefore walks ancestors from CWD, collects every `prisma/schema.prisma` anchor, and prefers the **furthest anchor whose resolved database file exists** (falling back to the furthest anchor). Both `src/lib/db.ts` and `prisma/seed.ts` construct clients with `datasourceUrl: resolveDatabaseUrl()` — note Prisma 6 **ignores** the older `datasources: { db: { url } }` option. Production deployments should use an absolute `DATABASE_URL` (docs/DEPLOYMENT.md).
+Relative `file:` URLs resolve differently per Prisma surface: **CLI** → against `prisma/schema.prisma`; **runtime** → against process CWD; the **standalone server** `chdir()`s into `.next/standalone/`, which even contains its own traced `prisma/schema.prisma` (a false anchor). `prisma/db-url.ts` therefore walks ancestors from CWD, collects every `prisma/schema.prisma` anchor, and prefers the **furthest anchor whose resolved database file exists** (falling back to the furthest anchor). Both `src/lib/db.ts` and `prisma/seed.ts` construct clients with `datasourceUrl: resolveDatabaseUrl()` — note Prisma 6 **ignores** the older `datasources: { db: { url } }` option. One more trap: a `DATABASE_URL` **exported in the shell** wins over the repo `.env` (standard precedence) — a stale export silently retargets `db:push`/`db:seed`/`dev` to another file. Production deployments should use an absolute `DATABASE_URL` (docs/DEPLOYMENT.md).
 
 ---
 
@@ -500,13 +500,16 @@ Single role (authenticated learner). `POST /api/auth/login` verifies scrypt, set
 | Category | Files | Tests | Location | Framework |
 |---|---|---|---|---|
 | Unit (auth crypto) | 1 | 5 | `tests/auth.test.ts` | Vitest (node env) |
+| Unit (course tags) | 1 | 5 | `tests/course-tags.test.ts` | Vitest (node env) |
+| Unit (seed data shape) | 1 | 6 | `tests/seed-data.test.ts` | Vitest (node env) |
 | E2E mobile navigation | 1 | 6 | `tests/e2e/mobile-navigation.spec.ts` | Playwright (Chromium, 375×667 touch) |
-| E2E user journeys | 1 | 10 | `tests/e2e/nexuslearn.spec.ts` | Playwright (Desktop Chrome) |
-| Computed-style parity | harness | 26 assertions | recorded vs `src/app/globals.css` + components | measured via browser (see §5) |
+| E2E user journeys + parity | 1 | 19 | `tests/e2e/nexuslearn.spec.ts` | Playwright (Desktop Chrome) |
+| Computed-style parity | harness | 26 assertions + VLM band comparisons | recorded vs `src/app/globals.css` + components | measured via browser (see §5) |
 
 ### 7.2 Test Patterns
 
 - **Regression guards as specs:** the mobile-navigation suite pins the exact Tailwind v4 failure classes (display mismatch, scroll lock, ARIA, icon swap, route-change close).
+- **Parity behaviors as specs:** sign-in landing on `/`, the signed-out dashboard render, the `/Home` landing render, the reference curriculum ("Lesson N: Module Content"), What-You'll-Learn topics, footer tagline and the reference content-page outlines are all pinned by e2e assertions.
 - **Real-form authentication:** e2e signs in through `/login` with the seeded demo user — the auth flow itself is coverage.
 - **Idempotent e2e:** global-setup pushes + seeds `db/e2e.db` and resets enrollments, so repeated runs start from the same baseline.
 - **Production-fidelity e2e:** the suite boots the standalone build, which is how the SQLite path defect (§4.4) was caught.
@@ -519,9 +522,9 @@ No numeric gate configured; the required **pre-push gate** is the sequence `lint
 
 - [ ] `bun run lint` clean
 - [ ] `bun run typecheck` clean
-- [ ] `bun run test` 5/5
+- [ ] `bun run test` 16/16
 - [ ] `bun run build` compiles (standalone)
-- [ ] `bun run test:e2e` 16/16
+- [ ] `bun run test:e2e` 25/25
 - [ ] Mobile menu manually eyeballed at 375×667 (screenshot diff vs `docs/screenshots/`)
 - [ ] No new `tailwind.config.js` (Tailwind v4 is CSS-first)
 - [ ] No SDK/secret imports in client components
@@ -596,8 +599,11 @@ TypeScript strict; function-declaration components; `cn()` for classes; CVA for 
 | LOW | AI chat is not streaming (JSON response) | Perceived latency on long answers | Open |
 | INFO | Checkout is out of scope — enrollment is free/instant | Matches template semantics | By design |
 | INFO | `skills/` directory ships as reference material | Excluded from tsconfig/eslint; no runtime impact | By design |
+| INFO | Dashboard lesson checklist previews 12 rows with a "show all" expander | Keeps the DOM bounded for 95–375-lesson reference curricula | By design |
 
 *Resolved during the build:* Tailwind v4 transparent-theme bug (ADR-004), oklch palette drift (ADR-005), multi-file SQLite resolution (§4.4), closed mobile-menu border artifact, stale standalone bundle in e2e.
+
+*Resolved in session 2 (parity pass):* hero illustration replaced with the reference's flowing-lines SVG; Courses page reworked to the dark hero + floating filter card; CourseDetail reworked to the dark hero/price-card/tags layout with the 220-lesson reference curriculum; sign-in now returns to `/`; the dashboard renders for signed-out visitors; `/Home` renders the landing; About/Contact/BecomeInstructor/Footer aligned to the reference; `Course.tags` + seed-data parity; ORBITAL leftovers removed.
 
 ---
 
@@ -607,19 +613,21 @@ TypeScript strict; function-declaration components; `cn()` for classes; CVA for 
 |---|---|---|
 | `src/app/globals.css` | ~200 | Tailwind v4 CSS-first config: tokens, pinned palette, hsl() vars |
 | `src/components/Navbar.tsx` | ~210 | Fixed nav, two visual states, hardened mobile dropdown |
-| `src/app/page.tsx` | ~560 | Landing page — all nine reference sections |
+| `src/app/page.tsx` | ~560 | Landing page — all nine reference sections + flowing-lines hero SVG |
 | `src/components/CourseCard.tsx` | ~100 | Verbatim reference course card |
-| `src/components/CourseCatalog.tsx` | ~180 | Client search + category/level/sort |
-| `src/app/CourseDetail/page.tsx` | ~200 | Course detail + curriculum + sidebar |
-| `src/app/Dashboard/page.tsx` | ~150 | Protected dashboard (stats + My Courses) |
-| `src/components/dashboard/MyCourses.tsx` | ~180 | Progress cards, lesson checklist, mark-done flow |
-| `src/app/AIAssistant/page.tsx` | ~300 | Chat UI + markdown renderer |
+| `src/components/CourseCatalog.tsx` | ~200 | Dark hero + glassy search + floating filter card + grid |
+| `src/app/CourseDetail/page.tsx` | ~200 | Dark hero, price card, reference curriculum, tags sidebar |
+| `src/app/Dashboard/page.tsx` | ~155 | Dashboard (renders signed-out too — reference behavior) |
+| `src/components/dashboard/MyCourses.tsx` | ~185 | Progress cards, capped lesson checklist, mark-done flow |
+| `src/components/AIAssistantChat.tsx` | ~260 | Chat UI + markdown renderer (client; page supplies metadata) |
 | `src/lib/session.ts` | ~75 | Pure HMAC + scrypt crypto |
 | `src/lib/auth.ts` | ~40 | cookies() adapter |
+| `src/lib/course-tags.ts` | ~20 | What-You'll-Learn topic parsing (tags + level) |
 | `src/lib/db.ts` | ~20 | Prisma singleton with resolved URL |
 | `prisma/db-url.ts` | ~55 | SQLite path resolver (one DB everywhere) |
-| `prisma/schema.prisma` | ~120 | LMS domain model |
-| `prisma/seed.ts` | ~200 | Reference catalog + demo user |
+| `prisma/schema.prisma` | ~125 | LMS domain model (incl. Course.tags) |
+| `prisma/seed-data.ts` | ~230 | Pure reference catalog + curriculum builder (test-pinned) |
+| `prisma/seed.ts` | ~75 | Seed runner (demo user + 1,900 reference lessons) |
 | `tests/e2e/mobile-navigation.spec.ts` | ~90 | The Tailwind v4 mobile-nav regression guard |
 
 ---

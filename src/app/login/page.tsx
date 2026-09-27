@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { LoginForm } from "@/components/LoginForm";
 
 export const metadata: Metadata = {
-  title: "Login",
   description: "Sign in to NexusLearn to continue your learning journey",
 };
 
@@ -78,7 +77,7 @@ export default function LoginPage() {
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full h-px bg-slate-200" />
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
+                  <div className="relative flex justify-center text-xs">
                     <span className="bg-white px-3 text-slate-500 font-medium tracking-wider">or</span>
                   </div>
                 </div>

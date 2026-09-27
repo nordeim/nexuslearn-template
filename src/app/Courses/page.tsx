@@ -18,9 +18,9 @@ export default async function CoursesPage() {
   });
 
   return (
-    <div className="min-h-dvh bg-white">
+    <div className="min-h-dvh bg-gray-50">
       <Navbar />
-      <main className="pt-16 md:pt-20">
+      <main>
         <Suspense
           fallback={
             <div className="py-24 text-center text-gray-500">Loading courses…</div>
