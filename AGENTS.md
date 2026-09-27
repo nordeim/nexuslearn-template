@@ -15,7 +15,7 @@ NexusLearn — an e-learning platform (marketing site + course catalog + enrollm
 | DB schema push | `bun run db:push` |
 | DB seed | `bun run db:seed` |
 | Unit tests | `bun run test` (Vitest) |
-| E2E tests | `bun run test:e2e` (Playwright; **requires `bun run build` first** — boots the standalone server on :3100 with `db/e2e.db`; 50 specs incl. the 6 mobile-nav guards) |
+| E2E tests | `bun run test:e2e` (Playwright; **requires `bun run build` first** — boots the standalone server on :3100 with `db/e2e.db`; 68 specs incl. the 6 mobile-nav guards) |
 | Lint / typecheck | `bun run lint` / `bun run typecheck` |
 | Production build | `bun run build` (standalone output) |
 
@@ -39,13 +39,18 @@ NexusLearn — an e-learning platform (marketing site + course catalog + enrollm
 10. **`z-ai-web-dev-sdk` is server-only** — it must never be imported into client components. The AI chat goes through `POST /api/ai/chat`.
 11. **Images are remote Unsplash URLs** — allowlisted in `next.config.ts` `remotePatterns`. Cards intentionally use plain `<img>` (matching the reference markup), so `@next/next/no-img-element` is disabled in `eslint.config.mjs`. The reference's Python-course image URL is corrupt (0×0 load); the clone ships a working Python image on purpose.
 12. **`Course.longDescription` is nullable on purpose** — the reference app populates the expandable "About This Course" section for only 4 of the 9 courses; absent means the section (and the left column's `space-y-12`) is not rendered.
+13. **The login card is a 5-view state machine** (signin → reset → reset-sent → signup → verify) inside ONE card — class strings copied verbatim from the reference. Email delivery is SIMULATED: signup logs a 6-digit code server-side and `/api/auth/verify` accepts any complete 6-digit code (no SMTP in the template; wire real email before production). `User.emailVerified` defaults true so seeded accounts skip verification.
+14. **Head metadata is reference-pinned** — ONE root description (the "SkillSphere…" sentence) everywhere, OG/Twitter cards, per-route canonicals, `/logo.png` favicon + `manifest.json`. Do not add per-page `description` overrides; `NEXT_PUBLIC_SITE_URL` feeds `metadataBase` at build time.
+15. **Course-card eyebrows use the display map** (`src/lib/course-eyebrow.ts`): "Personal Development" renders as "Personal Dev" on cards while the filter + landing grid keep the full name — reference behavior.
+16. **CourseDetail never 404s** — unknown/missing `?id=` renders the in-page "Course not found" state inside the gray shell (reference behavior), not `notFound()`.
+17. **The newsletter form is a client island** (`NewsletterForm.tsx`) — never a native `action=` POST (that navigates the browser to the raw JSON). Same for contact: fetch + in-place success state.
 
 ## Where things live
 
 - `src/app/` — routes (one dir per route, original casing), `api/` for route handlers
 - `src/components/ui/` — shadcn-style primitives (button uses `rounded-xl` variants matching the reference)
-- `src/components/` — Navbar (2 visual states + mobile dropdown), Footer, CourseCard, CourseCatalog, ContactForm, LoginForm, AIAssistantChat, `course-detail/` (EnrollButton, AboutCourse), `dashboard/`
-- `src/lib/` — `db.ts` (Prisma singleton), `session.ts` + `auth.ts`, `course-tags.ts` (What You'll Learn topics), `utils.ts` (`cn`)
+- `src/components/` — Navbar (2 visual states + mobile dropdown), Footer, CourseCard, CourseCatalog, ContactForm, LoginForm (5-view state machine), NewsletterForm, AIAssistantChat, `course-detail/` (EnrollButton, AboutCourse), `dashboard/`
+- `src/lib/` — `db.ts` (Prisma singleton), `session.ts` + `auth.ts`, `course-tags.ts` (What You'll Learn topics), `course-eyebrow.ts` (card eyebrow display map), `utils.ts` (`cn`)
 - `prisma/` — `schema.prisma`, `seed.ts`, `seed-data.ts` (pure reference catalog — pinned by tests incl. imagery + lesson counts), `db-url.ts`
 - `docs/screenshots/` — QA captures of the running app
 - `skills/` — reference skill library (excluded from tsconfig/eslint; not app code)

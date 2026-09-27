@@ -1,9 +1,9 @@
 ---
 name: nexuslearn-template
-description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from a 4-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons), the three Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients), the hardened mobile navigation pattern, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference page-shell pattern (main.pt-20 + gray wrapper under the fixed navbar), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing, 2-col AI section, dark popular pricing card, FAQ stack, expandable About This Course, light-slate 404), and the full test pyramid (21 Vitest unit + 50 Playwright e2e incl. 6 mobile-nav guards)."
-version: 2.2.0
+description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from a 5-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons), the three Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients), the hardened mobile navigation pattern, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference page-shell pattern (main.pt-20 + gray wrapper under the fixed navbar), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing, 2-col AI section, dark popular pricing card, FAQ stack, expandable About This Course, light-slate 404, in-page CourseDetail not-found, simulated-delivery signup + verify), the head-metadata parity layer (root description, OG/Twitter cards, canonicals, logo favicon, manifest), and the full test pyramid (24 Vitest unit + 68 Playwright e2e incl. 6 mobile-nav guards)."
+version: 2.3.0
 last_updated: "2026-09-27"
-project_state: "71 tests green (21 unit + 50 e2e); lint/typecheck/build clean; parity verified vs live reference (session-4 pass: page shells, About This Course, seed imagery, lesson-count drift, AI chat shell, footer hrefs, 404)"
+project_state: "92 tests green (24 unit + 68 e2e); lint/typecheck/build clean; parity verified vs live reference (session-5 pass: head metadata + OG/manifest, login 5-view state machine with signup/verify, newsletter client island, CourseDetail not-found state, eyebrow display map, Home-active nav, BI/About/Pricing class parity)"
 ---
 
 # NexusLearn — Complete Engineering Skill
@@ -97,14 +97,18 @@ excluded from tsconfig/eslint/vitest/playwright.
 | `AUTH_SECRET` | production | HMAC session secret (`openssl rand -hex 32`); insecure dev fallback warns |
 | `NEXT_PUBLIC_SITE_URL` | optional | Canonical origin for metadata/robots |
 
-**Test inventory (verified green):** 21 unit tests across 3 files
-(`auth.test.ts` 5, `course-tags.test.ts` 5, `seed-data.test.ts` 11 — incl.
-the reference imagery/avatar map and lesson-count pins) + 50 e2e specs
-across 2 files (`mobile-navigation.spec.ts` 6, `nexuslearn.spec.ts` 44 —
-incl. the 9 session-3 parity specs and the 16 session-4 specs: page shells
-on all 7 non-landing routes, navbar clearance, About-Course expand/collapse,
-footer/nav href targets, AI chat shell, Contact overlap container, the
-light-slate 404 and the robots/sitemap SEO files).
+**Test inventory (verified green):** 24 unit tests across 4 files
+(`auth.test.ts` 5, `course-tags.test.ts` 5, `course-eyebrow.test.ts` 3,
+`seed-data.test.ts` 11 — incl. the reference imagery/avatar map and
+lesson-count pins) + 68 e2e specs across 2 files
+(`mobile-navigation.spec.ts` 6, `nexuslearn.spec.ts` 62 — incl. the 9
+session-3 parity specs, the 16 session-4 specs (page shells, About-Course,
+AI chat shell, 404, robots/sitemap) and the 18 session-5 specs: head
+metadata incl. manifest, the login 5-view state machine (reset, reset-sent,
+signup, 6-digit verify, duplicate-email + password-mismatch errors), the
+in-place newsletter success state, the CourseDetail not-found state, the EQ
+eyebrow short label, Home-active-on-/ nav state and the BI/Pricing/About
+class parity pins).
 
 ---
 
@@ -236,7 +240,8 @@ app routes (server)  →  components (server)  →  leaf client components
 | `Footer` | server | 4-col grid, boxed socials (Twitter/LinkedIn/YouTube/Instagram), tagline bottom bar |
 | `CourseCard` | server | verbatim reference card markup |
 | `CourseCatalog` | client | dark hero search + floating filter card + grid |
-| `LoginForm` / `ContactForm` | client | real POST flows |
+| `LoginForm` | client | 5-view state machine: signin → reset → reset-sent → signup → verify (6-digit code inputs); slate Sign-in button + shadcn alerts, classes verbatim from the reference |
+| `NewsletterForm` / `ContactForm` | client | fetch POST + in-place success states (never native form POST) |
 | `AIAssistantChat` | client | chat UI + dependency-free markdown renderer |
 | `dashboard/MyCourses` | client | progress cards, capped checklist, mark-done |
 | `course-detail/EnrollButton` | client | enroll → API → Continue Learning |
@@ -283,7 +288,11 @@ scrypt hash/verify — zero Next imports so tests run in node env.
 | `/Dashboard` signed out | renders "Welcome back" (no name), zeroed stats, empty state | session optional in the server component; no redirect |
 | `/Home` | renders the landing (footer logo target) | re-exports the landing page (`export const dynamic = "force-dynamic"; export { default } from "../page";`) |
 | Login tab title | "NexusLearn" (no prefix) | metadata `title` omitted → layout default |
-| Enroll / Google / Sign-up buttons | dead buttons | Enroll is REAL (core feature); Google + Sign-up stay presentational |
+| Enroll / Google buttons | Enroll is REAL (core feature); Google stays presentational (the reference's IS wired to real Google OAuth via the base44 platform — not transferable without the operator's own OAuth client) |
+| Signup + verification | in-card signup → 6-digit code → signed in | REAL (signup/verify routes; delivery simulated — code logged server-side, any 6 digits verify; `User.emailVerified`, seeded users skip) |
+| Forgot password | reset view → "Check your email" state | REAL (forgot-password route always ok — no user enumeration; no reset link without SMTP, documented) |
+| CourseDetail bad id | in-page "Course not found" + Browse Courses (never the 404) | rendered inside the gray shell for missing/unknown ids |
+| Newsletter submit | fetch + in-place green success row | client island (never native action= POST — that navigates to raw JSON) |
 
 ### 6.3 Progress flow (the one computed aggregate)
 
@@ -411,9 +420,9 @@ pinning per command: `DATABASE_URL="file:../db/custom.db" bun run db:seed`.
 ```bash
 bun run lint         # eslint clean
 bun run typecheck    # tsc --noEmit clean
-bun run test         # 21/21 unit
+bun run test         # 24/24 unit
 bun run build        # standalone compiles
-bun run test:e2e     # 50/50 incl. 6 mobile-nav
+bun run test:e2e     # 68/68 incl. 6 mobile-nav
 ```
 
 - [ ] Mobile menu manually eyeballed at 375×667 (screenshot vs `docs/screenshots/`)

@@ -6,7 +6,7 @@ import { Footer } from "@/components/Footer";
 
 export const metadata = {
   title: "Pricing",
-  description: "Simple, transparent pricing. Start free, upgrade when you're ready.",
+  alternates: { canonical: "/Pricing" },
 };
 
 const PLANS = [
@@ -171,10 +171,10 @@ export default function PricingPage() {
                     className="bg-gray-50 rounded-2xl p-6 hover:bg-white hover:shadow-lg transition-all duration-300 border border-transparent hover:border-gray-100"
                   >
                     <h3 className="flex items-center gap-2 font-semibold text-gray-900">
-                      <CircleHelp className="h-5 w-5 text-purple-500 shrink-0" aria-hidden="true" />
+                      <CircleHelp className="h-5 w-5 text-purple-500" aria-hidden="true" />
                       {faq.q}
                     </h3>
-                    <p className="text-sm text-gray-500 leading-relaxed mt-2">{faq.a}</p>
+                    <p className="mt-3 text-gray-600 leading-relaxed ml-7">{faq.a}</p>
                   </div>
                 ))}
               </div>

@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Courses",
-  description: "Discover hundreds of expert-led courses to advance your career",
+  alternates: { canonical: "/Courses" },
 };
 
 export default async function CoursesPage() {

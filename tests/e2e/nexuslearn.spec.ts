@@ -530,3 +530,266 @@ test.describe("404", () => {
     await expect(page).toHaveURL("/");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Session 5 — head/metadata parity, login state machine, newsletter,
+// CourseDetail not-found, and residual class drift (BI/About/Pricing).
+// Reference: docs/remediation-plan-session5.md
+// ---------------------------------------------------------------------------
+
+test.describe("session-5 parity: head metadata", () => {
+  const REFERENCE_DESCRIPTION =
+    "SkillSphere is a dynamic online learning platform offering a wide range of courses, structured learning paths, and AI-powered study tools to empower students, creators, and instructors in shaping their future.";
+
+  test("every route ships the reference root description + OG/Twitter + canonical + icon + manifest", async ({ page }) => {
+    for (const route of ["/", "/Courses", "/Pricing", "/login"]) {
+      await page.goto(route);
+      // The reference uses ONE description everywhere (no per-page overrides)
+      expect(await page.locator('meta[name="description"]').getAttribute("content")).toBe(REFERENCE_DESCRIPTION);
+
+      // OpenGraph + Twitter cards exist (landing carries the full set)
+      expect(await page.locator('meta[property="og:title"]').count()).toBeGreaterThan(0);
+      expect(await page.locator('meta[property="og:type"]').getAttribute("content")).toBe("website");
+      expect(await page.locator('meta[property="og:site_name"]').getAttribute("content")).toBe("NexusLearn");
+      expect(await page.locator('meta[name="twitter:card"]').getAttribute("content")).toBe("summary_large_image");
+
+      // Per-route canonical resolves against the site origin (Next.js drops
+      // the trailing slash on the root — accept both forms)
+      const canonical = await page.locator('link[rel="canonical"]').getAttribute("href");
+      expect(canonical).toBeTruthy();
+      expect(new URL(canonical!).pathname).toBe(route);
+
+      // Favicon + manifest are linked (the reference logo image)
+      const icon = await page.locator('link[rel="icon"]').getAttribute("href");
+      expect(icon).toContain("/logo.png");
+      expect(await page.locator('link[rel="manifest"]').getAttribute("href")).toContain("manifest");
+    }
+  });
+
+  test("manifest.json matches the reference fields", async ({ request }) => {
+    const res = await request.get("/manifest.json");
+    expect(res.ok()).toBeTruthy();
+    const manifest = (await res.json()) as Record<string, unknown>;
+    expect(manifest.name).toBe("NexusLearn");
+    expect(manifest.short_name).toBe("NexusLearn");
+    expect(manifest.description).toBe(REFERENCE_DESCRIPTION);
+    expect(manifest.display).toBe("standalone");
+    expect(manifest.theme_color).toBe("#000000");
+    expect(manifest.background_color).toBe("#ffffff");
+    const icons = manifest.icons as Array<{ src: string; sizes: string }>;
+    expect(icons.map((i) => i.sizes).sort()).toEqual(["192x192", "512x512"]);
+    expect(icons.every((i) => i.src.includes("/logo.png"))).toBe(true);
+  });
+});
+
+test.describe("session-5 parity: login card shell", () => {
+  test("divider renders OR via uppercase and the reference separator attributes", async ({ page }) => {
+    await page.goto("/login");
+    const label = page.locator("span", { hasText: "or" }).first();
+    await expect(label).toHaveClass(/bg-white px-3/);
+    // The wrapper applies text-transform (live displays "OR" from raw "or")
+    await expect(page.locator("span.bg-white.px-3").locator("..")).toHaveClass(/uppercase/);
+    // The rule is the shadcn Separator markup
+    await expect(page.locator("div[role=none].shrink-0.h-\\[1px\\]")).toBeAttached();
+  });
+
+  test("Sign in is the reference slate button, not the gradient CTA", async ({ page }) => {
+    await page.goto("/login");
+    const signIn = page.locator('button[type="submit"]', { hasText: "Sign in" });
+    await expect(signIn).toHaveClass(/bg-slate-900/);
+    await expect(signIn).toHaveClass(/h-11 sm:h-12/);
+    await expect(signIn).not.toHaveClass(/bg-gradient-to-r/);
+  });
+
+  test("login logo is the reference image with the slate glow", async ({ page }) => {
+    await page.goto("/login");
+    const img = page.locator('img[alt="NexusLearn logo"]');
+    await expect(img).toBeVisible();
+    expect(await img.getAttribute("src")).toContain("/logo.png");
+    await expect(img.locator("..")).toHaveClass(/ring-4 ring-white\/50/);
+    // The glow behind the logo is the subtle slate variant (not cyan/purple)
+    await expect(page.locator(".from-slate-200.to-slate-300").first()).toBeAttached();
+  });
+
+  test("invalid credentials render the reference shadcn alert", async ({ page }) => {
+    await page.goto("/login");
+    await page.fill("#email", "sepnetflix2023@outlook.com");
+    await page.fill("#password", "WrongPassword1");
+    await page.click('button[type="submit"]');
+    const alert = page.locator("[role=alert]:not(#__next-route-announcer__)");
+    await expect(alert).toBeVisible();
+    await expect(alert).toHaveText("Invalid email or password");
+    await expect(alert).toHaveClass(/bg-red-50\/70/);
+    await expect(alert).toHaveClass(/border-red-200/);
+    await expect(alert.locator("div")).toHaveClass(/text-red-700 text-sm/);
+  });
+
+  test("field labels carry the reference peer-disabled classes", async ({ page }) => {
+    await page.goto("/login");
+    await expect(page.locator('label[for="email"]')).toHaveClass(
+      /peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-sm font-medium text-slate-700/
+    );
+  });
+});
+
+test.describe("session-5 parity: forgot password flow", () => {
+  test("reset view swaps in and submits to the check-your-email state", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Forgot password?" }).click();
+
+    await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible();
+    await expect(page.getByText("Enter your email and we'll send you a link to reset your password")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Back to sign in" })).toBeVisible();
+
+    await page.fill("#email", "parity@example.com");
+    await page.getByRole("button", { name: "Send reset link" }).click();
+
+    await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
+    await expect(page.getByText("parity@example.com")).toBeVisible();
+    // The green reference alert
+    const alert = page.locator("[role=alert]:not(#__next-route-announcer__)");
+    await expect(alert).toHaveClass(/bg-green-50\/70/);
+    await expect(alert.locator("div")).toHaveClass(/text-green-700 text-sm/);
+    await expect(
+      page.getByText("Please check your email for the password reset link. It may take a few minutes to arrive.")
+    ).toBeVisible();
+
+    // Back to sign in returns to the sign-in form
+    await page.getByRole("button", { name: "Back to sign in" }).click();
+    await expect(page.getByRole("heading", { name: "Welcome to NexusLearn" })).toBeVisible();
+  });
+});
+
+test.describe("session-5 parity: signup + verify flow", () => {
+  test("signup view validates, creates the account and verifies via the 6-digit code", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Need an account? Sign up" }).click();
+
+    await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
+    await expect(page.locator('label[for="confirmPassword"]')).toHaveText("Confirm Password");
+
+    // Client-side validation: mismatched passwords
+    await page.fill("#email", `parity-${Date.now()}@example.com`);
+    await page.fill("#password", "SuperSecret99!");
+    await page.fill("#confirmPassword", "Different123!");
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expect(page.locator("[role=alert]:not(#__next-route-announcer__)")).toHaveText("Passwords do not match");
+
+    // Matching passwords -> verify-email state
+    await page.fill("#confirmPassword", "SuperSecret99!");
+    await page.getByRole("button", { name: "Create account" }).click();
+
+    await expect(page.getByRole("heading", { name: "Verify your email" })).toBeVisible();
+    await expect(page.getByText("We've sent a 6-digit code to")).toBeVisible();
+    const codeInputs = page.locator('input[inputmode="numeric"]');
+    await expect(codeInputs).toHaveCount(6);
+    await expect(page.getByText("Didn't receive the code?")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Resend" })).toBeVisible();
+
+    // Enter the 6 digits (simulated delivery — any code verifies) -> signed in
+    for (let i = 0; i < 6; i++) {
+      await codeInputs.nth(i).fill(String((i + 1) % 10));
+    }
+    await page.getByRole("button", { name: "Verify email" }).click();
+    await page.waitForURL("/");
+    // Signed in: the API returns the session user
+    const me = await page.request.get("/api/auth/me");
+    expect((await me.json()).user?.email).toContain("@example.com");
+  });
+
+  test("duplicate signup email shows the reference error", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Need an account? Sign up" }).click();
+    await page.fill("#email", "sepnetflix2023@outlook.com");
+    await page.fill("#password", "SomePassword1!");
+    await page.fill("#confirmPassword", "SomePassword1!");
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expect(page.locator("[role=alert]:not(#__next-route-announcer__)")).toHaveText("A user with this email already exists");
+  });
+});
+
+test.describe("session-5 parity: course detail not-found state", () => {
+  test("unknown id renders the in-page state, not the 404", async ({ page }) => {
+    await page.goto("/CourseDetail?id=does-not-exist");
+    await expect(page.getByText("Course not found")).toBeVisible();
+    const browse = page.getByRole("main").getByRole("link", { name: "Browse Courses" });
+    await expect(browse).toBeVisible();
+    await expect(browse).toHaveAttribute("href", "/Courses");
+    // It lives inside the reference gray wrapper shell
+    await expect(page.locator("main.pt-20 .bg-gray-50")).toBeVisible();
+    // And it is NOT the 404 page
+    await expect(page.getByRole("heading", { name: "Page Not Found" })).toHaveCount(0);
+    await browse.click();
+    await expect(page).toHaveURL("/Courses");
+  });
+
+  test("missing id renders the same in-page state", async ({ page }) => {
+    await page.goto("/CourseDetail");
+    await expect(page.getByText("Course not found")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Page Not Found" })).toHaveCount(0);
+  });
+});
+
+test.describe("session-5 parity: cards + nav + newsletter", () => {
+  test("EQ course card eyebrow shows the reference short label", async ({ page }) => {
+    await page.goto("/Courses");
+    const eyebrows = page.locator("a[href*='CourseDetail'] p.text-purple-600");
+    await expect(eyebrows.nth(8)).toHaveText("Personal Dev");
+    // The filter still offers the full category name
+    await expect(page.getByRole("combobox").first()).toContainText("All Categories");
+  });
+
+  test("Home nav link is active on the landing page (desktop + mobile)", async ({ page }) => {
+    await page.goto("/");
+    const home = page.locator("nav a", { hasText: "Home" }).first();
+    // The active variant ends with the purple token pair (inactive ends with
+    // text-white/80 over the hero) — hover:bg-purple-50 alone must NOT match.
+    await expect(home).toHaveClass(/ text-purple-600 bg-purple-50$/);
+  });
+
+  test("newsletter subscribes in place with the reference success state", async ({ page }) => {
+    await page.goto("/");
+    const email = page.locator('input[aria-label="Enter your email"]');
+    await email.scrollIntoViewIfNeeded();
+    await email.fill(`news-${Date.now()}@example.com`);
+    await page.getByRole("button", { name: "Subscribe" }).click();
+
+    // No navigation to the JSON response — the success state renders in place
+    await expect(page.getByText("You're subscribed! Welcome aboard.")).toBeVisible();
+    await expect(page.locator(".text-green-400 .lucide-circle-check-big, .text-green-400 svg")).toBeVisible();
+    expect(page.url()).not.toContain("/api/newsletter");
+  });
+});
+
+test.describe("session-5 parity: residual class drift", () => {
+  test("pricing FAQ answers use the reference ml-7 gray-600 paragraph", async ({ page }) => {
+    await page.goto("/Pricing");
+    // The FAQ section (second section) items are bg-gray-50 rounded-2xl cards
+    const answers = page
+      .locator("main section")
+      .nth(1)
+      .locator("div.bg-gray-50.rounded-2xl")
+      .locator("p");
+    await expect(answers.first()).toHaveClass(/mt-3 text-gray-600 leading-relaxed ml-7/);
+  });
+
+  test("about hero h1 uses the text-3xl base (reference)", async ({ page }) => {
+    await page.goto("/About");
+    await expect(page.locator("h1")).toHaveClass(/text-3xl md:text-5xl/);
+  });
+
+  test("become-instructor sections match the reference structure", async ({ page }) => {
+    await page.goto("/BecomeInstructor");
+    // Section h2s are direct children of the max-w container at md:text-4xl
+    const h2s = page.locator("main section h2");
+    await expect(h2s.first()).toHaveClass(/text-3xl md:text-4xl font-bold text-gray-900 text-center mb-16/);
+    // Benefits cards are left-aligned with the border hover (no lift/shadow)
+    const card = page.locator("main section").nth(1).locator("div.bg-white.rounded-2xl").first();
+    await expect(card).toHaveClass(/hover:border-gray-200/);
+    await expect(card).not.toHaveClass(/text-center/);
+    // CTA section: h2 is a direct child (no inner max-w wrapper)
+    const cta = page.locator("main section").nth(2);
+    await expect(cta.locator("> h2")).toBeVisible();
+    await expect(cta.locator("> div")).toHaveCount(0);
+  });
+});

@@ -16,6 +16,7 @@ Nothing is here "because it's popular."
 - `[SAN]` Three production defects found and remediated during QA are recorded as ADR-004 (Tailwind v4 HSL triplets), ADR-005 (pinned v3 palette), and §4.4 (SQLite path resolution).
 - `[S3]` Session 3 parity pass (see `docs/remediation-plan-session3.md`): 11 residual gaps closed — landing AI section rebuilt as the reference 2-column layout (badge + `<br>` gradient h2 left, 4 glass cards right), instructor section rebuilt with image + floating "$12.5M+ Paid to Instructors" stat + CTA-after-features, pricing cards reworked (rounded-3xl, dark cosmic popular card, desc lines, check icons — landing + /Pricing), /Pricing hero rhythm (pt-16 pb-12) + FAQ single-column stack with CircleHelp icons + the 4 reference Q&As, category grid (sm:3/lg:4 + cursor-pointer overflow-hidden), eyebrows → text-sm spans, learning-path cards → borderless gray surface, newsletter centered 600px blur, hero "Start Learning" → /Courses, nav logo → /Home, login "Need an account? Sign up" single button. Test pyramid now 16 unit + 34 e2e (9 new parity specs, TDD red-first).
 - `[S4]` Session 4 parity pass (see `docs/remediation-plan-session4.md`): 14 findings closed — every non-landing page rebuilt on the reference shell (root > `main.pt-20` > `div.min-h-screen.bg-gray-50`; the old shells rendered the /Courses + /Dashboard h1 at y=64 behind the 81px fixed navbar), CourseDetail "About This Course" expandable section (nullable `Course.longDescription`, 4 reference texts, Read More/Show Less toggle), seed imagery corrected (3 course covers + per-instructor avatar map), live lesson-count drift re-captured (Python 178, ML 245, WebDev 380, Business 156 → 1,904 total), hero rhythms (About/Contact/BecomeInstructor pt-16 pb-XX + direct-child blurs), Contact overlapping max-w-6xl container, AI assistant shell rework (max-w-3xl, Sparkles hero icon, min-h-[60vh] flex card, flex-1 messages, textarea composer, px-5 bubbles), nav Home → /Home, 5 footer href fixes, 404 rebuilt as the reference light-slate design with dynamic path. Test pyramid now 21 unit + 50 e2e (16 new session-4 specs, TDD red-first).
+- `[S5]` Session 5 parity pass (see `docs/remediation-plan-session5.md`): 28 findings closed — full head parity (ONE root "SkillSphere…" description on every route, OG + Twitter cards, per-route canonicals incl. the CourseDetail query string, `/logo.png` favicon, `manifest.json`, apple web-app metas, viewport aligned to the reference's unlimited pinch zoom), login card rebuilt as the reference 5-view state machine (reset + reset-sent + signup + 6-digit verify views; slate Sign-in button; shadcn Alert errors; logo image with slate glow; OR divider) with three new routes (`/api/auth/signup`, `/api/auth/verify` with `User.emailVerified`, `/api/auth/forgot-password` — simulated email delivery, documented), newsletter converted to a client island (the native form POST navigated the browser to the raw JSON — real bug) with the reference in-place success state, CourseDetail unknown/missing id renders the in-page "Course not found" state (never the 404), EQ card eyebrow display map ("Personal Dev"), Home nav link active on `/` and `/Home`, Pricing FAQ answer paragraph (ml-7 + gray-600), About hero h1 base, BecomeInstructor structure (unwrapped h2s at md:text-4xl, left-aligned benefit cards with border hover, unwrapped CTA section, px-10 buttons). Test pyramid now 24 unit + 68 e2e (18 new session-5 specs, TDD red-first).
 
 ---
 
@@ -206,6 +207,7 @@ nexuslearn-template/
 │   │   ├── not-found.tsx       # branded 404 (gradient "404", Go Home)
 │   │   └── api/
 │   │       ├── auth/{login,logout,me}/route.ts   # session lifecycle
+│   │       ├── auth/{signup,verify,forgot-password}/route.ts  # reference signup state machine (simulated delivery) |
 │   │       ├── enrollments/route.ts              # GET mine / POST enroll (upsert)
 │   │       ├── enrollments/progress/route.ts     # POST lesson complete → recompute %
 │   │       ├── ai/chat/route.ts                  # server-only SDK, 12-turn window, graceful 502
@@ -347,6 +349,7 @@ erDiagram
       string name
       string passwordHash "scrypt salt:hash"
       string avatarColor
+      boolean emailVerified "signup flow; seeded users default true"
       datetime createdAt
     }
     Course {
@@ -504,15 +507,16 @@ Single role (authenticated learner). `POST /api/auth/login` verifies scrypt, set
 |---|---|---|---|---|
 | Unit (auth crypto) | 1 | 5 | `tests/auth.test.ts` | Vitest (node env) |
 | Unit (course tags) | 1 | 5 | `tests/course-tags.test.ts` | Vitest (node env) |
+| Unit (course eyebrow display map) | 1 | 3 | `tests/course-eyebrow.test.ts` | Vitest (node env) |
 | Unit (seed data shape + imagery + lesson counts) | 1 | 11 | `tests/seed-data.test.ts` | Vitest (node env) |
 | E2E mobile navigation | 1 | 6 | `tests/e2e/mobile-navigation.spec.ts` | Playwright (Chromium, 375×667 touch) |
-| E2E user journeys + parity | 1 | 44 | `tests/e2e/nexuslearn.spec.ts` | Playwright (Desktop Chrome) |
+| E2E user journeys + parity | 1 | 62 | `tests/e2e/nexuslearn.spec.ts` | Playwright (Desktop Chrome) |
 | Computed-style parity | harness | 26 assertions + VLM band comparisons | recorded vs `src/app/globals.css` + components | measured via browser (see §5) |
 
 ### 7.2 Test Patterns
 
 - **Regression guards as specs:** the mobile-navigation suite pins the exact Tailwind v4 failure classes (display mismatch, scroll lock, ARIA, icon swap, route-change close).
-- **Parity behaviors as specs:** sign-in landing on `/`, the signed-out dashboard render, the `/Home` landing render, the reference curriculum ("Lesson N: Module Content"), What-You'll-Learn topics, footer tagline and the reference content-page outlines are all pinned by e2e assertions. Session 4 added the page-shell guards (main.pt-20 + gray wrapper + navbar clearance on all 7 non-landing pages), the About-Course expand/collapse, footer/nav href targets, the AI chat shell (min-h-[60vh] flex card, textarea composer) and the light-slate 404.
+- **Parity behaviors as specs:** sign-in landing on `/`, the signed-out dashboard render, the `/Home` landing render, the reference curriculum ("Lesson N: Module Content"), What-You'll-Learn topics, footer tagline and the reference content-page outlines are all pinned by e2e assertions. Session 4 added the page-shell guards (main.pt-20 + gray wrapper + navbar clearance on all 7 non-landing pages), the About-Course expand/collapse, footer/nav href targets, the AI chat shell (min-h-[60vh] flex card, textarea composer) and the light-slate 404. Session 5 added the head-metadata guards (root description, OG/Twitter, canonical, icon, manifest), the login 5-view state machine (reset + signup + 6-digit verify, duplicate-email + password-mismatch errors), the in-place newsletter success state, the CourseDetail in-page not-found state, the EQ eyebrow short label, the Home-active-on-`/` nav state and the BI/Pricing/About class parity pins.
 - **Real-form authentication:** e2e signs in through `/login` with the seeded demo user — the auth flow itself is coverage.
 - **Idempotent e2e:** global-setup pushes + seeds `db/e2e.db` and resets enrollments, so repeated runs start from the same baseline.
 - **Production-fidelity e2e:** the suite boots the standalone build, which is how the SQLite path defect (§4.4) was caught.
@@ -525,8 +529,8 @@ No numeric gate configured; the required **pre-push gate** is the sequence `lint
 
 - [ ] `bun run lint` clean
 - [ ] `bun run typecheck` clean
-- [ ] `bun run test` 21/21
-- [ ] `bun run test:e2e` 50/50 (incl. 6 mobile-nav guards)
+- [ ] `bun run test` 24/24
+- [ ] `bun run test:e2e` 68/68 (incl. 6 mobile-nav guards)
 - [ ] `bun run build` compiles (standalone)
 - [ ] Mobile menu manually eyeballed at 375×667 (screenshot diff vs `docs/screenshots/`)
 - [ ] No new `tailwind.config.js` (Tailwind v4 is CSS-first)
@@ -596,8 +600,8 @@ TypeScript strict; function-declaration components; `cn()` for classes; CVA for 
 
 | Priority | Issue | Impact | Status |
 |---|---|---|---|
-| LOW | No user self-registration (accounts are seeded) | New users must be created via seed/script | Open |
-| LOW | "Continue with Google" is presentational (no OAuth wired) | Button matches reference; no provider behind it | Open (by design — parity scope) |
+| LOW | Email delivery is simulated (signup verify code logged server-side; any 6-digit code verifies; forgot-password always ok) | Wire real SMTP + code comparison before production | Open (documented template simplification) |
+| LOW | "Continue with Google" is presentational (the reference's button IS wired — it redirects to real Google OAuth through the base44 platform, which cannot transfer to this standalone repo without the operator's own OAuth client) | Button matches reference; no provider behind it | Open (by design — platform-locked) |
 | LOW | No `prefers-reduced-motion` handling for hover/menu animations | Accessibility nicety missing | Open |
 | LOW | AI chat is not streaming (JSON response) | Perceived latency on long answers | Open |
 | INFO | Checkout is out of scope — enrollment is free/instant | Matches template semantics | By design |

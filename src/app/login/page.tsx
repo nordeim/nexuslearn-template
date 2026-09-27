@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { LoginForm } from "@/components/LoginForm";
 
 export const metadata: Metadata = {
-  description: "Sign in to NexusLearn to continue your learning journey",
+  alternates: { canonical: "/login" },
 };
 
 export default function LoginPage() {
@@ -16,25 +16,16 @@ export default function LoginPage() {
 
           <div className="p-8 sm:p-10 md:pt-12 md:pb-10 md:px-10">
             <div className="flex flex-col items-center text-center space-y-6 sm:space-y-8">
-              {/* Logo */}
+              {/* Logo — the reference ships the logo image inside the ring
+                  span with a subtle slate glow (not a gradient icon tile) */}
               <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/40 to-purple-600/40 rounded-full blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-300" />
-                <span className="flex shrink-0 overflow-hidden rounded-full relative h-20 w-20 sm:h-24 sm:w-24 shadow-lg ring-4 ring-white/50 group-hover:shadow-xl transition-all duration-300 items-center justify-center bg-gradient-to-r from-cyan-500 to-purple-600">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-10 w-10 text-white"
-                    aria-hidden="true"
-                  >
-                    <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
-                    <path d="M22 10v6" />
-                    <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" />
-                  </svg>
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full blur-xl opacity-30 group-hover:opacity-40 transition-opacity duration-300" />
+                <span className="flex shrink-0 overflow-hidden rounded-full relative h-20 w-20 sm:h-24 sm:w-24 shadow-lg ring-4 ring-white/50 group-hover:shadow-xl transition-all duration-300">
+                  <img
+                    className="aspect-square h-full w-full object-cover"
+                    alt="NexusLearn logo"
+                    src="/logo.png"
+                  />
                 </span>
               </div>
 
@@ -51,7 +42,7 @@ export default function LoginPage() {
                     type="button"
                     className="w-full flex items-center justify-center gap-3 bg-white text-slate-700 px-5 py-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm transition-all duration-200 font-medium text-[16px] group"
                   >
-                    <svg className="h-5 w-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <svg className="h-5 w-5 transition-transform duration-200 -ml-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <path
                         fill="#4285F4"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -73,11 +64,17 @@ export default function LoginPage() {
                   </button>
                 </div>
 
+                {/* The reference divider renders "OR" via text-transform on
+                    the label wrapper, with the shadcn Separator rule */}
                 <div className="relative my-6">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full h-px bg-slate-200" />
+                    <div
+                      data-orientation="horizontal"
+                      role="none"
+                      className="shrink-0 h-[1px] w-full bg-slate-200"
+                    />
                   </div>
-                  <div className="relative flex justify-center text-xs">
+                  <div className="relative flex justify-center text-xs uppercase">
                     <span className="bg-white px-3 text-slate-500 font-medium tracking-wider">or</span>
                   </div>
                 </div>
@@ -86,6 +83,10 @@ export default function LoginPage() {
               </div>
             </div>
           </div>
+        </div>
+        {/* Reference mobile-only spacer under the card (sm:hidden) */}
+        <div className="mt-8 text-center text-xs text-slate-400 sm:hidden">
+          <p>&nbsp;</p>
         </div>
       </div>
     </main>

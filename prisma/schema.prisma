@@ -13,13 +13,16 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  passwordHash String
-  avatarColor  String   @default("#996CE4")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String
+  passwordHash  String
+  avatarColor   String   @default("#996CE4")
+  // Signup flow (session 5): new accounts start unverified and must confirm
+  // a 6-digit code via POST /api/auth/verify. Seeded accounts are verified.
+  emailVerified Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   enrollments Enrollment[]
 }

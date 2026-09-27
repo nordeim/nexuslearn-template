@@ -5,7 +5,7 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.3.3-06b6d4?logo=tailwindcss)
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2d3748?logo=prisma)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?logo=typescript)
-![Tests](https://img.shields.io/badge/tests-71_passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-92_passing-brightgreen)
 
 A production-grade e-learning platform — marketing site, searchable course catalog, enrollment with per-lesson progress tracking, a learner dashboard, and an AI study assistant. Built as a faithful, fully-functional clone of the NexusLearn reference app, rebuilt on the modern Next.js 16 stack.
 
@@ -26,6 +26,8 @@ Everything runs from one Next.js app with a zero-config SQLite database, first-p
 | 🤖 AI study assistant | Chat UI backed by a server-only LLM route with markdown-rendered answers |
 | 💎 Reference pricing | Dark cosmic popular card, desc lines, FAQ stack with help icons — matched 1:1 |
 | 🔐 First-party auth | HMAC-SHA256 signed cookie sessions + scrypt password hashing (no provider lock-in) |
+| 👤 Signup + verify | In-card signup → 6-digit email verification → signed in (simulated delivery — no SMTP required) |
+| 🗝 Forgot password | In-card reset view + check-your-email state (reference state machine) |
 | 📱 Mobile-first nav | Animated dropdown menu with ARIA wiring, scroll lock, symmetric breakpoints |
 | ✉️ Lead capture | Contact form and newsletter subscription persisted to the database |
 
@@ -125,12 +127,12 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ## Testing
 
 ```bash
-bun run test          # Vitest unit tests (21: auth crypto, tag parsing, seed shape + imagery)
+bun run test          # Vitest unit tests (24: auth crypto, tag parsing, eyebrow map, seed shape + imagery)
 bun run build         # required before e2e
-bun run test:e2e      # Playwright: 50 specs incl. 6 mobile-navigation guards
+bun run test:e2e      # Playwright: 68 specs incl. 6 mobile-navigation guards
 ```
 
-The e2e suite boots the **production standalone server** on `:3100` with an isolated, seeded `db/e2e.db` and resets enrollment state on every run. The mobile-navigation specs pin the behaviors most prone to Tailwind v4 regressions: symmetric `md:` breakpoints, dropdown open/close, route-change close, Escape close, icon swap, and scroll lock.
+The e2e suite boots the **production standalone server** on `:3100` with an isolated, seeded `db/e2e.db` and resets enrollment state on every run. The mobile-navigation specs pin the behaviors most prone to Tailwind v4 regressions: symmetric `md:` breakpoints, dropdown open/close, route-change close, Escape close, icon swap, and scroll lock. The session-5 specs pin the login state machine (reset/signup/verify), the head metadata (description, OG/Twitter, canonical, icon, manifest), the in-place newsletter success state and the CourseDetail not-found view.
 
 ## API Reference
 
@@ -139,6 +141,9 @@ The e2e suite boots the **production standalone server** on `:3100` with an isol
 | `/api/auth/login` | POST | public | Sign in, sets `nexus_session` cookie |
 | `/api/auth/logout` | POST | session | Clear session cookie |
 | `/api/auth/me` | GET | public | Current session user or `null` |
+| `/api/auth/signup` | POST | public | Create an account (unverified; code logged server-side) |
+| `/api/auth/verify` | POST | public | Verify the 6-digit code, mark verified + sign in |
+| `/api/auth/forgot-password` | POST | public | Request a reset link (always ok — no user enumeration) |
 | `/api/enrollments` | GET | session | My enrollments with course data |
 | `/api/enrollments` | POST | session | Enroll in a course (idempotent upsert) |
 | `/api/enrollments/progress` | POST | session | Mark a lesson complete, recompute progress % (returns `completedLessonIds`) |

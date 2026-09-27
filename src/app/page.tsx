@@ -24,6 +24,7 @@ import {
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CourseCard } from "@/components/CourseCard";
+import { NewsletterForm } from "@/components/NewsletterForm";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -619,26 +620,7 @@ export default async function LandingPage() {
             <p className="mt-4 text-lg text-gray-400">
               Get the latest courses, tips, and exclusive offers delivered to your inbox.
             </p>
-            <form
-              className="mt-8 flex flex-col sm:flex-row gap-4 max-w-md mx-auto"
-              action="/api/newsletter"
-              method="post"
-            >
-              <input
-                type="email"
-                name="email"
-                required
-                placeholder="Enter your email"
-                className="flex-1 h-12 px-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 backdrop-blur-sm"
-                aria-label="Enter your email"
-              />
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-8 h-12 rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105"
-              >
-                Subscribe
-              </button>
-            </form>
+            <NewsletterForm />
           </div>
         </section>
       </main>

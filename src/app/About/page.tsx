@@ -5,7 +5,7 @@ import { Footer } from "@/components/Footer";
 
 export const metadata = {
   title: "About",
-  description: "We're on a mission to democratize education.",
+  alternates: { canonical: "/About" },
 };
 
 const STATS = [
@@ -49,7 +49,7 @@ export default function AboutPage() {
           {/* Hero */}
           <div className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-20 px-4">
             <div className="max-w-4xl mx-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">About NexusLearn</h1>
+              <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">About NexusLearn</h1>
               <p className="mt-6 text-lg text-gray-400 leading-relaxed max-w-2xl mx-auto">
                 We&apos;re on a mission to democratize education by combining expert-led courses with
                 AI-powered tools, making world-class learning accessible to everyone.

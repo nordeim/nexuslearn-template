@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Dashboard",
+  alternates: { canonical: "/Dashboard" },
 };
 
 export default async function DashboardPage() {

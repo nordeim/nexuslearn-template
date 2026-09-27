@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Star, Users, Clock } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { courseEyebrow } from "@/lib/course-eyebrow";
 
 export interface CourseCardData {
   id: string;
@@ -48,7 +49,7 @@ export function CourseCard({ course }: { course: CourseCardData }) {
         </div>
         <div className="p-5">
           <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-2">
-            {course.category}
+            {courseEyebrow(course.category)}
           </p>
           <h3 className="font-bold text-gray-900 text-lg leading-snug mb-3 group-hover:text-purple-700 transition-colors line-clamp-2">
             {course.title}

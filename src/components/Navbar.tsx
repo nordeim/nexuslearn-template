@@ -80,8 +80,15 @@ export function Navbar() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // Reference active-state semantics: the Home link is active on BOTH the
+  // canonical landing "/" and the reference footer target "/Home"; every
+  // other link matches by prefix (so /CourseDetail keeps "Courses" active).
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+    href === "/Home"
+      ? pathname === "/" || pathname === "/Home"
+      : href === "/"
+        ? pathname === "/"
+        : pathname.startsWith(href);
 
   return (
     <nav

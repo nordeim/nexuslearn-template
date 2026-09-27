@@ -94,9 +94,9 @@ bun run dev         # http://localhost:3000
 ## Testing Strategy
 
 ### Test Pyramid
-- **Unit Tests** (Vitest, `tests/*.test.ts`): pure domain seams — session token sign/verify, scrypt password hashing, course-tag parsing, seed-data shape + reference imagery/lesson-count pins
-- **E2E Tests** (Playwright, `tests/e2e/*.spec.ts`): mobile navigation (6 specs — the Tailwind v4 regression guard), landing/catalog/course-detail/auth/enrollment/dashboard/content-page/pricing-FAQ flows plus the session-4 page-shell/About-Course/footer-href/404/SEO specs (44 specs) against the production standalone server
-- **Visual parity**: computed-style assertions and VLM screenshot comparisons against the reference app (see PAD §5 and `docs/screenshots/`)
+- **Unit Tests** (Vitest, `tests/*.test.ts`): pure domain seams — session token sign/verify, scrypt password hashing, course-tag parsing, course-eyebrow display map, seed-data shape + reference imagery/lesson-count pins
+- **E2E Tests** (Playwright, `tests/e2e/*.spec.ts`): mobile navigation (6 specs — the Tailwind v4 regression guard), landing/catalog/course-detail/auth/enrollment/dashboard/content-page/pricing-FAQ flows, the session-4 page-shell/About-Course/footer-href/404/SEO specs, plus the session-5 specs (head metadata incl. manifest, login 5-view state machine with signup+verify, in-place newsletter success, CourseDetail not-found state, eyebrow/active-nav/FAQ/BI class parity) — 62 specs total against the production standalone server
+- **Visual parity**: computed-style assertions and screenshot comparisons against the reference app (see PAD §5 and `docs/screenshots/`)
 
 ### Test Commands
 
@@ -147,16 +147,19 @@ E2E resets enrollment state in global-setup, so runs are idempotent. Specs sign 
 
 ### Architecture
 - Routes mirror the original app's casing: `/Courses`, `/AIAssistant`, `/Pricing`, `/BecomeInstructor`, `/About`, `/Contact`, `/CourseDetail?id=…`, `/Dashboard`, `/login`; `/` is the landing page, `/Home` renders the landing directly (reference footer target).
-- Fixed Navbar has two visual states (transparent over the dark hero; `bg-white/95 backdrop-blur-xl` otherwise) and an animated mobile dropdown.
-- Reference parity behaviors: sign-in returns to `/`; `/Dashboard` renders for signed-out visitors ("Welcome back", zeroed stats, empty state — no redirect); CourseDetail uses a dark hero with a white price card, an auto-generated curriculum (`lessonsCount` × "Lesson N: Module Content") and a "What You'll Learn" card built from `Course.tags` + level (`src/lib/course-tags.ts`).
+- Fixed Navbar has two visual states (transparent over the dark hero; `bg-white/95 backdrop-blur-xl` otherwise) and an animated mobile dropdown. The Home link is active on both `/` and `/Home` (reference behavior).
+- The login card is a 5-view state machine (signin/reset/reset-sent/signup/verify) — email delivery is simulated (server-side code log; any 6-digit code verifies).
+- Head metadata ships ONE root description everywhere + OG/Twitter cards, per-route canonicals, `/logo.png` favicon, `manifest.json` (reference parity).
+- Reference parity behaviors: sign-in returns to `/`; `/Dashboard` renders for signed-out visitors ("Welcome back", zeroed stats, empty state — no redirect); CourseDetail uses a dark hero with a white price card, an auto-generated curriculum (`lessonsCount` × "Lesson N: Module Content") and a "What You'll Learn" card built from `Course.tags` + level (`src/lib/course-tags.ts`); unknown course ids render the in-page "Course not found" state (never the 404).
 
 ### API Design
 - `POST /api/auth/login|logout`, `GET /api/auth/me`
+- `POST /api/auth/signup|verify|forgot-password` (signup + 6-digit verification — simulated delivery; forgot-password always ok)
 - `GET|POST /api/enrollments`, `POST /api/enrollments/progress` (recomputes enrollment % from completed lessons; returns `completedLessonIds` so the dashboard checklist reflects out-of-order completion)
 - `POST /api/ai/chat` (server-only SDK), `POST /api/contact`, `POST /api/newsletter`, `GET /api/health`
 
 ### Database / Data Layer
-- Models: `User`, `Course` (incl. `tags` — comma-separated "What You'll Learn" topics), `Lesson`, `Enrollment` (unique `[userId, courseId]`), `LessonProgress` (unique `[enrollmentId, lessonId]`), `ContactMessage`, `Subscriber`.
+- Models: `User` (incl. `emailVerified` — seeded users skip verification), `Course` (incl. `tags` — comma-separated "What You'll Learn" topics), `Lesson`, `Enrollment` (unique `[userId, courseId]`), `LessonProgress` (unique `[enrollmentId, lessonId]`), `ContactMessage`, `Subscriber`.
 - Progress is derived, never stored as a guess: `completed lessons / total lessons * 100`.
 
 ### Environment Variables

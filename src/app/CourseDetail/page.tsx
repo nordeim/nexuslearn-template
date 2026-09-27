@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   Star,
@@ -9,6 +8,7 @@ import {
   CirclePlay,
   Check,
 } from "lucide-react";
+import type { Metadata } from "next";
 
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -20,9 +20,19 @@ import { whatYouLearnTopics } from "@/lib/course-tags";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Course Detail",
-};
+// The reference canonical includes the query string
+// (origin + /CourseDetail?id=<id>).
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ id?: string }>;
+}): Promise<Metadata> {
+  const { id } = await searchParams;
+  return {
+    title: "Course Detail",
+    alternates: { canonical: id ? `/CourseDetail?id=${id}` : "/CourseDetail" },
+  };
+}
 
 const COURSE_PERKS = [
   "Full lifetime access",
@@ -37,13 +47,34 @@ export default async function CourseDetailPage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const { id } = await searchParams;
-  if (!id) notFound();
 
-  const course = await db.course.findUnique({
-    where: { id },
-    include: { lessons: { orderBy: { sortOrder: "asc" } } },
-  });
-  if (!course) notFound();
+  const course = id
+    ? await db.course.findUnique({
+        where: { id },
+        include: { lessons: { orderBy: { sortOrder: "asc" } } },
+      })
+    : null;
+
+  // The reference app renders an in-page "Course not found" state inside
+  // the gray shell for unknown/missing ids — NOT the 404 page.
+  if (!course) {
+    return (
+      <div className="min-h-dvh bg-white">
+        <Navbar />
+        <main className="pt-20">
+          <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
+            <p className="text-xl text-gray-500">Course not found</p>
+            <Link href="/Courses">
+              <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
+                Browse Courses
+              </button>
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   const session = await getSession();
   const enrollment = session

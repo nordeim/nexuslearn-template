@@ -14,7 +14,7 @@ import { Footer } from "@/components/Footer";
 
 export const metadata = {
   title: "Become Instructor",
-  description: "Share your knowledge, build your legacy.",
+  alternates: { canonical: "/BecomeInstructor" },
 };
 
 const STEPS = [
@@ -59,7 +59,7 @@ export default function BecomeInstructorPage() {
                 expertise required — we handle the platform, you bring the knowledge.
               </p>
               <Link href="/Contact">
-                <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 mt-10 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
+                <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-9 mt-8 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-semibold px-10 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
                   Apply Now
                   <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
                 </button>
@@ -67,12 +67,11 @@ export default function BecomeInstructorPage() {
             </div>
           </div>
 
-        {/* How it works */}
+        {/* How it works — reference: h2 is a direct child of the max-w
+            container with its own text-center mb-16 (no wrapper div) */}
         <section className="py-24 px-4 bg-white">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">How It Works</h2>
-            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-16">How It Works</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {STEPS.map((step) => (
                 <div key={step.num} className="text-center">
@@ -87,46 +86,43 @@ export default function BecomeInstructorPage() {
           </div>
         </section>
 
-        {/* Benefits */}
+        {/* Benefits — reference cards are left-aligned with a border hover */}
         <section className="py-24 px-4 bg-gray-50">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
-                Why Teach With Us
-              </h2>
-            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-16">
+              Why Teach With Us
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {BENEFITS.map((b) => (
                 <div
                   key={b.title}
-                  className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-xl hover:shadow-purple-500/5 hover:-translate-y-1 transition-all duration-300 text-center"
+                  className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-xl hover:border-gray-200 transition-all duration-300"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center mx-auto mb-5">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center mb-5">
                     <b.icon className="h-6 w-6 text-purple-600" aria-hidden="true" />
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-2">{b.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{b.text}</p>
+                  <p className="text-gray-500 leading-relaxed">{b.text}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* CTA */}
+        {/* CTA — reference: h2/p/button are direct section children (no inner
+            max-w wrapper); the button carries the full shadcn base + px-10 */}
         <section className="py-20 px-4 bg-gradient-to-br from-[#0a0a1a] to-[#0d0d2b] text-center">
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-              Ready to Start Teaching?
-            </h2>
-            <p className="mt-4 text-lg text-gray-400">
-              Join our instructor community and start earning while making a difference.
-            </p>
-            <Link href="/Contact">
-              <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 mt-8 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
-                Get Started Today
-              </button>
-            </Link>
-          </div>
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Ready to Start Teaching?
+          </h2>
+          <p className="text-gray-400 mb-8 max-w-lg mx-auto">
+            Join our instructor community and start earning while making a difference.
+          </p>
+          <Link href="/Contact">
+            <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-9 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-semibold px-10 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
+              Get Started Today
+            </button>
+          </Link>
         </section>
         </div>
       </main>

@@ -2,7 +2,7 @@ import { AIAssistantChat } from "@/components/AIAssistantChat";
 
 export const metadata = {
   title: "AI Assistant",
-  description: "Ask anything — get instant, expert-level answers to accelerate your learning.",
+  alternates: { canonical: "/AIAssistant" },
 };
 
 export default function AIAssistantPage() {
