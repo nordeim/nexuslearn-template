@@ -1,0 +1,171 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ---------------------------------------------------------------------------
+ * NexusLearn design tokens — measured from the live app (clone-workspace
+ * 03-design-spec/DESIGN.md). Tailwind v4 CSS-first configuration: everything
+ * lives here, there is NO tailwind.config.js (docs/Tailwind-V4-Validation-Report.md).
+ * ------------------------------------------------------------------------- */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Brand tokens (measured :root custom properties of the original app) */
+  --color-brand-cyan: #18ccfc;
+  --color-brand-purple: #6344f5;
+  --color-brand-pink: #ae48ff;
+  /* Dark section palette */
+  --color-cosmic-950: #0a0a1a;
+  --color-cosmic-900: #0d0d2b;
+
+  /* Tailwind v3-era palette, pinned for pixel parity with the original app:
+   * v4's default oklch palette drifts 1-3 sRGB units per channel from the
+   * v3 hexes the reference app renders (e.g. gray-900 v3 #111827 vs v4
+   * oklch(0.21 0.034 264.665)). Pinning the hexes also keeps computed
+   * styles in plain rgb() form, byte-identical to the extraction record. */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-cyan-400: #22d3ee;
+  --color-cyan-500: #06b6d4;
+  --color-purple-50: #faf5ff;
+  --color-purple-100: #f3e8ff;
+  --color-purple-200: #e9d5ff;
+  --color-purple-300: #d8b4fe;
+  --color-purple-400: #c084fc;
+  --color-purple-500: #a855f7;
+  --color-purple-600: #9333ea;
+  --color-purple-700: #7e22ce;
+  --color-pink-400: #f472b6;
+  --color-pink-500: #ec4899;
+  --color-blue-100: #dbeafe;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-green-100: #dcfce7;
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+  --color-amber-100: #fef3c7;
+  --color-amber-600: #d97706;
+  --color-red-100: #fee2e2;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+  --color-yellow-400: #facc15;
+  --color-orange-500: #f97316;
+  --color-orange-600: #ea580c;
+  --color-indigo-500: #6366f1;
+}
+
+:root {
+  /* Tailwind v4 note: theme color vars are FULL color values (hsl() wrapped),
+   * not v3-style bare HSL triplets — bare triplets silently resolve to
+   * invalid/transparent under `@theme inline` (the #1 shadcn-on-v4 bug). */
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(0 0% 3.9%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(0 0% 3.9%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(0 0% 3.9%);
+  --primary: hsl(0 0% 9%);
+  --primary-foreground: hsl(0 0% 98%);
+  --secondary: hsl(0 0% 96.1%);
+  --secondary-foreground: hsl(0 0% 9%);
+  --muted: hsl(0 0% 96.1%);
+  --muted-foreground: hsl(0 0% 45.1%);
+  --accent: hsl(0 0% 96.1%);
+  --accent-foreground: hsl(0 0% 9%);
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(0 0% 89.8%);
+  --input: hsl(0 0% 89.8%);
+  --ring: hsl(0 0% 3.9%);
+  --chart-1: hsl(12 76% 61%);
+  --chart-2: hsl(173 58% 39%);
+  --chart-3: hsl(197 37% 24%);
+  --chart-4: hsl(43 74% 66%);
+  --chart-5: hsl(27 87% 67%);
+  --radius: 0.5rem;
+
+  /* Original brand variables (kept verbatim for parity) */
+  --primary-cyan: #18ccfc;
+  --primary-purple: #6344f5;
+  --primary-pink: #ae48ff;
+}
+
+.dark {
+  --background: hsl(0 0% 3.9%);
+  --foreground: hsl(0 0% 98%);
+  --card: hsl(0 0% 3.9%);
+  --card-foreground: hsl(0 0% 98%);
+  --popover: hsl(0 0% 3.9%);
+  --popover-foreground: hsl(0 0% 98%);
+  --primary: hsl(0 0% 98%);
+  --primary-foreground: hsl(0 0% 9%);
+  --secondary: hsl(0 0% 14.9%);
+  --secondary-foreground: hsl(0 0% 98%);
+  --muted: hsl(0 0% 14.9%);
+  --muted-foreground: hsl(0 0% 63.9%);
+  --accent: hsl(0 0% 14.9%);
+  --accent-foreground: hsl(0 0% 98%);
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(0 0% 14.9%);
+  --input: hsl(0 0% 14.9%);
+  --ring: hsl(0 0% 83.1%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+}

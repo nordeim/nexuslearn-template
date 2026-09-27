@@ -1,0 +1,131 @@
+import Link from "next/link";
+import { DollarSign, Globe, TrendingUp, Users, ArrowRight } from "lucide-react";
+
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+
+export const metadata = {
+  title: "Teach on NexusLearn",
+  description: "Share your knowledge, build your legacy.",
+};
+
+const STEPS = [
+  { num: "01", title: "Apply", text: "Submit your application with your expertise and course idea." },
+  { num: "02", title: "Create", text: "Use our tools to build and upload your course content." },
+  { num: "03", title: "Launch", text: "Publish your course and reach thousands of eager learners." },
+  { num: "04", title: "Earn", text: "Get paid every month with our competitive revenue sharing." },
+];
+
+const BENEFITS = [
+  { icon: DollarSign, title: "Up to 70% Revenue Share", text: "One of the highest payouts in the industry." },
+  { icon: Globe, title: "Global Audience", text: "Reach students in over 150 countries worldwide." },
+  { icon: TrendingUp, title: "Production Support", text: "Our team helps you produce polished, professional content." },
+  { icon: Users, title: "Engaged Community", text: "Interact with motivated learners who value your expertise." },
+];
+
+export default function BecomeInstructorPage() {
+  return (
+    <div className="min-h-dvh bg-white">
+      <Navbar />
+      <main className="pt-16 md:pt-20">
+        {/* Hero */}
+        <section className="py-24 px-4 bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] relative overflow-hidden">
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(99,68,245,0.15),transparent_70%)]" />
+            <div className="absolute top-20 right-20 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-20 left-20 w-96 h-96 bg-cyan-500/8 rounded-full blur-3xl" />
+          </div>
+          <div className="relative z-10 max-w-4xl mx-auto text-center">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-cyan-400 text-sm font-medium mb-8 backdrop-blur-sm">
+              🎓 Join 50+ expert instructors
+            </span>
+            <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight">
+              Share Your Knowledge,
+              <br />
+              <span className="bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                Build Your Legacy
+              </span>
+            </h1>
+            <p className="mt-6 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              Turn your expertise into impact — and income. Teach what you love on a platform
+              built for serious learning.
+            </p>
+            <Link href="/Contact">
+              <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 mt-10 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
+                Apply Now
+                <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
+              </button>
+            </Link>
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section className="py-24 px-4 bg-white">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">How It Works</h2>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {STEPS.map((step) => (
+                <div
+                  key={step.num}
+                  className="group relative p-8 bg-white rounded-2xl border border-gray-100 hover:shadow-xl hover:shadow-purple-500/5 hover:-translate-y-1 transition-all duration-300"
+                >
+                  <span className="text-5xl font-bold bg-gradient-to-r from-cyan-500/20 to-purple-600/20 bg-clip-text text-transparent">
+                    {step.num}
+                  </span>
+                  <h3 className="mt-4 text-lg font-semibold text-gray-900 mb-2">{step.title}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{step.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Benefits */}
+        <section className="py-24 px-4 bg-gray-50">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
+                Why Teach With Us
+              </h2>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {BENEFITS.map((b) => (
+                <div
+                  key={b.title}
+                  className="p-8 bg-white rounded-2xl border border-gray-100 hover:shadow-xl hover:shadow-purple-500/5 hover:-translate-y-1 transition-all duration-300 text-center"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 flex items-center justify-center mx-auto mb-5">
+                    <b.icon className="h-6 w-6 text-white" aria-hidden="true" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2">{b.title}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{b.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="py-24 px-4 bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a]">
+          <div className="max-w-2xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
+              Ready to Start Teaching?
+            </h2>
+            <p className="mt-4 text-lg text-gray-400">
+              Applications are reviewed within 5 business days.
+            </p>
+            <Link href="/Contact">
+              <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 mt-8 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
+                Become an Instructor
+                <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
+              </button>
+            </Link>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </div>
+  );
+}

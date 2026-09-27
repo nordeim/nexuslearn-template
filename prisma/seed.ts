@@ -1,11 +1,22 @@
-// Seed: mirrors the reference app's demo workspace (ORBITAL).
-// Idempotent: clears domain tables, then inserts the canonical demo data.
-// Run: bunx tsx prisma/seed.ts  (or: bun prisma/seed.ts)
-
+/**
+ * NexusLearn seed — the exact 9-course catalog read off the live app
+ * (titles, descriptions, categories, levels, ratings, student counts,
+ * hours, lesson counts, instructors, prices and Unsplash imagery),
+ * plus a demo login user.
+ *
+ *   bun run db:push && bun run db:seed
+ *
+ * Demo credentials (matches the reference app's demo account style):
+ *   sepnetflix2023@outlook.com / $Abcd1234
+ */
 import { PrismaClient } from "@prisma/client";
-import { scryptSync, randomBytes } from "crypto";
+import { scryptSync, randomBytes } from "node:crypto";
 
-const db = new PrismaClient();
+import { resolveDatabaseUrl } from "./db-url";
+
+const prisma = new PrismaClient({
+  datasourceUrl: resolveDatabaseUrl(),
+});
 
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -13,284 +24,214 @@ function hashPassword(password: string): string {
   return `${salt}:${hash}`;
 }
 
-function d(iso: string): Date {
-  return new Date(iso);
-}
+const COURSES = [
+  {
+    title: "Cloud Computing with AWS",
+    description: "Master Amazon Web Services and cloud architecture from beginner to certified professional.",
+    category: "Technology",
+    level: "Intermediate",
+    rating: 4.7,
+    students: 5670,
+    hours: 40,
+    lessonsCount: 220,
+    instructorName: "David Wright",
+    instructorAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80",
+    image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&q=80",
+    price: 69.99,
+    originalPrice: 179.99,
+    featured: false,
+    sortOrder: 1,
+  },
+  {
+    title: "Advanced Python Programming",
+    description: "Take your Python skills to the next level with advanced concepts, design patterns, and real applications.",
+    category: "Programming",
+    level: "Advanced",
+    rating: 4.8,
+    students: 3890,
+    hours: 35,
+    lessonsCount: 180,
+    instructorName: "Dr. Sarah Mitchell",
+    instructorAvatar: "https://images.unsplash.com/photo-1494790108755-2616b612b1fd?w=100&q=80",
+    image: "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=600&q=80",
+    price: 54.99,
+    originalPrice: 139.99,
+    featured: true,
+    sortOrder: 2,
+  },
+  {
+    title: "Machine Learning & AI Masterclass",
+    description: "Master machine learning algorithms, deep learning, and AI with Python and TensorFlow.",
+    category: "AI & Innovation",
+    level: "Intermediate",
+    rating: 4.8,
+    students: 8320,
+    hours: 48,
+    lessonsCount: 250,
+    instructorName: "Prof. James Chen",
+    instructorAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&q=80",
+    image: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=600&q=80",
+    price: 79.99,
+    originalPrice: 199.99,
+    featured: true,
+    sortOrder: 3,
+  },
+  {
+    title: "Complete Web Development Bootcamp 2026",
+    description: "Learn HTML, CSS, JavaScript, React, Node.js and more to become a full-stack web developer.",
+    category: "Programming",
+    level: "Beginner",
+    rating: 4.9,
+    students: 12450,
+    hours: 62,
+    lessonsCount: 375,
+    instructorName: "Dr. Sarah Mitchell",
+    instructorAvatar: "https://images.unsplash.com/photo-1494790108755-2616b612b1fd?w=100&q=80",
+    image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600&q=80",
+    price: 49.99,
+    originalPrice: 149.99,
+    featured: true,
+    sortOrder: 4,
+  },
+  {
+    title: "UI/UX Design Professional Certificate",
+    description: "Learn user interface and experience design from scratch with Figma and real-world projects.",
+    category: "Design",
+    level: "Beginner",
+    rating: 4.9,
+    students: 5430,
+    hours: 42,
+    lessonsCount: 210,
+    instructorName: "Alex Kim",
+    instructorAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
+    image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=600&q=80",
+    price: 59.99,
+    originalPrice: 129.99,
+    featured: true,
+    sortOrder: 5,
+  },
+  {
+    title: "Digital Marketing Strategy A-Z",
+    description: "Complete guide to SEO, social media marketing, email campaigns, and paid advertising.",
+    category: "Marketing",
+    level: "Beginner",
+    rating: 4.7,
+    students: 6750,
+    hours: 36,
+    lessonsCount: 190,
+    instructorName: "Emma Rodriguez",
+    instructorAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80",
+    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80",
+    price: 39.99,
+    originalPrice: 99.99,
+    featured: true,
+    sortOrder: 6,
+  },
+  {
+    title: "Data Science with Python & SQL",
+    description: "Learn data analysis, visualization, and SQL querying to become a data-driven professional.",
+    category: "Technology",
+    level: "Beginner",
+    rating: 4.8,
+    students: 6120,
+    hours: 44,
+    lessonsCount: 230,
+    instructorName: "Prof. James Chen",
+    instructorAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&q=80",
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&q=80",
+    price: 59.99,
+    originalPrice: 149.99,
+    featured: false,
+    sortOrder: 7,
+  },
+  {
+    title: "Business Strategy & Leadership",
+    description: "Develop essential business acumen, strategic thinking, and leadership skills for the modern workplace.",
+    category: "Business",
+    level: "Intermediate",
+    rating: 4.6,
+    students: 4210,
+    hours: 28,
+    lessonsCount: 150,
+    instructorName: "Michael Park",
+    instructorAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80",
+    image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&q=80",
+    price: 44.99,
+    originalPrice: 119.99,
+    featured: true,
+    sortOrder: 8,
+  },
+  {
+    title: "Emotional Intelligence & Mindfulness",
+    description: "Develop your emotional intelligence, build resilience, and master mindfulness practices for personal growth.",
+    category: "Personal Development",
+    level: "Beginner",
+    rating: 4.9,
+    students: 7230,
+    hours: 18,
+    lessonsCount: 95,
+    instructorName: "Dr. Lisa Chen",
+    instructorAvatar: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=100&q=80",
+    image: "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=600&q=80",
+    price: 29.99,
+    originalPrice: 79.99,
+    featured: false,
+    sortOrder: 9,
+  },
+];
+
+const LESSON_TITLES = [
+  "Getting Started & Course Overview",
+  "Core Concepts & Fundamentals",
+  "Hands-On Practice Session",
+  "Real-World Project Walkthrough",
+  "Advanced Techniques",
+  "Best Practices & Patterns",
+  "Common Pitfalls & Debugging",
+  "Case Studies",
+  "Capstone Project",
+  "Next Steps & Resources",
+];
 
 async function main() {
-  // Idempotency: wipe domain data, keep schema.
-  await db.activityLog.deleteMany();
-  await db.taskUpdate.deleteMany();
-  await db.task.deleteMany();
-  await db.goal.deleteMany();
-  await db.teamMember.deleteMany();
-  await db.person.deleteMany();
-  await db.user.deleteMany();
-  await db.workspaceSetting.deleteMany();
+  console.log("Seeding NexusLearn database…");
 
-  await db.workspaceSetting.create({
-    data: { id: "singleton", name: "My Team", workStart: "09:00", workEnd: "17:00", pingFrequency: "once_daily", aiTone: "friendly" },
-  });
+  // Courses + lessons
+  for (const c of COURSES) {
+    const course = await prisma.course.upsert({
+      where: { id: `seed-${c.sortOrder}` },
+      update: { ...c, id: undefined as never },
+      create: { id: `seed-${c.sortOrder}`, ...c },
+    });
+    // Replace lesson set each seed (idempotent)
+    await prisma.lesson.deleteMany({ where: { courseId: course.id } });
+    const lessonCount = Math.min(c.lessonsCount, 12); // representative curriculum rows
+    for (let i = 0; i < lessonCount; i++) {
+      await prisma.lesson.create({
+        data: {
+          courseId: course.id,
+          title: LESSON_TITLES[i % LESSON_TITLES.length],
+          duration: 8 + ((i * 7) % 35),
+          sortOrder: i + 1,
+        },
+      });
+    }
+    console.log(`  ✓ ${c.title} (${lessonCount} lessons)`);
+  }
 
-  const demoUser = await db.user.create({
-    data: {
-      email: "demo@orbital.app",
-      name: "Demo User",
-      passwordHash: hashPassword("Demo1234!"),
-      avatarColor: "#FFCBDE",
+  // Demo user (the reference app's demo account)
+  await prisma.user.upsert({
+    where: { email: "sepnetflix2023@outlook.com" },
+    update: {},
+    create: {
+      email: "sepnetflix2023@outlook.com",
+      name: "sepnetflix2023",
+      passwordHash: hashPassword("$Abcd1234"),
     },
   });
+  console.log("  ✓ demo user sepnetflix2023@outlook.com / $Abcd1234");
 
-  const avatarPalette: Record<string, string> = {
-    "Shelly Genosar": "#996CE4",
-    "Priya Sharma": "#2ECC8A",
-    "Sarah Johnson": "#FF8077",
-    "Dev Team": "#C4996A",
-    "QA Team": "#C9B3F5",
-    "Ran Ezra": "#FFCBDE",
-    "Marcus Lee": "#996CE4",
-    "Ella Head Glazer": "#2ECC8A",
-    "Growth Team": "#FF8077",
-    // v2.5 (measured on the live's regenerated plans): two new assignees —
-    // goal 3's A/B task (Templates Base44) and goal 2's blog-posts task
-    // (Content Team). Avatar colors are unobservable in the live UI (its
-    // assignees are free text — the add-task select lists only
-    // "— Unassigned —"), so these continue the palette rotation.
-    "Templates Base44": "#C9B3F5",
-    "Content Team": "#996CE4",
-    "Demo User": "#FF8077",
-  };
-
-  const personNames = [
-    "Shelly Genosar",
-    "Priya Sharma",
-    "Sarah Johnson",
-    "Dev Team",
-    "QA Team",
-    "Ran Ezra",
-    "Marcus Lee",
-    "Ella Head Glazer",
-    "Growth Team",
-    "Templates Base44",
-    "Content Team",
-  ];
-
-  const people: Record<string, string> = {};
-  for (const name of personNames) {
-    const p = await db.person.create({
-      data: { name, avatarColor: avatarPalette[name] ?? "#996CE4" },
-    });
-    people[name] = p.id;
-  }
-  const demoPerson = await db.person.create({
-    data: { name: "Demo User", avatarColor: "#FFCBDE", userId: demoUser.id },
-  });
-
-  // ---- Goal 1: Product Onboarding Redesign (active, 8/12 done, 2 blocked) ----
-  const goal1 = await db.goal.create({
-    data: {
-      title: "Product Onboarding Redesign",
-      description: "Redesign the user onboarding flow to improve activation rates.",
-      status: "active",
-      targetDate: d("2026-09-01T00:00:00Z"),
-      sortOrder: 1,
-      createdAt: d("2026-05-04T09:00:00Z"),
-    },
-  });
-
-  const g1tasks: Array<{
-    title: string;
-    description?: string;
-    status: string;
-    deadline?: string;
-    assignee: string;
-    hours: number;
-    ai: boolean;
-  }> = [
-    { title: "Review Q3 project milestones", description: "Go over all Q3 milestones and ensure each team member is aligned with the delivery timeline.", status: "blocked", assignee: "Shelly Genosar", hours: 2, ai: false },
-    { title: "User research interviews (10 users)", status: "done", deadline: "2026-06-20T00:00:00Z", assignee: "Priya Sharma", hours: 10, ai: true },
-    { title: "Analyse drop-off points in current flow", status: "done", deadline: "2026-06-25T00:00:00Z", assignee: "Priya Sharma", hours: 6, ai: true },
-    { title: "Map new onboarding journey", status: "done", deadline: "2026-07-01T00:00:00Z", assignee: "Priya Sharma", hours: 5, ai: true },
-    { title: "Design high-fidelity mockups", status: "done", deadline: "2026-07-08T00:00:00Z", assignee: "Sarah Johnson", hours: 12, ai: true },
-    { title: "Prototype and usability testing", status: "done", deadline: "2026-07-15T00:00:00Z", assignee: "Priya Sharma", hours: 8, ai: true },
-    { title: "Frontend implementation", status: "done", deadline: "2026-07-22T00:00:00Z", assignee: "Dev Team", hours: 20, ai: true },
-    { title: "QA and edge-case testing", status: "done", deadline: "2026-08-10T00:00:00Z", assignee: "QA Team", hours: 8, ai: true },
-    { title: "Go-live and monitor activation metrics", status: "pending", deadline: "2026-09-01T00:00:00Z", assignee: "Priya Sharma", hours: 4, ai: true },
-    { title: "Write onboarding welcome email sequence", description: "Create a 3-part email sequence for new users covering key features.", status: "done", deadline: "2026-07-15T00:00:00Z", assignee: "Ella Head Glazer", hours: 4, ai: true },
-    { title: "Design interactive product tour", description: "Build a step-by-step in-app tour for first-time users highlighting core workflows.", status: "pending", deadline: "2026-07-20T00:00:00Z", assignee: "Ran Ezra", hours: 8, ai: true },
-    { title: "Audit current onboarding drop-off points", description: "Analyze funnel data to identify where users abandon the onboarding flow.", status: "blocked", deadline: "2026-07-12T00:00:00Z", assignee: "Ran Ezra", hours: 6, ai: true },
-  ];
-
-  let order = 0;
-  for (const t of g1tasks) {
-    order += 1;
-    await db.task.create({
-      data: {
-        goalId: goal1.id,
-        title: t.title,
-        description: t.description ?? null,
-        status: t.status,
-        deadline: t.deadline ? d(t.deadline) : null,
-        assigneeId: people[t.assignee]!,
-        estimatedHours: t.hours,
-        createdByAi: t.ai,
-        sortOrder: order,
-        createdAt: d("2026-05-04T09:30:00Z"),
-      },
-    });
-  }
-
-  // ---- Goal 2: Q3 Content Marketing Campaign (completed, 10/10) ----
-  // v2.5: the live regenerated this plan — new description + new task set
-  // (measured 2026-09-22), incl. the manual no-AI "Draft Q3 blog post
-  // calendar" task rendered last (sortOrder 10).
-  const goal2 = await db.goal.create({
-    data: {
-      title: "Q3 Content Marketing Campaign",
-      description: "Plan and execute a full content marketing campaign including blog posts, social and email.",
-      status: "done",
-      targetDate: d("2026-08-15T00:00:00Z"),
-      sortOrder: 3,
-      createdAt: d("2026-05-06T10:00:00Z"),
-    },
-  });
-
-  const g2tasks: Array<{ title: string; description?: string; status: string; deadline: string; assignee: string; hours: number; ai?: boolean }> = [
-    { title: "Define content calendar for July–August", status: "done", deadline: "2026-06-28T00:00:00Z", assignee: "Marcus Lee", hours: 4 },
-    { title: "Write 4 long-form blog posts", status: "done", deadline: "2026-07-05T00:00:00Z", assignee: "Content Team", hours: 16 },
-    { title: "Design social media assets", status: "done", deadline: "2026-07-08T00:00:00Z", assignee: "Sarah Johnson", hours: 8 },
-    { title: "Set up email drip campaign", status: "done", deadline: "2026-07-10T00:00:00Z", assignee: "Marcus Lee", hours: 6 },
-    { title: "Publish LinkedIn thought-leadership posts", status: "done", deadline: "2026-07-15T00:00:00Z", assignee: "Marcus Lee", hours: 3 },
-    { title: "Launch paid social ads", status: "done", deadline: "2026-07-18T00:00:00Z", assignee: "Growth Team", hours: 5 },
-    { title: "A/B test email subject lines", status: "done", deadline: "2026-07-25T00:00:00Z", assignee: "Marcus Lee", hours: 4 },
-    { title: "Compile mid-campaign analytics report", status: "done", deadline: "2026-08-01T00:00:00Z", assignee: "Growth Team", hours: 5 },
-    { title: "Final campaign wrap-up and learnings doc", status: "done", deadline: "2026-08-15T00:00:00Z", assignee: "Marcus Lee", hours: 3 },
-    { title: "Draft Q3 blog post calendar", description: "Plan 12 blog post topics aligned with campaign themes and assign writers.", status: "done", deadline: "2026-07-05T00:00:00Z", assignee: "Ella Head Glazer", hours: 2, ai: false },
-  ];
-
-  order = 0;
-  for (const t of g2tasks) {
-    order += 1;
-    await db.task.create({
-      data: {
-        goalId: goal2.id,
-        title: t.title,
-        description: t.description ?? null,
-        status: t.status,
-        deadline: d(t.deadline),
-        assigneeId: people[t.assignee]!,
-        estimatedHours: t.hours,
-        createdByAi: t.ai ?? true,
-        sortOrder: order,
-        createdAt: d("2026-05-06T10:30:00Z"),
-      },
-    });
-  }
-
-  // ---- Goal 3: Launch new landing page (active, 8/9, 1 overdue) ----
-  // v2.5: the live regenerated this plan too — new description + new task
-  // set (measured 2026-09-22), incl. Templates Base44's overdue in-progress
-  // A/B task.
-  const goal3 = await db.goal.create({
-    data: {
-      title: "Launch new landing page",
-      description: "Design, build and deploy a new marketing landing page for the Q3 campaign.",
-      status: "active",
-      targetDate: d("2026-07-30T00:00:00Z"),
-      sortOrder: 2,
-      createdAt: d("2026-05-08T11:00:00Z"),
-    },
-  });
-
-  const g3tasks: Array<{ title: string; description?: string; status: string; deadline: string; assignee: string; hours: number }> = [
-    { title: "Design hero section wireframes", status: "done", deadline: "2026-07-05T00:00:00Z", assignee: "Sarah Johnson", hours: 6 },
-    { title: "Write homepage copy", status: "done", deadline: "2026-07-07T00:00:00Z", assignee: "Marcus Lee", hours: 4 },
-    { title: "Develop responsive layout", status: "done", deadline: "2026-07-10T00:00:00Z", assignee: "Dev Team", hours: 12 },
-    { title: "Integrate analytics tracking", status: "done", deadline: "2026-07-12T00:00:00Z", assignee: "Dev Team", hours: 3 },
-    { title: "SEO optimization and meta tags", status: "done", deadline: "2026-07-14T00:00:00Z", assignee: "Sarah Johnson", hours: 4 },
-    { title: "Cross-browser testing", status: "done", deadline: "2026-07-18T00:00:00Z", assignee: "QA Team", hours: 8 },
-    { title: "Performance optimization", status: "done", deadline: "2026-07-20T00:00:00Z", assignee: "Dev Team", hours: 5 },
-    { title: "Final sign-off and deploy", status: "done", deadline: "2026-07-30T00:00:00Z", assignee: "Sarah Johnson", hours: 2 },
-    { title: "Set up A/B test for landing page hero", description: "Configure two hero variants and define success metrics for the test.", status: "in_progress", deadline: "2026-07-10T00:00:00Z", assignee: "Templates Base44", hours: 3 },
-  ];
-
-  order = 0;
-  for (const t of g3tasks) {
-    order += 1;
-    await db.task.create({
-      data: {
-        goalId: goal3.id,
-        title: t.title,
-        description: t.description ?? null,
-        status: t.status,
-        deadline: d(t.deadline),
-        assigneeId: people[t.assignee]!,
-        estimatedHours: t.hours,
-        createdByAi: true,
-        sortOrder: order,
-        createdAt: d("2026-05-08T11:30:00Z"),
-      },
-    });
-  }
-
-  // ---- Agent activity log (mirrors the reference feed, v2.5) ----
-  // The live's workspace was regenerated: "Online · 36" — 3 goal_analyzed +
-  // 3 tasks_generated (12/9/10) + 30 task_assigned, ALL stamped 2026-07-16
-  // (a single "Thu Jul 16 2026" group, every row "2 months ago"), newest
-  // first in exactly the order below. Timestamps sit mid-day UTC so the
-  // local-calendar-day grouping lands on Jul 16 in any sane timezone.
-  const activity: Array<{ type: string; message: string; detail: string; at: string }> = [
-    { type: "goal_analyzed", message: "Analyzed goal: Product Onboarding Redesign", detail: "AI analyzed the goal \"Product Onboarding Redesign\" and prepared to generate tasks.", at: "2026-07-16T14:00:00Z" },
-    { type: "tasks_generated", message: "Generated 12 tasks for \"Product Onboarding Redesign\"", detail: "AI generated 12 tasks for the goal \"Product Onboarding Redesign\".", at: "2026-07-16T13:55:00Z" },
-    { type: "goal_analyzed", message: "Analyzed goal: Launch new landing page", detail: "AI analyzed the goal \"Launch new landing page\" and prepared to generate tasks.", at: "2026-07-16T13:50:00Z" },
-    { type: "tasks_generated", message: "Generated 9 tasks for \"Launch new landing page\"", detail: "AI generated 9 tasks for the goal \"Launch new landing page\".", at: "2026-07-16T13:45:00Z" },
-    { type: "goal_analyzed", message: "Analyzed goal: Q3 Content Marketing Campaign", detail: "AI analyzed the goal \"Q3 Content Marketing Campaign\" and prepared to generate tasks.", at: "2026-07-16T13:40:00Z" },
-    { type: "tasks_generated", message: "Generated 10 tasks for \"Q3 Content Marketing Campaign\"", detail: "AI generated 10 tasks for the goal \"Q3 Content Marketing Campaign\".", at: "2026-07-16T13:35:00Z" },
-    { type: "task_assigned", message: "Ran Ezra assigned to \"Review Q3 project milestones\"", detail: "AI assigned \"Review Q3 project milestones\" to Ran Ezra.", at: "2026-07-16T13:30:00Z" },
-    { type: "task_assigned", message: "Ella Head Glazer assigned to \"Write onboarding welcome email sequence\"", detail: "AI assigned \"Write onboarding welcome email sequence\" to Ella Head Glazer.", at: "2026-07-16T13:25:00Z" },
-    { type: "task_assigned", message: "Ran Ezra assigned to \"Design interactive product tour\"", detail: "AI assigned \"Design interactive product tour\" to Ran Ezra.", at: "2026-07-16T13:20:00Z" },
-    { type: "task_assigned", message: "Templates Base44 assigned to \"Set up A/B test for landing page hero\"", detail: "AI assigned \"Set up A/B test for landing page hero\" to Templates Base44.", at: "2026-07-16T13:15:00Z" },
-    { type: "task_assigned", message: "Ran Ezra assigned to \"Audit current onboarding drop-off points\"", detail: "AI assigned \"Audit current onboarding drop-off points\" to Ran Ezra.", at: "2026-07-16T13:10:00Z" },
-    { type: "task_assigned", message: "Sarah Johnson assigned to \"Design hero section wireframes\"", detail: "AI assigned \"Design hero section wireframes\" to Sarah Johnson.", at: "2026-07-16T13:05:00Z" },
-    { type: "task_assigned", message: "Sarah Johnson assigned to \"Final sign-off and deploy\"", detail: "AI assigned \"Final sign-off and deploy\" to Sarah Johnson.", at: "2026-07-16T13:00:00Z" },
-    { type: "task_assigned", message: "Marcus Lee assigned to \"Publish LinkedIn thought-leadership posts\"", detail: "AI assigned \"Publish LinkedIn thought-leadership posts\" to Marcus Lee.", at: "2026-07-16T12:55:00Z" },
-    { type: "task_assigned", message: "QA Team assigned to \"QA and edge-case testing\"", detail: "AI assigned \"QA and edge-case testing\" to QA Team.", at: "2026-07-16T12:50:00Z" },
-    { type: "task_assigned", message: "Dev Team assigned to \"Integrate analytics tracking\"", detail: "AI assigned \"Integrate analytics tracking\" to Dev Team.", at: "2026-07-16T12:45:00Z" },
-    { type: "task_assigned", message: "QA Team assigned to \"Cross-browser testing\"", detail: "AI assigned \"Cross-browser testing\" to QA Team.", at: "2026-07-16T12:40:00Z" },
-    { type: "task_assigned", message: "Marcus Lee assigned to \"Define content calendar for July–August\"", detail: "AI assigned \"Define content calendar for July–August\" to Marcus Lee.", at: "2026-07-16T12:35:00Z" },
-    { type: "task_assigned", message: "Growth Team assigned to \"Launch paid social ads\"", detail: "AI assigned \"Launch paid social ads\" to Growth Team.", at: "2026-07-16T12:30:00Z" },
-    { type: "task_assigned", message: "Priya Sharma assigned to \"Map new onboarding journey\"", detail: "AI assigned \"Map new onboarding journey\" to Priya Sharma.", at: "2026-07-16T12:25:00Z" },
-    { type: "task_assigned", message: "Dev Team assigned to \"Frontend implementation\"", detail: "AI assigned \"Frontend implementation\" to Dev Team.", at: "2026-07-16T12:20:00Z" },
-    { type: "task_assigned", message: "Marcus Lee assigned to \"Set up email drip campaign\"", detail: "AI assigned \"Set up email drip campaign\" to Marcus Lee.", at: "2026-07-16T12:15:00Z" },
-    { type: "task_assigned", message: "Dev Team assigned to \"Develop responsive layout\"", detail: "AI assigned \"Develop responsive layout\" to Dev Team.", at: "2026-07-16T12:10:00Z" },
-    { type: "task_assigned", message: "Priya Sharma assigned to \"Go-live and monitor activation metrics\"", detail: "AI assigned \"Go-live and monitor activation metrics\" to Priya Sharma.", at: "2026-07-16T12:05:00Z" },
-    { type: "task_assigned", message: "Marcus Lee assigned to \"Write homepage copy\"", detail: "AI assigned \"Write homepage copy\" to Marcus Lee.", at: "2026-07-16T11:55:00Z" },
-    { type: "task_assigned", message: "Sarah Johnson assigned to \"Design high-fidelity mockups\"", detail: "AI assigned \"Design high-fidelity mockups\" to Sarah Johnson.", at: "2026-07-16T11:50:00Z" },
-    { type: "task_assigned", message: "Priya Sharma assigned to \"Analyse drop-off points in current flow\"", detail: "AI assigned \"Analyse drop-off points in current flow\" to Priya Sharma.", at: "2026-07-16T11:45:00Z" },
-    { type: "task_assigned", message: "Priya Sharma assigned to \"Prototype and usability testing\"", detail: "AI assigned \"Prototype and usability testing\" to Priya Sharma.", at: "2026-07-16T11:40:00Z" },
-    { type: "task_assigned", message: "Dev Team assigned to \"Performance optimization\"", detail: "AI assigned \"Performance optimization\" to Dev Team.", at: "2026-07-16T11:35:00Z" },
-    { type: "task_assigned", message: "Priya Sharma assigned to \"User research interviews (10 users)\"", detail: "AI assigned \"User research interviews (10 users)\" to Priya Sharma.", at: "2026-07-16T11:30:00Z" },
-    { type: "task_assigned", message: "Sarah Johnson assigned to \"SEO optimization and meta tags\"", detail: "AI assigned \"SEO optimization and meta tags\" to Sarah Johnson.", at: "2026-07-16T11:25:00Z" },
-    { type: "task_assigned", message: "Marcus Lee assigned to \"A/B test email subject lines\"", detail: "AI assigned \"A/B test email subject lines\" to Marcus Lee.", at: "2026-07-16T11:20:00Z" },
-    { type: "task_assigned", message: "Marcus Lee assigned to \"Final campaign wrap-up and learnings doc\"", detail: "AI assigned \"Final campaign wrap-up and learnings doc\" to Marcus Lee.", at: "2026-07-16T11:15:00Z" },
-    { type: "task_assigned", message: "Content Team assigned to \"Write 4 long-form blog posts\"", detail: "AI assigned \"Write 4 long-form blog posts\" to Content Team.", at: "2026-07-16T11:10:00Z" },
-    { type: "task_assigned", message: "Growth Team assigned to \"Compile mid-campaign analytics report\"", detail: "AI assigned \"Compile mid-campaign analytics report\" to Growth Team.", at: "2026-07-16T11:05:00Z" },
-    { type: "task_assigned", message: "Sarah Johnson assigned to \"Design social media assets\"", detail: "AI assigned \"Design social media assets\" to Sarah Johnson.", at: "2026-07-16T11:00:00Z" },
-  ];
-
-  for (const a of activity) {
-    await db.activityLog.create({
-      data: { type: a.type, message: a.message, detail: a.detail, createdAt: d(a.at) },
-    });
-  }
-
-  const counts = {
-    goals: await db.goal.count(),
-    tasks: await db.task.count(),
-    people: await db.person.count(),
-    activity: await db.activityLog.count(),
-  };
-  console.log("Seeded:", counts, "demo person id:", demoPerson.id);
+  console.log("Seed complete.");
 }
 
 main()
@@ -298,4 +239,6 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(() => db.$disconnect());
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

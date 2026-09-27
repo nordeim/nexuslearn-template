@@ -30,4 +30,16 @@ export default function globalSetup(): void {
   } catch {
     run("npx tsx prisma/seed.ts");
   }
+  // Reset transactional state so every run starts from the same baseline
+  // (a previous run's enrollments would flip "Enroll Now" to "Continue
+  // Learning" and break the dashboard assertions).
+  try {
+    run(
+      "bun -e \"const{PrismaClient}=require('@prisma/client');" +
+        "const p=new PrismaClient({datasourceUrl:process.env.DATABASE_URL});" +
+        "p.lessonProgress.deleteMany().then(()=>p.enrollment.deleteMany()).then(()=>p.\\$disconnect()).then(()=>console.log('e2e enrollments reset'))\""
+    );
+  } catch {
+    // Non-fatal: first run has nothing to reset.
+  }
 }
