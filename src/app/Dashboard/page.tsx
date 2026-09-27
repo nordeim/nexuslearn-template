@@ -4,12 +4,14 @@ import { MyCourses } from "@/components/dashboard/MyCourses";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
+import { routeMetadata } from "@/lib/metadata";
+
 export const dynamic = "force-dynamic";
 
-export const metadata = {
+export const metadata = routeMetadata({
   title: "Dashboard",
-  alternates: { canonical: "/Dashboard" },
-};
+  canonical: "/Dashboard",
+});
 
 export default async function DashboardPage() {
   // The reference app renders the dashboard for signed-out visitors too —

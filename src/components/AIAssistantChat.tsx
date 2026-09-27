@@ -164,11 +164,11 @@ export function AIAssistantChat() {
 
           {/* Chat card — reference: max-w-3xl overlapping -mt-6, min-h-60vh flex column */}
           <div className="max-w-3xl mx-auto px-4 -mt-6 pb-24">
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 min-h-[60vh] flex flex-col overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 min-h-[60vh] flex flex-col">
             {/* Messages — reference: flex-1 (grows with the card, no fixed height) */}
             <div ref={scrollRef} className="flex-1 p-6 space-y-6 overflow-y-auto">
               {messages.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+                <div className="flex flex-col items-center justify-center h-full py-16 text-center">
                   <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mb-6">
                     <Bot className="h-8 w-8 text-purple-500" aria-hidden="true" />
                   </div>

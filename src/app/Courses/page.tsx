@@ -5,12 +5,14 @@ import { Footer } from "@/components/Footer";
 import { CourseCatalog } from "@/components/CourseCatalog";
 import { db } from "@/lib/db";
 
+import { routeMetadata } from "@/lib/metadata";
+
 export const dynamic = "force-dynamic";
 
-export const metadata = {
+export const metadata = routeMetadata({
   title: "Courses",
-  alternates: { canonical: "/Courses" },
-};
+  canonical: "/Courses",
+});
 
 export default async function CoursesPage() {
   const courses = await db.course.findMany({

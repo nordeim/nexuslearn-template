@@ -7,6 +7,7 @@ import {
   BookOpen,
   CirclePlay,
   Check,
+  Award,
 } from "lucide-react";
 import type { Metadata } from "next";
 
@@ -17,21 +18,22 @@ import { AboutCourse } from "@/components/course-detail/AboutCourse";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { whatYouLearnTopics } from "@/lib/course-tags";
+import { routeMetadata } from "@/lib/metadata";
 
 export const dynamic = "force-dynamic";
 
-// The reference canonical includes the query string
-// (origin + /CourseDetail?id=<id>).
+// The reference canonical + og:url include the query string
+// (origin + /CourseDetail?id=<id>) — session 6 mirrors both via the helper.
 export async function generateMetadata({
   searchParams,
 }: {
   searchParams: Promise<{ id?: string }>;
 }): Promise<Metadata> {
   const { id } = await searchParams;
-  return {
+  return routeMetadata({
     title: "Course Detail",
-    alternates: { canonical: id ? `/CourseDetail?id=${id}` : "/CourseDetail" },
-  };
+    canonical: id ? `/CourseDetail?id=${id}` : "/CourseDetail",
+  });
 }
 
 const COURSE_PERKS = [
@@ -233,6 +235,14 @@ export default async function CourseDetailPage({
                       <span className="text-sm text-gray-600">{topic}</span>
                     </div>
                   ))}
+                </div>
+                {/* Reference level row (session 6): divider section with the
+                    Award icon + "{level} Level" under the tag checklist */}
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-amber-500" aria-hidden="true" />
+                    <span className="text-sm font-medium text-gray-700">{course.level} Level</span>
+                  </div>
                 </div>
               </div>
             </div>

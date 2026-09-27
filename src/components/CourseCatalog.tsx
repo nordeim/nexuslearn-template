@@ -86,7 +86,7 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
   };
 
   return (
-    <div>
+    <>
       {/* Dark hero with the search field (reference structure) */}
       <div className="bg-[linear-gradient(to_right_bottom,#0a0a1a,#0d0d2b,#0a0a1a)] pt-16 pb-20 px-4">
         <div className="max-w-7xl mx-auto text-center">
@@ -101,13 +101,16 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
               className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"
               aria-hidden="true"
             />
+            {/* Reference input (session 6): the live app ships the shadcn
+                base with h-9 + py-6 — border-box collapses the content box to
+                the reference 50px height — and type="text". */}
             <input
-              type="search"
+              type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search courses, topics, or instructors..."
               aria-label="Search courses"
-              className="flex w-full border px-3 shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pl-12 py-6 bg-white/10 border-white/20 text-white placeholder:text-gray-500 rounded-xl text-base focus:border-purple-500 focus:bg-white/15"
+              className="flex h-9 w-full border px-3 shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pl-12 py-6 bg-white/10 border-white/20 text-white placeholder:text-gray-500 rounded-xl text-base focus:border-purple-500 focus:bg-white/15"
             />
           </div>
         </div>
@@ -197,6 +200,6 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
             )}
           </div>
         </div>
-    </div>
+    </>
   );
 }

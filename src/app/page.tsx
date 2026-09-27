@@ -160,8 +160,11 @@ export default async function LandingPage() {
       <Navbar />
 
       <main>
+        {/* Reference structure (session 6): main's single child is a classless
+            wrapper div holding the hero + 8 sections (reference DOM). */}
+        <div>
         {/* ------------------------------- HERO ------------------------------- */}
-        <div className="w-full h-screen relative flex items-center justify-center antialiased overflow-hidden bg-[linear-gradient(to_right_bottom,#0a0a1a,#0d0d2b,#0a0a1a)]">
+        <div className="w-full h-screen relative flex items-center justify-center antialiased overflow-hidden min-h-[100vh] bg-[linear-gradient(to_right_bottom,#0a0a1a,#0d0d2b,#0a0a1a)]">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(99,68,245,0.15),transparent_70%)]" />
             <div className="absolute top-20 left-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
@@ -312,7 +315,7 @@ export default async function LandingPage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {courses.map((course) => (
                 <CourseCard key={course.id} course={course} />
               ))}
@@ -342,7 +345,7 @@ export default async function LandingPage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {LEARNING_PATHS.map((path) => (
                 <div
                   key={path.title}
@@ -510,7 +513,7 @@ export default async function LandingPage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {TESTIMONIALS.map((t) => (
                 <div
                   key={t.name}
@@ -623,6 +626,7 @@ export default async function LandingPage() {
             <NewsletterForm />
           </div>
         </section>
+        </div>
       </main>
 
       <Footer />

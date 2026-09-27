@@ -793,3 +793,167 @@ test.describe("session-5 parity: residual class drift", () => {
     await expect(cta.locator("> div")).toHaveCount(0);
   });
 });
+
+test.describe("session-6 parity: course detail level row + enroll button", () => {
+  test("What You'll Learn card ends with the reference level row (Award icon + level)", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-1");
+    const card = page.locator("main .sticky.top-24");
+    // The divider section under the tag checklist
+    const divider = card.locator("div.mt-6.pt-6.border-t.border-gray-100");
+    await expect(divider).toBeVisible();
+    const row = divider.locator("div.flex.items-center.gap-2");
+    await expect(row.locator("svg.lucide-award")).toHaveClass(/h-5 w-5 text-amber-500/);
+    await expect(row.locator("span")).toHaveClass(/text-sm font-medium text-gray-700/);
+    await expect(row.locator("span")).toHaveText("Intermediate Level");
+  });
+
+  test("level row reflects the course level (Beginner on the EQ course)", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-9");
+    const row = page.locator("main .sticky.top-24 div.mt-6.pt-6.border-t span");
+    await expect(row).toHaveText("Beginner Level");
+  });
+
+  test("Enroll Now button carries the reference shadcn base classes", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-1");
+    const btn = page.getByRole("button", { name: "Enroll Now" });
+    await expect(btn).toHaveClass(/\[&_svg\]:size-4/);
+    await expect(btn).toHaveClass(/hover:bg-primary\/90/);
+    await expect(btn).not.toHaveClass(/disabled:opacity-60/);
+  });
+});
+
+test.describe("session-6 parity: per-route OG identity", () => {
+  test("og:title + twitter:title mirror the per-route document title", async ({ page }) => {
+    const cases: Array<[string, string]> = [
+      ["/Courses", "Courses | NexusLearn"],
+      ["/Dashboard", "Dashboard | NexusLearn"],
+      ["/Pricing", "Pricing | NexusLearn"],
+      ["/About", "About | NexusLearn"],
+      ["/Contact", "Contact | NexusLearn"],
+      ["/BecomeInstructor", "Become Instructor | NexusLearn"],
+      ["/AIAssistant", "AI Assistant | NexusLearn"],
+    ];
+    for (const [route, title] of cases) {
+      await page.goto(route);
+      expect(await page.title()).toBe(title);
+      expect(await page.locator('meta[property="og:title"]').getAttribute("content")).toBe(title);
+      expect(await page.locator('meta[name="twitter:title"]').getAttribute("content")).toBe(title);
+    }
+  });
+
+  test("og:url mirrors the per-route canonical", async ({ page }) => {
+    for (const route of ["/Courses", "/Pricing", "/login"]) {
+      await page.goto(route);
+      const ogUrl = await page.locator('meta[property="og:url"]').getAttribute("content");
+      expect(ogUrl).toBeTruthy();
+      expect(new URL(ogUrl!).pathname).toBe(route);
+    }
+  });
+
+  test("CourseDetail og identity carries the query string (reference behavior)", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-1");
+    expect(await page.title()).toBe("Course Detail | NexusLearn");
+    expect(await page.locator('meta[property="og:title"]').getAttribute("content")).toBe("Course Detail | NexusLearn");
+    const ogUrl = await page.locator('meta[property="og:url"]').getAttribute("content");
+    expect(new URL(ogUrl!).search).toBe("?id=seed-1");
+  });
+
+  test("root + login keep the plain NexusLearn OG title (reference behavior)", async ({ page }) => {
+    for (const route of ["/", "/login"]) {
+      await page.goto(route);
+      expect(await page.title()).toBe("NexusLearn");
+      expect(await page.locator('meta[property="og:title"]').getAttribute("content")).toBe("NexusLearn");
+    }
+  });
+
+  test("per-route OG cards keep the full root payload (description, site, image)", async ({ page }) => {
+    await page.goto("/Courses");
+    expect(await page.locator('meta[property="og:description"]').getAttribute("content")).toContain("SkillSphere");
+    expect(await page.locator('meta[property="og:site_name"]').getAttribute("content")).toBe("NexusLearn");
+    expect(await page.locator('meta[property="og:image"]').getAttribute("content")).toContain("/logo.png");
+    expect(await page.locator('meta[name="twitter:card"]').getAttribute("content")).toBe("summary_large_image");
+  });
+});
+
+test.describe("session-6 parity: pricing overlap + courses hero", () => {
+  test("pricing cards section uses the reference -mt-8 overlap wrapper", async ({ page }) => {
+    await page.goto("/Pricing");
+    const wrapper = page.locator("main .min-h-screen > div.-mt-8");
+    await expect(wrapper).toHaveCount(1);
+    const inner = wrapper.locator("> section");
+    await expect(inner).toHaveClass(/py-24 px-4 bg-gray-50/);
+  });
+
+  test("courses hero search input is the reference h-9 text input", async ({ page }) => {
+    await page.goto("/Courses");
+    const input = page.locator("main input").first();
+    await expect(input).toHaveAttribute("type", "text");
+    await expect(input).toHaveClass(/\bh-9\b/);
+    await expect(input).toHaveClass(/\bw-full\b/);
+    await expect(input).toHaveClass(/file:text-foreground/);
+  });
+
+  test("courses catalog renders hero + content as the gray wrapper's direct children", async ({ page }) => {
+    await page.goto("/Courses");
+    // Wait out the Suspense fallback so the catalog (client island) has
+    // rendered before asserting structure.
+    await expect(page.getByRole("heading", { name: "Explore Our Courses" })).toBeVisible();
+    await expect(page.locator("main .grid").first()).toBeVisible();
+    const wrapper = page.locator("main .min-h-screen");
+    // hero + content exactly — no intermediate classless component div
+    expect(await wrapper.locator("> div").count()).toBe(2);
+    expect(await wrapper.locator("> div:not([class])").count()).toBe(0);
+    // The hero is the gradient element; the content is the floating -mt-6 area
+    await expect(wrapper.locator("> div").first()).toHaveClass(/pt-16 pb-20 px-4/);
+    await expect(wrapper.locator("> div").nth(1)).toHaveClass(/max-w-7xl mx-auto px-4 -mt-6/);
+  });
+});
+
+test.describe("session-6 parity: landing + AI assistant drift", () => {
+  test("landing hero pins the viewport height (min-h 100vh)", async ({ page }) => {
+    await page.goto("/");
+    const hero = page.locator("main > div > div").first();
+    await expect(hero).toHaveClass(/min-h-\[100vh\]/);
+  });
+
+  test("landing sections render inside the reference classless main wrapper", async ({ page }) => {
+    await page.goto("/");
+    const main = page.locator("main");
+    // main's single child is the classless wrapper holding hero + 8 sections
+    expect(await main.locator("> div").count()).toBe(1);
+    expect(await main.locator("> section").count()).toBe(0);
+    const wrapper = main.locator("> div");
+    expect(await wrapper.locator("> div, > section").count()).toBe(9);
+  });
+
+  test("landing grids keep the reference column bases (featured, paths, testimonials)", async ({ page }) => {
+    await page.goto("/");
+    const grids = page.locator("main .grid");
+    // Featured courses grid carries the grid-cols-1 base
+    await expect(grids.nth(1)).toHaveClass(/grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8/);
+    // Learning paths switch at lg (reference), not md
+    await expect(grids.nth(2)).toHaveClass(/grid grid-cols-1 lg:grid-cols-3 gap-8/);
+    // Testimonials grid carries the grid-cols-1 base
+    await expect(grids.nth(6)).toHaveClass(/grid grid-cols-1 md:grid-cols-3 gap-8/);
+  });
+
+  test("AI welcome bubble uses the reference py-16 padding", async ({ page }) => {
+    await page.goto("/AIAssistant");
+    const bubble = page.locator("main .space-y-6 > div").first();
+    await expect(bubble).toHaveClass(/py-16/);
+    await expect(bubble).not.toHaveClass(/py-12/);
+  });
+
+  test("AI chat card matches the reference class string (no overflow-hidden)", async ({ page }) => {
+    await page.goto("/AIAssistant");
+    const card = page.locator("main div.min-h-\\[60vh\\]").first();
+    await expect(card).toHaveClass(/min-h-\[60vh\] flex flex-col$/);
+  });
+
+  test("course card level badge carries the reference variant classes", async ({ page }) => {
+    await page.goto("/Courses");
+    const badge = page.locator("main .grid a").first().locator("span[data-slot='badge'], .absolute.top-3").first();
+    await expect(badge).toHaveClass(/hover:bg-primary\/80/);
+    await expect(badge).toHaveClass(/\bborder-0\b/);
+  });
+});

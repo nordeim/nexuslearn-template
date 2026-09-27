@@ -4,10 +4,12 @@ import { Check, CircleHelp, Sparkles } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 
-export const metadata = {
+import { routeMetadata } from "@/lib/metadata";
+
+export const metadata = routeMetadata({
   title: "Pricing",
-  alternates: { canonical: "/Pricing" },
-};
+  canonical: "/Pricing",
+});
 
 const PLANS = [
   {
@@ -89,17 +91,21 @@ export default function PricingPage() {
             </div>
           </div>
 
-          <section className="py-24 px-4">
-            <div className="max-w-7xl mx-auto">
-              <div className="text-center mb-16">
-                <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Pricing</span>
-                <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
-                  Choose Your Plan
-                </h2>
-                <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">
-                  Flexible pricing to match your learning goals
-                </p>
-              </div>
+          {/* Reference overlap (session 6): the cards section is pulled 32px
+              up over the hero bottom via a div.-mt-8 wrapper, with the inner
+              section carrying py-24 px-4 bg-gray-50. */}
+          <div className="-mt-8">
+            <section className="py-24 px-4 bg-gray-50">
+              <div className="max-w-7xl mx-auto">
+                <div className="text-center mb-16">
+                  <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Pricing</span>
+                  <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
+                    Choose Your Plan
+                  </h2>
+                  <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">
+                    Flexible pricing to match your learning goals
+                  </p>
+                </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
                 {PLANS.map((plan) => (
@@ -156,8 +162,9 @@ export default function PricingPage() {
                   </div>
                 ))}
               </div>
-            </div>
-          </section>
+              </div>
+            </section>
+          </div>
 
           <section className="py-24 px-4 bg-white">
             <div className="max-w-3xl mx-auto">

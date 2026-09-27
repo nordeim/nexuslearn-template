@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
+import { REFERENCE_DESCRIPTION } from "@/lib/metadata";
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
@@ -13,11 +15,13 @@ const inter = Inter({
  * on every route plus OpenGraph/Twitter cards, per-route canonicals, the
  * logo.png favicon, a manifest and the apple web-app metas. The canonical
  * origin comes from NEXT_PUBLIC_SITE_URL (fallback: localhost dev origin).
+ *
+ * Session 6: the root openGraph/twitter objects below are the DEFAULTS for
+ * `/` only — every other route swaps in `routeMetadata()` (src/lib/metadata.ts)
+ * so og:title / twitter:title mirror the per-route document title and og:url
+ * mirrors the per-route canonical (reference behavior).
  */
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-
-const REFERENCE_DESCRIPTION =
-  "SkillSphere is a dynamic online learning platform offering a wide range of courses, structured learning paths, and AI-powered study tools to empower students, creators, and instructors in shaping their future.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

@@ -94,8 +94,8 @@ bun run dev         # http://localhost:3000
 ## Testing Strategy
 
 ### Test Pyramid
-- **Unit Tests** (Vitest, `tests/*.test.ts`): pure domain seams — session token sign/verify, scrypt password hashing, course-tag parsing, course-eyebrow display map, seed-data shape + reference imagery/lesson-count pins
-- **E2E Tests** (Playwright, `tests/e2e/*.spec.ts`): mobile navigation (6 specs — the Tailwind v4 regression guard), landing/catalog/course-detail/auth/enrollment/dashboard/content-page/pricing-FAQ flows, the session-4 page-shell/About-Course/footer-href/404/SEO specs, plus the session-5 specs (head metadata incl. manifest, login 5-view state machine with signup+verify, in-place newsletter success, CourseDetail not-found state, eyebrow/active-nav/FAQ/BI class parity) — 62 specs total against the production standalone server
+- **Unit Tests** (Vitest, `tests/*.test.ts`): pure domain seams — session token sign/verify, scrypt password hashing, course-tag parsing, course-eyebrow display map, seed-data shape + reference imagery/lesson-count pins, and the `routeMetadata()` helper (per-route OG identity)
+- **E2E Tests** (Playwright, `tests/e2e/*.spec.ts`): mobile navigation (6 specs — the Tailwind v4 regression guard), landing/catalog/course-detail/auth/enrollment/dashboard/content-page/pricing-FAQ flows, the session-4 page-shell/About-Course/footer-href/404/SEO specs, the session-5 specs (head metadata incl. manifest, login 5-view state machine with signup+verify, in-place newsletter success, CourseDetail not-found state, eyebrow/active-nav/FAQ/BI class parity), plus the session-6 specs (per-route OG identity, sidebar level row, pricing `-mt-8` overlap, `h-9` search input, landing grids/wrapper, AI bubble/card classes, badge + enroll button class parity) — 85 specs total against the production standalone server
 - **Visual parity**: computed-style assertions and screenshot comparisons against the reference app (see PAD §5 and `docs/screenshots/`)
 
 ### Test Commands
@@ -149,8 +149,8 @@ E2E resets enrollment state in global-setup, so runs are idempotent. Specs sign 
 - Routes mirror the original app's casing: `/Courses`, `/AIAssistant`, `/Pricing`, `/BecomeInstructor`, `/About`, `/Contact`, `/CourseDetail?id=…`, `/Dashboard`, `/login`; `/` is the landing page, `/Home` renders the landing directly (reference footer target).
 - Fixed Navbar has two visual states (transparent over the dark hero; `bg-white/95 backdrop-blur-xl` otherwise) and an animated mobile dropdown. The Home link is active on both `/` and `/Home` (reference behavior).
 - The login card is a 5-view state machine (signin/reset/reset-sent/signup/verify) — email delivery is simulated (server-side code log; any 6-digit code verifies).
-- Head metadata ships ONE root description everywhere + OG/Twitter cards, per-route canonicals, `/logo.png` favicon, `manifest.json` (reference parity).
-- Reference parity behaviors: sign-in returns to `/`; `/Dashboard` renders for signed-out visitors ("Welcome back", zeroed stats, empty state — no redirect); CourseDetail uses a dark hero with a white price card, an auto-generated curriculum (`lessonsCount` × "Lesson N: Module Content") and a "What You'll Learn" card built from `Course.tags` + level (`src/lib/course-tags.ts`); unknown course ids render the in-page "Course not found" state (never the 404).
+- Head metadata ships ONE root description everywhere + OG/Twitter cards, per-route canonicals, `/logo.png` favicon, `manifest.json` (reference parity). Session 6: og:title/twitter:title/og:url mirror the per-route document title + canonical via `routeMetadata()` (`src/lib/metadata.ts`).
+- Reference parity behaviors: sign-in returns to `/`; `/Dashboard` renders for signed-out visitors ("Welcome back", zeroed stats, empty state — no redirect); CourseDetail uses a dark hero with a white price card, an auto-generated curriculum (`lessonsCount` × "Lesson N: Module Content"), a "What You'll Learn" card built from `Course.tags` + level (`src/lib/course-tags.ts`) ending with the Award-icon level row, and a `div.-mt-8` overlap under the /Pricing hero; unknown course ids render the in-page "Course not found" state (never the 404).
 
 ### API Design
 - `POST /api/auth/login|logout`, `GET /api/auth/me`

@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
-
 import { LoginForm } from "@/components/LoginForm";
+import { routeMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
-  alternates: { canonical: "/login" },
-};
+// Reference behavior: /login ships the plain "NexusLearn" title (no segment)
+// with the /login canonical + mirrored og:url (session 6).
+export const metadata = routeMetadata({
+  canonical: "/login",
+});
 
 export default function LoginPage() {
   return (

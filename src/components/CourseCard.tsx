@@ -42,7 +42,7 @@ export function CourseCard({ course }: { course: CourseCardData }) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <Badge
-            className={`absolute top-3 left-3 font-medium text-xs ${LEVEL_BADGE[course.level] ?? "bg-blue-100 text-blue-700"}`}
+            className={`absolute top-3 left-3 font-medium text-xs hover:bg-primary/80 border-0 ${LEVEL_BADGE[course.level] ?? "bg-blue-100 text-blue-700"}`}
           >
             {course.level}
           </Badge>

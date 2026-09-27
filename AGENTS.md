@@ -15,7 +15,7 @@ NexusLearn — an e-learning platform (marketing site + course catalog + enrollm
 | DB schema push | `bun run db:push` |
 | DB seed | `bun run db:seed` |
 | Unit tests | `bun run test` (Vitest) |
-| E2E tests | `bun run test:e2e` (Playwright; **requires `bun run build` first** — boots the standalone server on :3100 with `db/e2e.db`; 68 specs incl. the 6 mobile-nav guards) |
+| E2E tests | `bun run test:e2e` (Playwright; **requires `bun run build` first** — boots the standalone server on :3100 with `db/e2e.db`; 85 specs incl. the 6 mobile-nav guards) |
 | Lint / typecheck | `bun run lint` / `bun run typecheck` |
 | Production build | `bun run build` (standalone output) |
 
@@ -44,13 +44,15 @@ NexusLearn — an e-learning platform (marketing site + course catalog + enrollm
 15. **Course-card eyebrows use the display map** (`src/lib/course-eyebrow.ts`): "Personal Development" renders as "Personal Dev" on cards while the filter + landing grid keep the full name — reference behavior.
 16. **CourseDetail never 404s** — unknown/missing `?id=` renders the in-page "Course not found" state inside the gray shell (reference behavior), not `notFound()`.
 17. **The newsletter form is a client island** (`NewsletterForm.tsx`) — never a native `action=` POST (that navigates the browser to the raw JSON). Same for contact: fetch + in-place success state.
+18. **OG identity mirrors the document head** (session 6): `og:title` + `twitter:title` = the per-route document title and `og:url` = the per-route canonical (CourseDetail's includes `?id=`). Every route sets metadata through `routeMetadata()` (`src/lib/metadata.ts`) — a child route's `openGraph`/`twitter` objects REPLACE the root's wholesale, so the helper restates the full payload (description, images, siteName). `/` and `/login` keep the plain "NexusLearn" title (reference behavior).
+19. **The CourseDetail sidebar ends with the level row** — `mt-6 pt-6 border-t` divider > Award icon (`text-amber-500`) + "`{level} Level`" — present on every course (reference behavior, session 6).
 
 ## Where things live
 
 - `src/app/` — routes (one dir per route, original casing), `api/` for route handlers
 - `src/components/ui/` — shadcn-style primitives (button uses `rounded-xl` variants matching the reference)
 - `src/components/` — Navbar (2 visual states + mobile dropdown), Footer, CourseCard, CourseCatalog, ContactForm, LoginForm (5-view state machine), NewsletterForm, AIAssistantChat, `course-detail/` (EnrollButton, AboutCourse), `dashboard/`
-- `src/lib/` — `db.ts` (Prisma singleton), `session.ts` + `auth.ts`, `course-tags.ts` (What You'll Learn topics), `course-eyebrow.ts` (card eyebrow display map), `utils.ts` (`cn`)
+- `src/lib/` — `db.ts` (Prisma singleton), `session.ts` + `auth.ts`, `course-tags.ts` (What You'll Learn topics), `course-eyebrow.ts` (card eyebrow display map), `metadata.ts` (`routeMetadata()` — per-route OG identity), `utils.ts` (`cn`)
 - `prisma/` — `schema.prisma`, `seed.ts`, `seed-data.ts` (pure reference catalog — pinned by tests incl. imagery + lesson counts), `db-url.ts`
 - `docs/screenshots/` — QA captures of the running app
 - `skills/` — reference skill library (excluded from tsconfig/eslint; not app code)

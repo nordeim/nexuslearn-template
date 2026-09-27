@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { GraduationCap, CheckCircle2 } from "lucide-react";
 
+// Reference class string (session 6): the live app ships the full shadcn base
+// (svg targeting trio, hover:bg-primary/90, disabled:opacity-50) before the
+// gradient overrides — copied verbatim.
 const CARD_BUTTON =
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 px-4 w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white py-6 rounded-xl text-lg shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-[1.02]";
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-9 px-4 w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-semibold py-6 rounded-xl text-lg shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-[1.02]";
 
 export function EnrollButton({
   courseId,
@@ -60,11 +63,7 @@ export function EnrollButton({
   }
 
   return (
-    <button
-      onClick={handleEnroll}
-      disabled={loading}
-      className={`${CARD_BUTTON} disabled:pointer-events-none disabled:opacity-60`}
-    >
+    <button onClick={handleEnroll} disabled={loading} className={CARD_BUTTON}>
       {loading ? "Enrolling…" : "Enroll Now"}
     </button>
   );

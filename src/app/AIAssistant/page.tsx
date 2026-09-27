@@ -1,9 +1,11 @@
 import { AIAssistantChat } from "@/components/AIAssistantChat";
 
-export const metadata = {
+import { routeMetadata } from "@/lib/metadata";
+
+export const metadata = routeMetadata({
   title: "AI Assistant",
-  alternates: { canonical: "/AIAssistant" },
-};
+  canonical: "/AIAssistant",
+});
 
 export default function AIAssistantPage() {
   return <AIAssistantChat />;

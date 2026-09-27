@@ -4,10 +4,12 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ContactForm } from "@/components/ContactForm";
 
-export const metadata = {
+import { routeMetadata } from "@/lib/metadata";
+
+export const metadata = routeMetadata({
   title: "Contact",
-  alternates: { canonical: "/Contact" },
-};
+  canonical: "/Contact",
+});
 
 const INFO = [
   { icon: Mail, title: "Email", value: "hello@nexuslearn.com", href: "mailto:hello@nexuslearn.com" },

@@ -1,9 +1,9 @@
 ---
 name: nexuslearn-template
-description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from a 5-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons), the three Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients), the hardened mobile navigation pattern, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference page-shell pattern (main.pt-20 + gray wrapper under the fixed navbar), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing, 2-col AI section, dark popular pricing card, FAQ stack, expandable About This Course, light-slate 404, in-page CourseDetail not-found, simulated-delivery signup + verify), the head-metadata parity layer (root description, OG/Twitter cards, canonicals, logo favicon, manifest), and the full test pyramid (24 Vitest unit + 68 Playwright e2e incl. 6 mobile-nav guards)."
-version: 2.3.0
+description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from a 6-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons), the three Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients), the hardened mobile navigation pattern, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference page-shell pattern (main.pt-20 + gray wrapper under the fixed navbar), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing, 2-col AI section, dark popular pricing card, FAQ stack, expandable About This Course, light-slate 404, in-page CourseDetail not-found, simulated-delivery signup + verify), the head-metadata parity layer (root description, OG/Twitter cards, canonicals, logo favicon, manifest, per-route OG identity via a routeMetadata() helper), the CourseDetail sidebar level row, the pricing -mt-8 overlap, the h-9+py-6 input collapse pattern, and the full test pyramid (29 Vitest unit + 85 Playwright e2e incl. 6 mobile-nav guards)."
+version: 2.4.0
 last_updated: "2026-09-27"
-project_state: "92 tests green (24 unit + 68 e2e); lint/typecheck/build clean; parity verified vs live reference (session-5 pass: head metadata + OG/manifest, login 5-view state machine with signup/verify, newsletter client island, CourseDetail not-found state, eyebrow display map, Home-active nav, BI/About/Pricing class parity)"
+project_state: "114 tests green (29 unit + 85 e2e); lint/typecheck/build clean; parity verified vs live reference (session-6 pass: per-route OG identity og:title/twitter:title/og:url, CourseDetail sidebar level row, pricing -mt-8 overlap byte-exact 2369, h-9 search input 50px, landing grids/wrapper/hero min-h, AI py-16 bubble byte-exact 1573, enroll/badge class parity; sessions 1-5 previously closed shells, content, head, login state machine, newsletter, not-found states)"
 ---
 
 # NexusLearn — Complete Engineering Skill
@@ -97,10 +97,10 @@ excluded from tsconfig/eslint/vitest/playwright.
 | `AUTH_SECRET` | production | HMAC session secret (`openssl rand -hex 32`); insecure dev fallback warns |
 | `NEXT_PUBLIC_SITE_URL` | optional | Canonical origin for metadata/robots |
 
-**Test inventory (verified green):** 24 unit tests across 4 files
+**Test inventory (verified green):** 29 unit tests across 5 files
 (`auth.test.ts` 5, `course-tags.test.ts` 5, `course-eyebrow.test.ts` 3,
 `seed-data.test.ts` 11 — incl. the reference imagery/avatar map and
-lesson-count pins) + 68 e2e specs across 2 files
+lesson-count pins, metadata helper) + 85 e2e specs across 2 files
 (`mobile-navigation.spec.ts` 6, `nexuslearn.spec.ts` 62 — incl. the 9
 session-3 parity specs, the 16 session-4 specs (page shells, About-Course,
 AI chat shell, 404, robots/sitemap) and the 18 session-5 specs: head
@@ -420,7 +420,7 @@ pinning per command: `DATABASE_URL="file:../db/custom.db" bun run db:seed`.
 ```bash
 bun run lint         # eslint clean
 bun run typecheck    # tsc --noEmit clean
-bun run test         # 24/24 unit
+bun run test         # 29/29 unit
 bun run build        # standalone compiles
 bun run test:e2e     # 68/68 incl. 6 mobile-nav
 ```

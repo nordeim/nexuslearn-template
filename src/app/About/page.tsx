@@ -3,10 +3,12 @@ import { Target, Award, Heart, Zap, Globe } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 
-export const metadata = {
+import { routeMetadata } from "@/lib/metadata";
+
+export const metadata = routeMetadata({
   title: "About",
-  alternates: { canonical: "/About" },
-};
+  canonical: "/About",
+});
 
 const STATS = [
   ["10,000+", "Active Students"],

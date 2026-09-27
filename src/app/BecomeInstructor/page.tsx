@@ -12,10 +12,12 @@ import {
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 
-export const metadata = {
+import { routeMetadata } from "@/lib/metadata";
+
+export const metadata = routeMetadata({
   title: "Become Instructor",
-  alternates: { canonical: "/BecomeInstructor" },
-};
+  canonical: "/BecomeInstructor",
+});
 
 const STEPS = [
   { num: "01", title: "Apply", text: "Submit your application with your expertise and course idea." },
