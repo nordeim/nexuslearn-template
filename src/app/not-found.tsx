@@ -6,6 +6,14 @@ import { usePathname, useRouter } from "next/navigation";
  * Branded 404 — mirrors the reference app's not-found screen: a light
  * slate-50 page with a large light "404", a hairline divider, the dynamic
  * missing path quoted in the message, and a white "Go Home" button.
+ *
+ * Two deliberate (invisible) variances vs the live markup, same doctrine as
+ * the Navbar's ARIA hardening — pinned by the session-10 e2e spec so a
+ * future chrome audit cannot "fix" them backwards:
+ *  - the wrapper is a `main` landmark (the live 404 ships a landmark-less
+ *    div inside #root — no main, no nav, no footer on either site);
+ *  - the root uses `min-h-dvh` (the project's documented page-root form that
+ *    avoids the mobile URL-bar warp; the live ships `min-h-screen`).
  */
 export default function NotFound() {
   const pathname = usePathname();

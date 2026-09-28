@@ -1383,3 +1383,51 @@ test.describe("session-9 parity: navbar chrome (button bases + the bare trigger)
     await expect(span).toHaveClass(/^text-lg font-bold text-white transition-colors duration-300$/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Session 10 — /Home renders the landing HERO-state navbar + the 404
+// hardening pin. The live app renders /Home (the reference footer target)
+// with the FULL landing hero treatment: transparent navbar + white logo at
+// scroll 0, flipping to the white-nav after scroll — byte-identical to "/".
+// The clone's hero detection only covered "/" (Navbar.tsx `overHero`).
+// Reference: docs/remediation-plan-session10.md
+// ---------------------------------------------------------------------------
+
+test.describe("session-10 parity: /Home renders the landing hero-state navbar", () => {
+  test("/Home navbar is transparent with the white logo at scroll 0", async ({ page }) => {
+    await page.goto("/Home");
+    const nav = page.locator("nav");
+    await expect(nav).toHaveClass(/bg-transparent/);
+    await expect(nav).not.toHaveClass(/bg-white\/95/);
+    // Same byte order the session-9 spec pins on "/" (the hero-state logo).
+    const logo = page.locator("nav span.text-lg");
+    await expect(logo).toHaveClass(/^text-lg font-bold text-white transition-colors duration-300$/);
+  });
+
+  test("/Home navbar flips to the white-nav state after scrolling", async ({ page }) => {
+    await page.goto("/Home");
+    const nav = page.locator("nav");
+    // Transparent at the top (the landing hero)…
+    await expect(nav).toHaveClass(/bg-transparent/);
+    // …and white/95 + blur once scrolled past the 24px threshold, exactly
+    // like "/" (the live /Home navbar flips identically).
+    await page.mouse.wheel(0, 400);
+    await expect(nav).toHaveClass(/bg-white\/95/);
+    await expect(nav).toHaveClass(/backdrop-blur-xl/);
+  });
+
+  test("404 wrapper pins the deliberate main.min-h-dvh hardening", async ({ page }) => {
+    // The live 404 ships a landmark-less div.min-h-screen inside #root (no
+    // main, no nav, no footer). The clone deliberately keeps the `main`
+    // landmark + the min-h-dvh page-root form (the documented URL-bar-warp
+    // hardening every page root uses). This spec PINS that decision — it is
+    // a documentation guard, not a fix — so a future chrome audit cannot
+    // "fix" it backwards to the reference's landmark-less div.
+    await page.goto("/ThisPageDoesNotExist");
+    const wrapper = page.locator("main.min-h-dvh.bg-slate-50");
+    await expect(wrapper).toBeVisible();
+    // The reference 404 is chrome-less: no navbar, no footer on either site.
+    await expect(page.locator("nav")).toHaveCount(0);
+    await expect(page.locator("footer")).toHaveCount(0);
+  });
+});

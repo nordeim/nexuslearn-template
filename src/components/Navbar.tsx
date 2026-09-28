@@ -21,7 +21,8 @@ const NAV_LINKS = [
  * NexusLearn Navbar — faithful clone of the original fixed nav.
  *
  * Two visual states:
- *  - over the dark hero (route "/" at scroll 0): transparent, white text
+ *  - over the dark hero (routes "/" AND "/Home" at scroll 0): transparent,
+ *    white text
  *  - everywhere else (or after scrolling): white/95 + backdrop blur + border
  *
  * Mobile menu — Tailwind v4 hardening (see skills/avant-garde-design-v4
@@ -55,8 +56,12 @@ export function Navbar() {
   const panelId = useId();
   const open = openFor === pathname;
 
-  // "Over hero" = landing page near the top (the hero is a dark full-viewport section)
-  const overHero = pathname === "/" && !scrolled;
+  // "Over hero" = a landing route near the top (the hero is a dark
+  // full-viewport section). BOTH "/" and "/Home" render the landing — the
+  // reference footer links to /Home and the live app renders it with the
+  // identical hero-state navbar (transparent at scroll 0, flipping to the
+  // white-nav after scroll). Pinned by the session-10 e2e specs.
+  const overHero = (pathname === "/" || pathname === "/Home") && !scrolled;
 
   // Scroll state (listener on window; the page scrolls the html element).
   // The initial sync runs inside rAF to avoid a synchronous setState in the

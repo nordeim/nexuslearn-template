@@ -143,3 +143,36 @@ test.describe("session-9 parity: the Tailwind v4 space-y engine trap", () => {
     await expect(trigger).toHaveClass(/^md:hidden p-2 rounded-lg text-gray-700$/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Session 10 — /Home renders the landing HERO-state navbar on mobile too.
+// The live app's /Home (the reference footer target) IS the landing: its
+// mobile trigger is the hero string text-white/80 at scroll 0. The clone's
+// hero detection only covered "/" (Navbar.tsx `overHero`), so /Home shipped
+// the white-nav text-gray-700 trigger.
+// Reference: docs/remediation-plan-session10.md
+// ---------------------------------------------------------------------------
+
+test.describe("session-10 parity: /Home mobile trigger is the hero string", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/Home");
+  });
+
+  test("/Home mobile trigger is text-white/80 (the landing hero state)", async ({ page }) => {
+    // Byte-identical to the "/" hero trigger the session-9 spec pins — the
+    // live /Home renders the full landing hero treatment on mobile too.
+    const trigger = page.getByRole("button", { name: "Toggle navigation menu" });
+    await expect(trigger).toHaveClass(/^md:hidden p-2 rounded-lg text-white\/80$/);
+  });
+
+  test("/Home mobile menu still opens with the reference panel geometry", async ({ page }) => {
+    // The /Home panel must keep the pinned reference geometry (405px open,
+    // 4px pre-CTA gap) — the hero-state fix must not disturb the panel.
+    const trigger = page.getByRole("button", { name: "Toggle navigation menu" });
+    await trigger.tap();
+    const panel = page.locator("nav div.md\\:hidden.bg-white");
+    await expect(panel).toHaveCSS("height", "405px");
+    const cta = panel.getByRole("link", { name: "My Dashboard" });
+    await expect(cta).toHaveCSS("margin-top", "0px");
+  });
+});
