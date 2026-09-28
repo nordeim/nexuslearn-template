@@ -31,7 +31,15 @@ async function main() {
   for (const c of COURSES) {
     const course = await prisma.course.upsert({
       where: { id: `seed-${c.sortOrder}` },
-      update: { ...c, id: undefined as never },
+      // ⚠ Prisma's update only touches keys PRESENT in the payload — a key
+      // that is undefined is skipped, so an optional column keeps its OLD
+      // row value. longDescription is the schema's only optional Course
+      // field: restating it as an explicit null here is what makes the seed
+      // idempotent across data changes (session 8: the session-7 reorder
+      // left the pre-reorder texts on seed-3/4/5 because the update branch
+      // never cleared them, surfacing as phantom "About This Course"
+      // sections that the live app does not render).
+      update: { ...c, longDescription: c.longDescription ?? null, id: undefined as never },
       create: { id: `seed-${c.sortOrder}`, ...c },
     });
     // Replace lesson set each seed (idempotent)

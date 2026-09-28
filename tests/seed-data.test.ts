@@ -21,6 +21,27 @@ describe("seed data (reference catalog parity)", () => {
     expect(aws?.tags).toBe("AWS, Cloud, DevOps, Serverless, Microservices");
   });
 
+  it("defines longDescription on EXACTLY the 4 reference courses", () => {
+    // Session-8 guard: the live app shows the expandable "About This Course"
+    // section on these four only. The seed upsert must also CLEAR the field
+    // when absent (prisma/seed.ts restates it as null) — otherwise stale rows
+    // from an older seed order survive a re-seed (the session-8 bug).
+    const WITH_LONG_DESCRIPTION = [
+      "Complete Web Development Bootcamp 2026",
+      "Machine Learning & AI Masterclass",
+      "UI/UX Design Professional Certificate",
+      "Digital Marketing Strategy A-Z",
+    ];
+    for (const course of COURSES) {
+      const should = WITH_LONG_DESCRIPTION.includes(course.title);
+      const has = Boolean(course.longDescription);
+      expect(
+        has,
+        `${course.title} should ${should ? "" : "NOT "}define longDescription`
+      ).toBe(should);
+    }
+  });
+
   it("matches the reference lesson counts (session-4 re-capture)", () => {
     const EXPECTED: Record<string, number> = {
       "Cloud Computing with AWS": 220,

@@ -236,10 +236,12 @@ test.describe("course detail", () => {
     const lessonCount = await page.locator("main span.font-medium", { hasText: "Lesson " }).count();
     expect(lessonCount).toBeGreaterThanOrEqual(200);
 
-    // What You'll Learn = tags + level
+    // What You'll Learn = parsed tags ONLY (session-8: the live check list
+    // carries no level row — the level renders once, in the Award divider row
+    // pinned by the session-6 + session-8 specs).
     await expect(page.getByRole("heading", { name: "What You'll Learn" })).toBeVisible();
-    // WebDev bootcamp tag list (seed) + the sidebar level row
-    for (const topic of ["HTML", "CSS", "JavaScript", "React", "Node.js", "MongoDB", "Beginner Level"]) {
+    // WebDev bootcamp tag list (seed)
+    for (const topic of ["HTML", "CSS", "JavaScript", "React", "Node.js", "MongoDB"]) {
       await expect(page.getByText(topic, { exact: true }).first()).toBeVisible();
     }
   });
@@ -1255,5 +1257,102 @@ test.describe("session-7 parity: route-level fixes", () => {
     await expect(wrapper).toHaveCount(1);
     await expect(wrapper).toHaveClass(/transition-transform duration-200/);
     await expect(wrapper.locator("svg")).toHaveClass(/^h-5 w-5$/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session 8 — parity: seed idempotency (no stale longDescription rows),
+// What-You'll-Learn tags-only list + single divider level row, Dashboard
+// class-level parity (bare stats grid, lucide stat icons, empty-state button
+// bases). See docs/remediation-plan-session8.md.
+// ---------------------------------------------------------------------------
+
+test.describe("session-8 parity: About This Course presence matrix (seed idempotency)", () => {
+  const WITH_ABOUT = ["seed-1", "seed-6", "seed-7", "seed-9"];
+  const WITHOUT_ABOUT = ["seed-2", "seed-3", "seed-4", "seed-5", "seed-8"];
+
+  for (const id of WITH_ABOUT) {
+    test(`About This Course renders on ${id} (reference longDescription course)`, async ({ page }) => {
+      await page.goto(`/CourseDetail?id=${id}`);
+      await expect(page.getByRole("heading", { name: "About This Course" })).toBeVisible();
+      // The left column carries the reference space-y-12 rhythm with the section.
+      await expect(page.locator("main div.lg\\:col-span-2.space-y-12")).toHaveCount(1);
+    });
+  }
+
+  for (const id of WITHOUT_ABOUT) {
+    test(`About This Course is ABSENT on ${id} (no stale longDescription rows)`, async ({ page }) => {
+      await page.goto(`/CourseDetail?id=${id}`);
+      await expect(page.getByRole("heading", { name: "About This Course" })).toHaveCount(0);
+      // No phantom section ⇒ the left column is the bare lg:col-span-2 (no space-y-12).
+      await expect(page.locator("main div.lg\\:col-span-2.space-y-12")).toHaveCount(0);
+    });
+  }
+});
+
+test.describe("session-8 parity: What You'll Learn tags-only list", () => {
+  test("check list renders parsed tags ONLY (no level row inside the list)", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-3");
+    const card = page.locator("main .bg-white.rounded-2xl", { hasText: "What You'll Learn" }).first();
+    const list = card.locator("div.space-y-3");
+    // Cloud Computing with AWS: exactly its 5 tags, none of them the level row.
+    await expect(list.locator("> div")).toHaveCount(5);
+    await expect(list).not.toContainText("Level");
+    for (const tag of ["AWS", "Cloud", "DevOps", "Serverless", "Microservices"]) {
+      await expect(list.getByText(tag, { exact: true })).toHaveCount(1);
+    }
+  });
+
+  test("WebDev check list shows its 6 tags with no level row", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-1");
+    const card = page.locator("main .bg-white.rounded-2xl", { hasText: "What You'll Learn" }).first();
+    const list = card.locator("div.space-y-3");
+    await expect(list.locator("> div")).toHaveCount(6);
+    await expect(list).not.toContainText("Level");
+  });
+
+  test("the level renders ONCE — in the Award-icon divider row", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-3");
+    const card = page.locator("main .bg-white.rounded-2xl", { hasText: "What You'll Learn" }).first();
+    const divider = card.locator("div.mt-6.pt-6.border-t");
+    await expect(divider).toHaveCount(1);
+    await expect(divider.locator("svg.lucide-award")).toHaveClass(/h-5 w-5/);
+    await expect(divider.locator("span")).toHaveText("Intermediate Level");
+    // …and nowhere else in the card.
+    await expect(card.getByText("Intermediate Level", { exact: true })).toHaveCount(1);
+  });
+});
+
+test.describe("session-8 parity: Dashboard class-level parity", () => {
+  test("stats grid is the bare reference grid (no hook classes)", async ({ page }) => {
+    await page.goto("/Dashboard");
+    const grid = page.locator("main .max-w-7xl > .grid.grid-cols-2").first();
+    await expect(grid).toHaveClass(/^grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6$/);
+  });
+
+  test("stat-card icons are lucide components with the reference classes", async ({ page }) => {
+    await page.goto("/Dashboard");
+    // Scope to the stat cards' icon wrappers (the MyCourses empty state also
+    // renders a lucide-book-open at h-16 w-16).
+    const icons = ["lucide-book-open", "lucide-circle-play", "lucide-award", "lucide-trending-up"];
+    for (const icon of icons) {
+      const svg = page.locator(`main div.w-10.h-10 svg.${icon}`);
+      await expect(svg).toHaveCount(1);
+      await expect(svg).toHaveClass(new RegExp(`lucide ${icon} h-5 w-5`));
+      await expect(svg).toHaveAttribute("width", "24");
+      await expect(svg).toHaveAttribute("height", "24");
+    }
+  });
+
+  test("empty-state buttons carry the shadcn base trio", async ({ page }) => {
+    await page.goto("/Dashboard");
+    const browseMore = page.getByRole("button", { name: "Browse More" });
+    await expect(browseMore).toHaveClass(/disabled:opacity-50/);
+    await expect(browseMore).toHaveClass(/\[&_svg\]:size-4/);
+    await expect(browseMore).toHaveClass(/\[&_svg\]:shrink-0/);
+    const cta = page.getByRole("button", { name: "Browse Courses" });
+    await expect(cta).toHaveClass(/disabled:opacity-50/);
+    await expect(cta).toHaveClass(/\[&_svg\]:size-4/);
+    await expect(cta).toHaveClass(/hover:bg-primary\/90/);
   });
 });

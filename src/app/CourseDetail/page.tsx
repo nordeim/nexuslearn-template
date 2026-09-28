@@ -16,7 +16,7 @@ import { EnrollButton } from "@/components/course-detail/EnrollButton";
 import { AboutCourse } from "@/components/course-detail/AboutCourse";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { whatYouLearnTopics } from "@/lib/course-tags";
+import { parseTags } from "@/lib/course-tags";
 import { routeMetadata } from "@/lib/metadata";
 
 export const dynamic = "force-dynamic";
@@ -84,7 +84,9 @@ export default async function CourseDetailPage({
       })
     : null;
 
-  const topics = whatYouLearnTopics(course.tags, course.level);
+  // Session 8: the reference check list is the parsed tags ONLY — the level
+  // renders once, in the Award-icon divider row below the list.
+  const topics = parseTags(course.tags);
 
   return (
     <div className="min-h-dvh bg-white">

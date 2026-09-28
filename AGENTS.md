@@ -15,7 +15,7 @@ NexusLearn — an e-learning platform (marketing site + course catalog + enrollm
 | DB schema push | `bun run db:push` |
 | DB seed | `bun run db:seed` |
 | Unit tests | `bun run test` (Vitest) |
-| E2E tests | `bun run test:e2e` (Playwright; **requires `bun run build` first** — boots the standalone server on :3100 with `db/e2e.db`; 107 specs incl. the 6 mobile-nav guards) |
+| E2E tests | `bun run test:e2e` (Playwright; **requires `bun run build` first** — boots the standalone server on :3100 with `db/e2e.db`; 122 specs incl. the 6 mobile-nav guards) |
 | Lint / typecheck | `bun run lint` / `bun run typecheck` |
 | Production build | `bun run build` (standalone output) |
 
@@ -50,13 +50,16 @@ NexusLearn — an e-learning platform (marketing site + course catalog + enrollm
 21. **Category icons render near-black on purpose** (session 7): the reference ships `bg-gradient-to-r from-X-500 to-X-600 bg-clip-text` on the category svgs — the gradient is visually DEAD (background-clip:text on an SVG clips the gradient away; the strokes render in the inherited near-black). The clone copies those classes verbatim; the only visible color comes from the `bg-X-500/10` tint wrappers. Do not replace them with `text-X-600` colors.
 22. **The level badge is a plain DIV with emerald Beginner** (session 7): live renders `inline-flex items-center rounded-md px-2.5 py-0.5 … hover:bg-primary/80 absolute top-3 left-3 bg-emerald-100 text-emerald-700 border-0 font-medium text-xs` (Beginner=emerald, Intermediate=amber, Advanced=red) — not the shadcn Badge span, and the class order is pinned.
 23. **`SelectTrigger` ships the v3-era shadcn string** (session 7): `flex h-9 items-center justify-between whitespace-nowrap border bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background … [&>span]:line-clamp-1` + `h-4 w-4` chevron — the reference app predates the new-york v4 trigger (`data-[slot=select-value]`, `shadow-xs`, `ring-[3px]`). Call-sites add `w-[150px|160px|180px] rounded-xl border-gray-200` (Courses) / `w-full border-input mt-2 rounded-xl` (Contact).
+24. **The seed must CLEAR optional fields, not just set them** (session 8): Prisma's `update` only touches keys present in the payload — `prisma/seed.ts` restates `longDescription: c.longDescription ?? null` so a re-seed over an existing DB nulls removed values. Without it, the session-7 reorder left the pre-reorder texts on seed-3/4/5 (phantom "About This Course" sections the live app does not render). Pinned by the session-8 About-presence e2e matrix.
+25. **The "What You'll Learn" check list is tags ONLY** (session 8): the live list renders exactly the parsed tags — no `{level} Level` row inside `div.space-y-3` (the old `whatYouLearnTopics()` helper was removed). The level renders ONCE, in the Award-icon divider row (`div.mt-6.pt-6.border-t`). Pinned by the session-8 e2e specs.
+26. **Dashboard stat icons are lucide components** (session 8): `BookOpen`/`CirclePlay`/`Award`/`TrendingUp` (`className="h-5 w-5"`) — the reference ships the `lucide lucide-X` classes + `width="24" height="24"` attributes; do not replace them with hand-inlined svgs. The stats grid is the BARE reference grid (no hook classes), and both MyCourses empty-state buttons carry the shadcn base trio.
 
 ## Where things live
 
 - `src/app/` — routes (one dir per route, original casing), `api/` for route handlers
 - `src/components/ui/` — shadcn-style primitives (button uses `rounded-xl` variants matching the reference)
 - `src/components/` — Navbar (2 visual states + mobile dropdown), Footer, CourseCard, CourseCatalog, ContactForm, LoginForm (5-view state machine), NewsletterForm, AIAssistantChat, `course-detail/` (EnrollButton, AboutCourse), `dashboard/`
-- `src/lib/` — `db.ts` (Prisma singleton), `session.ts` + `auth.ts`, `course-tags.ts` (What You'll Learn topics), `course-eyebrow.ts` (card eyebrow display map), `metadata.ts` (`routeMetadata()` — per-route OG identity), `utils.ts` (`cn`)
+- `src/lib/` — `db.ts` (Prisma singleton), `session.ts` + `auth.ts`, `course-tags.ts` (tags parsing for the What You'll Learn list), `course-eyebrow.ts` (card eyebrow display map), `metadata.ts` (`routeMetadata()` — per-route OG identity), `utils.ts` (`cn`)
 - `prisma/` — `schema.prisma`, `seed.ts`, `seed-data.ts` (pure reference catalog — pinned by tests incl. imagery + lesson counts), `db-url.ts`
 - `docs/screenshots/` — QA captures of the running app
 - `skills/` — reference skill library (excluded from tsconfig/eslint; not app code)

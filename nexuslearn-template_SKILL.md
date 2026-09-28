@@ -1,9 +1,9 @@
 ---
 name: nexuslearn-template
-description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from a 6-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons), the three Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients), the hardened mobile navigation pattern, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference page-shell pattern (main.pt-20 + gray wrapper under the fixed navbar), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing, 2-col AI section, dark popular pricing card, FAQ stack, expandable About This Course, light-slate 404, in-page CourseDetail not-found, simulated-delivery signup + verify), the head-metadata parity layer (root description, OG/Twitter cards, canonicals, logo favicon, manifest, per-route OG identity via a routeMetadata() helper), the CourseDetail sidebar level row, the pricing -mt-8 overlap, the h-9+py-6 input collapse pattern, and the full test pyramid (29 Vitest unit + 85 Playwright e2e incl. 6 mobile-nav guards)."
-version: 2.5.0
-last_updated: "2026-09-27"
-project_state: "139 tests green (32 unit + 107 e2e); lint/typecheck/build clean; parity verified vs live reference (session-7 pass: reference display order seed reorder, category dead-gradient icons + monitor icon, featured flex header with in-header CTA, learning-path borders + per-path icons, testimonials card redesign + order, landing button bases, Courses filter sliders icon + v3-style select triggers, emerald level badge DIV, CourseDetail circle-play stat, Pricing circle-help FAQ + text-3xl hero, Contact form controls, About stats wrapper, BI hero rework, AI composer button, login Google icon wrapper; sessions 1-6 previously closed shells, content, head, OG identity, login state machine, class-verbatim parity)"
+description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from an 8-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons), the three Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients), the hardened mobile navigation pattern, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference page-shell pattern (main.pt-20 + gray wrapper under the fixed navbar), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing, 2-col AI section, dark popular pricing card, FAQ stack, expandable About This Course, light-slate 404, in-page CourseDetail not-found, simulated-delivery signup + verify), the head-metadata parity layer (root description, OG/Twitter cards, canonicals, logo favicon, manifest, per-route OG identity via a routeMetadata() helper), the CourseDetail sidebar level row + tags-only What-You'll-Learn list, the idempotent seed (Prisma update skips undefined keys — restate optional fields as null), the pricing -mt-8 overlap, the h-9+py-6 input collapse pattern, and the full test pyramid (31 Vitest unit + 122 Playwright e2e incl. 6 mobile-nav guards)."
+version: 2.6.0
+last_updated: "2026-09-28"
+project_state: "153 tests green (31 unit + 122 e2e); lint/typecheck/build clean; parity verified vs live reference (session-8 pass: seed idempotency — prisma/seed.ts restates longDescription ?? null so re-seeds clear removed optional fields, killing the stale phantom About-sections from the session-7 reorder; What-You'll-Learn check list re-pinned to tags-only with the level once in the Award divider row; Dashboard class parity — bare stats grid, lucide stat icons, empty-state button bases; sessions 1-7 previously closed shells, content, head, OG identity, login state machine, class-verbatim, display-order and section-design parity)"
 ---
 
 # NexusLearn — Complete Engineering Skill
@@ -97,18 +97,22 @@ excluded from tsconfig/eslint/vitest/playwright.
 | `AUTH_SECRET` | production | HMAC session secret (`openssl rand -hex 32`); insecure dev fallback warns |
 | `NEXT_PUBLIC_SITE_URL` | optional | Canonical origin for metadata/robots |
 
-**Test inventory (verified green):** 32 unit tests across 5 files
-(`auth.test.ts` 5, `course-tags.test.ts` 5, `course-eyebrow.test.ts` 3,
-`seed-data.test.ts` 11 — incl. the reference imagery/avatar map and
-lesson-count pins, display-order pins, metadata helper) + 107 e2e specs across 2 files
-(`mobile-navigation.spec.ts` 6, `nexuslearn.spec.ts` 62 — incl. the 9
+**Test inventory (verified green):** 31 unit tests across 5 files
+(`auth.test.ts` 5, `course-tags.test.ts` 3, `course-eyebrow.test.ts` 3,
+`seed-data.test.ts` 15 — incl. the reference imagery/avatar map,
+lesson-count pins, display-order pins, the longDescription presence matrix
+and the metadata helper) + 122 e2e specs across 2 files
+(`mobile-navigation.spec.ts` 6, `nexuslearn.spec.ts` 116 — incl. the 9
 session-3 parity specs, the 16 session-4 specs (page shells, About-Course,
-AI chat shell, 404, robots/sitemap) and the 18 session-5 specs: head
+AI chat shell, 404, robots/sitemap), the 18 session-5 specs (head
 metadata incl. manifest, the login 5-view state machine (reset, reset-sent,
 signup, 6-digit verify, duplicate-email + password-mismatch errors), the
 in-place newsletter success state, the CourseDetail not-found state, the EQ
 eyebrow short label, Home-active-on-/ nav state and the BI/Pricing/About
-class parity pins).
+class parity pins), the session-6/7 blocks and the 15 session-8 specs (the
+About-presence matrix across all 9 courses — the seed-idempotency guard,
+the tags-only WYL list + single divider level row, and the Dashboard class
+parity: bare stats grid, lucide stat icons, empty-state button bases).
 
 ---
 
@@ -329,17 +333,23 @@ that array and calls `router.refresh()` so server stat cards update live.
 tags) and `buildLessons(lessonsCount)` — pure, no side effects, imported by
 both `prisma/seed.ts` and `tests/seed-data.test.ts`. The seed is idempotent
 (upsert courses, replace lesson sets, upsert demo user
-`sepnetflix2023@outlook.com` / `$Abcd1234`).
+`sepnetflix2023@outlook.com` / `$Abcd1234`) — and it CLEARS optional fields:
+the upsert's `update` payload restates `longDescription: c.longDescription ??
+null` because Prisma skips undefined keys (session 8's stale-row bug: the
+session-7 reorder left the pre-reorder texts on seed-3/4/5, rendering
+phantom About sections the live app does not have).
 
 ### 7.3 Tag parsing (`src/lib/course-tags.ts`)
 
 ```ts
 parseTags(tags)                  // "AWS, Cloud" → ["AWS", "Cloud"] (null-safe)
-whatYouLearnTopics(tags, level)  // [...parseTags(tags), `${level} Level`]
 ```
 
-The reference's What-You'll-Learn card shows the course tags PLUS its level
-("…, Intermediate Level"). Both functions are unit-tested.
+The reference's What-You'll-Learn card shows the course tags ONLY — the
+level renders once, in the separate Award-icon divider row (`mt-6 pt-6
+border-t`). `parseTags` is unit-tested. (Session 8 removed the old
+`whatYouLearnTopics()` tags+level helper — the live check list carries no
+level row.)
 
 ### 7.4 SQLite path resolution (the hard-won seam)
 
@@ -554,8 +564,9 @@ bun run test:e2e     # 68/68 incl. 6 mobile-nav
 ### 15.5 What-You'll-Learn topics
 
 ```tsx
-const topics = whatYouLearnTopics(course.tags, course.level);
-// ["AWS","Cloud","DevOps","Serverless","Microservices","Intermediate Level"]
+const topics = parseTags(course.tags);
+// ["AWS","Cloud","DevOps","Serverless","Microservices"]
+// The level renders ONCE — in the Award-icon divider row (session 8).
 ```
 
 ---
@@ -663,7 +674,6 @@ function verifyPassword(password: string, stored: string): boolean;
 
 // src/lib/course-tags.ts
 function parseTags(tags: string | null | undefined): string[];
-function whatYouLearnTopics(tags: string, level: string): string[];
 
 // prisma/db-url.ts
 function resolveDatabaseUrl(url?: string): string | undefined;
