@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, CircleHelp, Sparkles } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -82,7 +82,7 @@ export default function PricingPage() {
         <div className="min-h-screen bg-gray-50">
           <div className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-12 px-4">
             <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
+              <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
                 Simple, Transparent Pricing
               </h1>
               <p className="mt-4 text-lg text-gray-400">
@@ -150,10 +150,10 @@ export default function PricingPage() {
                     </div>
                     <Link href="/login">
                       <button
-                        className={`inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 px-4 mt-8 w-full py-6 rounded-xl text-base transition-all duration-300 hover:scale-105 ${
+                        className={`inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 ${
                           plan.popular
-                            ? "bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-lg shadow-purple-500/25"
-                            : "shadow bg-gray-900 hover:bg-gray-800 text-white"
+                            ? "hover:bg-primary/90 h-9 px-4 mt-8 w-full py-6 rounded-xl font-semibold text-base transition-all duration-300 hover:scale-105 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-lg shadow-purple-500/25"
+                            : "shadow h-9 px-4 mt-8 w-full py-6 rounded-xl font-semibold text-base transition-all duration-300 hover:scale-105 bg-gray-900 hover:bg-gray-800 text-white"
                         }`}
                       >
                         {plan.cta}
@@ -178,7 +178,27 @@ export default function PricingPage() {
                     className="bg-gray-50 rounded-2xl p-6 hover:bg-white hover:shadow-lg transition-all duration-300 border border-transparent hover:border-gray-100"
                   >
                     <h3 className="flex items-center gap-2 font-semibold text-gray-900">
-                      <CircleHelp className="h-5 w-5 text-purple-500" aria-hidden="true" />
+                      {/* Reference icon (session 7): the live app renders the
+                          lucide circle-help glyph — inlined verbatim because
+                          lucide-react 0.525 aliases CircleHelp to the
+                          circle-question-mark module (different class name). */}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        className="lucide lucide-circle-help h-5 w-5 text-purple-500"
+                        aria-hidden="true"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                        <path d="M12 17h.01" />
+                      </svg>
                       {faq.q}
                     </h3>
                     <p className="mt-3 text-gray-600 leading-relaxed ml-7">{faq.a}</p>

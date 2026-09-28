@@ -52,7 +52,7 @@ export default function AboutPage() {
           <div className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-20 px-4">
             <div className="max-w-4xl mx-auto text-center">
               <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">About NexusLearn</h1>
-              <p className="mt-6 text-lg text-gray-400 leading-relaxed max-w-2xl mx-auto">
+              <p className="mt-6 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
                 We&apos;re on a mission to democratize education by combining expert-led courses with
                 AI-powered tools, making world-class learning accessible to everyone.
               </p>
@@ -61,15 +61,19 @@ export default function AboutPage() {
 
         {/* Stats */}
         <section className="py-20 px-4 bg-white">
-          <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
-            {STATS.map(([value, label]) => (
-              <div key={label} className="text-center">
-                <p className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-500 to-purple-600 bg-clip-text text-transparent">
-                  {value}
-                </p>
-                <p className="mt-2 text-sm text-gray-500">{label}</p>
-              </div>
-            ))}
+          {/* Reference structure (session 7): the max-w-7xl wrapper is a parent
+              div; the grid itself is bare. */}
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {STATS.map(([value, label]) => (
+                <div key={label} className="text-center">
+                  <p className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-500 to-purple-600 bg-clip-text text-transparent">
+                    {value}
+                  </p>
+                  <p className="mt-2 text-gray-500 font-medium">{label}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 

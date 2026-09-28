@@ -4,7 +4,6 @@ import {
   Star,
   Users,
   Clock,
-  BookOpen,
   CirclePlay,
   Check,
   Award,
@@ -132,7 +131,8 @@ export default async function CourseDetailPage({
                     {course.hours} hours
                   </span>
                   <span className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5" aria-hidden="true" />
+                    {/* Reference (session 7): the lessons stat uses CirclePlay. */}
+                    <CirclePlay className="h-5 w-5" aria-hidden="true" />
                     {course.lessonsCount} lessons
                   </span>
                 </div>

@@ -3,7 +3,7 @@ import {
   ArrowRight,
   Play,
   Briefcase,
-  Cpu,
+  Monitor,
   Megaphone,
   Palette,
   Heart,
@@ -19,6 +19,8 @@ import {
   Star,
   Quote,
   Award,
+  Target,
+  TrendingUp,
 } from "lucide-react";
 
 import { Navbar } from "@/components/Navbar";
@@ -31,7 +33,7 @@ export const dynamic = "force-dynamic";
 
 const CATEGORIES = [
   { name: "Business", slug: "business", icon: Briefcase },
-  { name: "Technology", slug: "technology", icon: Cpu },
+  { name: "Technology", slug: "technology", icon: Monitor },
   { name: "Marketing", slug: "marketing", icon: Megaphone },
   { name: "Design", slug: "design", icon: Palette },
   { name: "Personal Development", slug: "personal-development", icon: Heart },
@@ -39,24 +41,30 @@ const CATEGORIES = [
   { name: "AI & Innovation", slug: "ai-innovation", icon: Sparkles },
 ];
 
+// Reference icon tint wrappers (session-7 audit): the /10 tint backgrounds
+// carry the only visible color on the card — the icons themselves render
+// near-black (the reference's bg-clip-text gradients are visually dead).
 const CATEGORY_ICON_TINT: Record<string, string> = {
   Business: "bg-blue-500/10",
   Technology: "bg-cyan-500/10",
-  Marketing: "bg-orange-500/10",
-  Design: "bg-pink-500/10",
-  "Personal Development": "bg-green-500/10",
-  Programming: "bg-purple-500/10",
-  "AI & Innovation": "bg-indigo-500/10",
+  Marketing: "bg-pink-500/10",
+  Design: "bg-purple-500/10",
+  "Personal Development": "bg-rose-500/10",
+  Programming: "bg-emerald-500/10",
+  "AI & Innovation": "bg-violet-500/10",
 };
 
+// Reference icon classes — copied verbatim from the live app. The gradient +
+// bg-clip-text combination renders the icon strokes in the inherited text
+// color (near-black), matching the reference pixel-for-pixel.
 const CATEGORY_ICON_COLOR: Record<string, string> = {
-  Business: "text-blue-600",
-  Technology: "text-cyan-600",
-  Marketing: "text-orange-600",
-  Design: "text-pink-600",
-  "Personal Development": "text-green-600",
-  Programming: "text-purple-600",
-  "AI & Innovation": "text-indigo-600",
+  Business: "bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text",
+  Technology: "bg-gradient-to-r from-cyan-500 to-cyan-600 bg-clip-text",
+  Marketing: "bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text",
+  Design: "bg-gradient-to-r from-purple-500 to-purple-600 bg-clip-text",
+  "Personal Development": "bg-gradient-to-r from-rose-500 to-rose-600 bg-clip-text",
+  Programming: "bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text",
+  "AI & Innovation": "bg-gradient-to-r from-violet-500 to-violet-600 bg-clip-text",
 };
 
 const LEARNING_PATHS = [
@@ -64,18 +72,21 @@ const LEARNING_PATHS = [
     title: "Full-Stack Developer",
     description: "From HTML basics to deploying full-stack applications with React, Node.js, and cloud services.",
     gradient: "from-cyan-500 to-blue-600",
+    icon: Code,
     steps: ["HTML & CSS", "JavaScript", "React", "Node.js", "Databases", "DevOps"],
   },
   {
     title: "Data Science Expert",
     description: "Master Python, statistics, machine learning, and data visualization for data-driven decisions.",
     gradient: "from-purple-500 to-pink-600",
+    icon: TrendingUp,
     steps: ["Python", "Statistics", "Pandas", "ML Models", "Deep Learning", "Deployment"],
   },
   {
     title: "Digital Marketing Pro",
     description: "Learn modern marketing from SEO and content strategy to paid ads and marketing automation.",
-    gradient: "from-orange-500 to-red-600",
+    gradient: "from-amber-500 to-orange-600",
+    icon: Target,
     steps: ["SEO Basics", "Content Strategy", "Paid Ads", "Social Media", "Analytics", "Automation"],
   },
 ];
@@ -90,17 +101,17 @@ const TESTIMONIALS = [
   },
   {
     quote:
+      "Incredible course quality and the certification actually helped me negotiate a higher salary. The community is amazingly supportive.",
+    name: "Elena Rodriguez",
+    role: "Data Scientist",
+    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80",
+  },
+  {
+    quote:
       "The AI study assistant is a game-changer. It's like having a personal tutor available 24/7. Best investment I've made in my education.",
     name: "Marcus Johnson",
     role: "Marketing Director",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
-  },
-  {
-    quote:
-      "Incredible course quality and the certification actually helped me negotiate a higher salary. The community is amazingly supportive.",
-    name: "Elena Rodriguez",
-    role: "Data Scientist",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&q=80",
   },
 ];
 
@@ -189,13 +200,13 @@ export default async function LandingPage() {
               </p>
               <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link href="/Courses">
-                  <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
+                  <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-9 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-semibold px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
                     Browse Courses
                     <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
                   </button>
                 </Link>
                 <Link href="/Courses">
-                  <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border shadow-sm h-9 border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white px-8 py-6 text-lg rounded-xl backdrop-blur-sm transition-all duration-300 hover:scale-105">
+                  <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border shadow-sm h-9 border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white px-8 py-6 text-lg rounded-xl backdrop-blur-sm transition-all duration-300 hover:scale-105">
                     <Play className="mr-2 h-5 w-5" aria-hidden="true" />
                     Start Learning
                   </button>
@@ -283,7 +294,7 @@ export default async function LandingPage() {
               {CATEGORIES.map((cat) => (
                 <Link key={cat.slug} href={`/Courses?category=${cat.slug}`}>
                   <div className="group relative bg-gray-50 rounded-2xl p-6 md:p-8 text-center hover:bg-white hover:shadow-xl transition-all duration-500 border border-transparent hover:border-gray-100 cursor-pointer overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-transparent group-hover:from-purple-50/50 group-hover:to-cyan-50/50 transition-all duration-500 rounded-2xl" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-transparent group-hover:from-purple-50/50 group-hover:to-cyan-50/50 transition-all duration-500" />
                     <div className="relative z-10">
                       <div
                         className={`inline-flex p-4 rounded-2xl ${CATEGORY_ICON_TINT[cat.name]} mb-4 group-hover:scale-110 transition-transform duration-300`}
@@ -305,29 +316,30 @@ export default async function LandingPage() {
         {/* -------------------------- FEATURED COURSES ------------------------ */}
         <section className="py-24 px-4 bg-gray-50">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Top Picks</span>
-              <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
-                Featured Courses
-              </h2>
-              <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">
-                Hand-picked courses by our editors to accelerate your learning journey
-              </p>
+            {/* Reference header (session 7): flex row — title block left, outline
+                CTA right; stacks to flex-col with the CTA under the title at mobile. */}
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-16">
+              <div>
+                <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Top Picks</span>
+                <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
+                  Featured Courses
+                </h2>
+                <p className="mt-4 text-lg text-gray-500 max-w-xl">
+                  Hand-picked courses by our editors to accelerate your learning journey
+                </p>
+              </div>
+              <Link href="/Courses" className="mt-6 md:mt-0">
+                <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border bg-background shadow-sm h-9 group border-gray-300 text-gray-700 hover:border-purple-500 hover:text-purple-700 hover:bg-purple-50 rounded-xl px-6 py-3 transition-all duration-300">
+                  View All Courses
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
+                </button>
+              </Link>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {courses.map((course) => (
                 <CourseCard key={course.id} course={course} />
               ))}
-            </div>
-
-            <div className="text-center mt-12">
-              <Link href="/Courses">
-                <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border bg-background shadow-sm h-9 group border-gray-300 text-gray-700 hover:border-purple-500 hover:text-purple-700 hover:bg-purple-50 rounded-xl px-6 py-3 transition-all duration-300">
-                  View All Courses
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-                </button>
-              </Link>
             </div>
           </div>
         </section>
@@ -349,10 +361,10 @@ export default async function LandingPage() {
               {LEARNING_PATHS.map((path) => (
                 <div
                   key={path.title}
-                  className="group relative bg-gray-50 rounded-3xl p-8 hover:bg-white hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-500"
+                  className="group relative bg-gray-50 rounded-3xl p-8 hover:bg-white hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-500 border border-transparent hover:border-gray-100"
                 >
                   <div className={`inline-flex p-3 rounded-2xl bg-gradient-to-r ${path.gradient} mb-6`}>
-                    <Code className="h-6 w-6 text-white" aria-hidden="true" />
+                    <path.icon className="h-6 w-6 text-white" aria-hidden="true" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-3">{path.title}</h3>
                   <p className="text-gray-500 mb-6 leading-relaxed">{path.description}</p>
@@ -373,7 +385,7 @@ export default async function LandingPage() {
                     <span className="text-sm font-medium text-gray-600">Certification upon completion</span>
                   </div>
                   <Link href="/Courses">
-                    <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 px-4 py-2 mt-6 w-full text-purple-600 hover:text-purple-700 hover:bg-purple-50 group/btn rounded-xl transition-all duration-300">
+                    <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-9 px-4 py-2 mt-6 w-full text-purple-600 hover:text-purple-700 hover:bg-purple-50 group/btn rounded-xl transition-all duration-300">
                       Start This Path
                       <ChevronRight className="ml-1 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" aria-hidden="true" />
                     </button>
@@ -409,7 +421,7 @@ export default async function LandingPage() {
                   Get real-time help, track your progress, and master concepts faster than ever.
                 </p>
                 <Link href="/AIAssistant">
-                  <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 mt-8 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
+                  <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-9 mt-8 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-semibold px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
                     Try AI Assistant
                     <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
                   </button>
@@ -490,7 +502,7 @@ export default async function LandingPage() {
                   ))}
                 </div>
                 <Link href="/BecomeInstructor">
-                  <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 mt-10 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
+                  <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-9 mt-10 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-semibold px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
                     Start Teaching Today
                     <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
                   </button>
@@ -517,17 +529,16 @@ export default async function LandingPage() {
               {TESTIMONIALS.map((t) => (
                 <div
                   key={t.name}
-                  className="group p-8 bg-white rounded-2xl border border-gray-100 hover:shadow-2xl hover:shadow-purple-500/5 hover:-translate-y-1 transition-all duration-300"
+                  className="relative bg-gray-50 rounded-3xl p-8 hover:bg-white hover:shadow-xl transition-all duration-500 border border-transparent hover:border-gray-100"
                 >
-                  <Quote className="h-8 w-8 text-purple-200 mb-4" aria-hidden="true" />
+                  <Quote className="h-10 w-10 text-purple-200 mb-4" aria-hidden="true" />
                   <div className="flex gap-1 mb-4">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" aria-hidden="true" />
                     ))}
                   </div>
                   <p className="text-gray-600 leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
-                  <div className="flex items-center gap-3 pt-6 border-t border-gray-50">
-                    { }
+                  <div className="flex items-center gap-3">
                     <img
                       src={t.avatar}
                       alt={t.name}
@@ -535,8 +546,8 @@ export default async function LandingPage() {
                       loading="lazy"
                     />
                     <div>
-                      <p className="font-semibold text-gray-900">{t.name}</p>
-                      <p className="text-sm text-gray-500">{t.role}</p>
+                      <p className="font-semibold text-gray-900 text-sm">{t.name}</p>
+                      <p className="text-xs text-gray-500">{t.role}</p>
                     </div>
                   </div>
                 </div>
@@ -598,10 +609,10 @@ export default async function LandingPage() {
                     ))}
                   </div>
                   <button
-                    className={`inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 px-4 mt-8 w-full py-6 rounded-xl text-base transition-all duration-300 hover:scale-105 ${
+                    className={`inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 ${
                       plan.popular
-                        ? "bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-lg shadow-purple-500/25"
-                        : "shadow bg-gray-900 hover:bg-gray-800 text-white"
+                        ? "hover:bg-primary/90 h-9 px-4 mt-8 w-full py-6 rounded-xl font-semibold text-base transition-all duration-300 hover:scale-105 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-lg shadow-purple-500/25"
+                        : "shadow h-9 px-4 mt-8 w-full py-6 rounded-xl font-semibold text-base transition-all duration-300 hover:scale-105 bg-gray-900 hover:bg-gray-800 text-white"
                     }`}
                   >
                     {plan.cta}
@@ -618,7 +629,7 @@ export default async function LandingPage() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-3xl" />
           </div>
 
-          <div className="relative z-10 max-w-2xl mx-auto text-center">
+          <div className="max-w-2xl mx-auto relative z-10 text-center">
             <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Stay in the Loop</h2>
             <p className="mt-4 text-lg text-gray-400">
               Get the latest courses, tips, and exclusive offers delivered to your inbox.

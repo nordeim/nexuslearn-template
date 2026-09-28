@@ -15,7 +15,7 @@ NexusLearn — an e-learning platform (marketing site + course catalog + enrollm
 | DB schema push | `bun run db:push` |
 | DB seed | `bun run db:seed` |
 | Unit tests | `bun run test` (Vitest) |
-| E2E tests | `bun run test:e2e` (Playwright; **requires `bun run build` first** — boots the standalone server on :3100 with `db/e2e.db`; 85 specs incl. the 6 mobile-nav guards) |
+| E2E tests | `bun run test:e2e` (Playwright; **requires `bun run build` first** — boots the standalone server on :3100 with `db/e2e.db`; 107 specs incl. the 6 mobile-nav guards) |
 | Lint / typecheck | `bun run lint` / `bun run typecheck` |
 | Production build | `bun run build` (standalone output) |
 
@@ -46,6 +46,10 @@ NexusLearn — an e-learning platform (marketing site + course catalog + enrollm
 17. **The newsletter form is a client island** (`NewsletterForm.tsx`) — never a native `action=` POST (that navigates the browser to the raw JSON). Same for contact: fetch + in-place success state.
 18. **OG identity mirrors the document head** (session 6): `og:title` + `twitter:title` = the per-route document title and `og:url` = the per-route canonical (CourseDetail's includes `?id=`). Every route sets metadata through `routeMetadata()` (`src/lib/metadata.ts`) — a child route's `openGraph`/`twitter` objects REPLACE the root's wholesale, so the helper restates the full payload (description, images, siteName). `/` and `/login` keep the plain "NexusLearn" title (reference behavior).
 19. **The CourseDetail sidebar ends with the level row** — `mt-6 pt-6 border-t` divider > Award icon (`text-amber-500`) + "`{level} Level`" — present on every course (reference behavior, session 6).
+20. **The seed array IS the display order** (session 7): `prisma/seed-data.ts` lists the courses in the reference app's "Newest" order (WebDev, DataScience, Cloud, Business, EmotionalIQ, ML, UI/UX, AdvancedPython, DigitalMarketing); the ids `seed-1…9` + `sortOrder` follow the array index, so the catalog's id-based "newest" sort and the landing featured grid (the featured subsequence) both reproduce the reference order. Do not re-sort the array.
+21. **Category icons render near-black on purpose** (session 7): the reference ships `bg-gradient-to-r from-X-500 to-X-600 bg-clip-text` on the category svgs — the gradient is visually DEAD (background-clip:text on an SVG clips the gradient away; the strokes render in the inherited near-black). The clone copies those classes verbatim; the only visible color comes from the `bg-X-500/10` tint wrappers. Do not replace them with `text-X-600` colors.
+22. **The level badge is a plain DIV with emerald Beginner** (session 7): live renders `inline-flex items-center rounded-md px-2.5 py-0.5 … hover:bg-primary/80 absolute top-3 left-3 bg-emerald-100 text-emerald-700 border-0 font-medium text-xs` (Beginner=emerald, Intermediate=amber, Advanced=red) — not the shadcn Badge span, and the class order is pinned.
+23. **`SelectTrigger` ships the v3-era shadcn string** (session 7): `flex h-9 items-center justify-between whitespace-nowrap border bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background … [&>span]:line-clamp-1` + `h-4 w-4` chevron — the reference app predates the new-york v4 trigger (`data-[slot=select-value]`, `shadow-xs`, `ring-[3px]`). Call-sites add `w-[150px|160px|180px] rounded-xl border-gray-200` (Courses) / `w-full border-input mt-2 rounded-xl` (Contact).
 
 ## Where things live
 

@@ -260,9 +260,9 @@ export function AIAssistantChat() {
                   type="submit"
                   disabled={!input.trim() || loading}
                   aria-label="Send message"
-                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-9 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white rounded-xl px-5 shadow-lg shadow-purple-500/20 transition-all duration-300 hover:scale-105 self-end disabled:hover:scale-100 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-9 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white rounded-xl px-5 shadow-lg shadow-purple-500/20 transition-all duration-300 hover:scale-105 self-end"
                 >
-                  <Send className="h-4 w-4" aria-hidden="true" />
+                  <Send className="h-5 w-5" aria-hidden="true" />
                 </button>
               </form>
             </div>

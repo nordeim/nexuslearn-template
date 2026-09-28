@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Star, Users, Clock } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { courseEyebrow } from "@/lib/course-eyebrow";
 
 export interface CourseCardData {
@@ -20,8 +19,10 @@ export interface CourseCardData {
   originalPrice: number;
 }
 
+// Reference level badge colors (session-7 audit): Beginner = emerald,
+// Intermediate = amber, Advanced = red.
 const LEVEL_BADGE: Record<string, string> = {
-  Beginner: "bg-green-100 text-green-700",
+  Beginner: "bg-emerald-100 text-emerald-700",
   Intermediate: "bg-amber-100 text-amber-700",
   Advanced: "bg-red-100 text-red-700",
   "All Levels": "bg-blue-100 text-blue-700",
@@ -41,11 +42,14 @@ export function CourseCard({ course }: { course: CourseCardData }) {
             loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          <Badge
-            className={`absolute top-3 left-3 font-medium text-xs hover:bg-primary/80 border-0 ${LEVEL_BADGE[course.level] ?? "bg-blue-100 text-blue-700"}`}
+          {/* Reference badge (session 7): a plain div — class string copied
+              verbatim from the live app (hover:bg-primary/80 before the
+              positioning utilities, border-0 before font-medium). */}
+          <div
+            className={`inline-flex items-center rounded-md px-2.5 py-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent shadow hover:bg-primary/80 absolute top-3 left-3 ${LEVEL_BADGE[course.level] ?? "bg-blue-100 text-blue-700"} border-0 font-medium text-xs`}
           >
             {course.level}
-          </Badge>
+          </div>
         </div>
         <div className="p-5">
           <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-2">

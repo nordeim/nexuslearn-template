@@ -2,7 +2,7 @@ import Link from "next/link";
 import {
   DollarSign,
   Globe,
-  Clapperboard,
+  Video,
   BarChart3,
   Users,
   Award,
@@ -29,7 +29,7 @@ const STEPS = [
 const BENEFITS = [
   { icon: DollarSign, title: "Up to 70% Revenue Share", text: "One of the highest payouts in the industry." },
   { icon: Globe, title: "Global Audience", text: "Reach students in over 150 countries worldwide." },
-  { icon: Clapperboard, title: "Production Support", text: "Free tools and guidance to create professional content." },
+  { icon: Video, title: "Production Support", text: "Free tools and guidance to create professional content." },
   { icon: BarChart3, title: "Analytics Dashboard", text: "Track enrollments, earnings, and engagement in real-time." },
   { icon: Users, title: "Community Support", text: "Join a thriving community of fellow instructors." },
   { icon: Award, title: "Certification Programs", text: "Offer verified certificates to boost your course value." },
@@ -48,15 +48,15 @@ export default function BecomeInstructorPage() {
           <div className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-20 px-4 relative overflow-hidden">
             <div className="absolute top-20 left-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
             <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-500/8 rounded-full blur-3xl" />
-            <div className="relative z-10 max-w-4xl mx-auto text-center">
-              <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight">
+            <div className="max-w-4xl mx-auto text-center relative z-10">
+              <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
                 Share Your Knowledge,
                 <br />
-                <span className="bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
                   Build Your Legacy
                 </span>
               </h1>
-              <p className="mt-6 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              <p className="mt-6 text-lg text-gray-400 max-w-2xl mx-auto">
                 Join thousands of instructors earning income while making an impact. No technical
                 expertise required — we handle the platform, you bring the knowledge.
               </p>
@@ -103,7 +103,7 @@ export default function BecomeInstructorPage() {
                   <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center mb-5">
                     <b.icon className="h-6 w-6 text-purple-600" aria-hidden="true" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{b.title}</h3>
+                  <h3 className="font-bold text-gray-900 text-lg mb-2">{b.title}</h3>
                   <p className="text-gray-500 leading-relaxed">{b.text}</p>
                 </div>
               ))}

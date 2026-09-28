@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Send } from "lucide-react";
 
 import {
   Select,
@@ -19,6 +20,14 @@ const SUBJECT_OPTIONS = [
 
 const INPUT_CLASS =
   "flex h-9 w-full border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-2 rounded-xl";
+
+// Reference label (session-7 audit): the full shadcn Label class pair.
+const LABEL_CLASS =
+  "text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 font-medium";
+
+// Reference textarea (session-7 audit): min-h-[60px] (not 120px).
+const TEXTAREA_CLASS =
+  "flex min-h-[60px] w-full border border-input bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-2 rounded-xl";
 
 export function ContactForm() {
   const [name, setName] = useState("");
@@ -74,7 +83,7 @@ export function ContactForm() {
     <form className="space-y-6" onSubmit={handleSubmit}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
-          <label className="text-sm font-medium text-gray-700" htmlFor="contact-name">
+          <label className={LABEL_CLASS} htmlFor="contact-name">
             Full Name
           </label>
           <input
@@ -87,7 +96,7 @@ export function ContactForm() {
           />
         </div>
         <div>
-          <label className="text-sm font-medium text-gray-700" htmlFor="contact-email">
+          <label className={LABEL_CLASS} htmlFor="contact-email">
             Email
           </label>
           <input
@@ -103,11 +112,11 @@ export function ContactForm() {
       </div>
 
       <div>
-        <label className="text-sm font-medium text-gray-700" htmlFor="contact-subject">
+        <label className={LABEL_CLASS} htmlFor="contact-subject">
           Subject
         </label>
         <Select value={subject} onValueChange={setSubject}>
-          <SelectTrigger id="contact-subject" className="w-full mt-2 rounded-xl">
+          <SelectTrigger id="contact-subject" className="w-full border-input mt-2 rounded-xl">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -121,7 +130,7 @@ export function ContactForm() {
       </div>
 
       <div>
-        <label className="text-sm font-medium text-gray-700" htmlFor="contact-message">
+        <label className={LABEL_CLASS} htmlFor="contact-message">
           Message
         </label>
         <textarea
@@ -131,7 +140,7 @@ export function ContactForm() {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="How can we help you?"
-          className="flex min-h-[120px] w-full mt-2 rounded-xl border border-input bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+          className={TEXTAREA_CLASS}
         />
       </div>
 
@@ -144,9 +153,10 @@ export function ContactForm() {
       <button
         type="submit"
         disabled={status === "sending"}
-        className="inline-flex items-center justify-center gap-2 whitespace-nowrap w-full h-12 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-semibold shadow-lg shadow-purple-500/25 transition-all duration-300 hover:scale-[1.02] disabled:opacity-60"
+        className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-9 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-semibold px-8 py-6 rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105"
       >
         {status === "sending" ? "Sending…" : "Send Message"}
+        <Send className="ml-2 h-4 w-4" aria-hidden="true" />
       </button>
     </form>
   );

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 
 import { CourseCard, type CourseCardData } from "@/components/CourseCard";
 import {
@@ -120,6 +120,12 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
           shell provides the min-h-screen bg-gray-50 wrapper) */}
         <div className="max-w-7xl mx-auto px-4 -mt-6">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 flex flex-wrap items-center gap-4">
+            {/* Reference filter card (session 7): leads with the sliders icon
+                (hidden below sm) before the three selects. */}
+            <SlidersHorizontal
+              className="h-5 w-5 text-gray-400 hidden sm:block"
+              aria-hidden="true"
+            />
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger
                 className="w-[180px] rounded-xl border-gray-200"

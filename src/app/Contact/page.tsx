@@ -28,7 +28,7 @@ export default function ContactPage() {
           {/* Hero */}
           <div className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-12 px-4">
             <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">Get In Touch</h1>
+              <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Get In Touch</h1>
               <p className="mt-4 text-lg text-gray-400">
                 We&apos;d love to hear from you. Send us a message and we&apos;ll respond as soon as possible.
               </p>
@@ -52,12 +52,12 @@ export default function ContactPage() {
                     {item.href ? (
                       <a
                         href={item.href}
-                        className="text-sm text-gray-500 hover:text-purple-600 transition-colors"
+                        className="text-gray-500 hover:text-purple-600 transition-colors"
                       >
                         {item.value}
                       </a>
                     ) : (
-                      <p className="text-sm text-gray-500">{item.value}</p>
+                      <p className="text-gray-500">{item.value}</p>
                     )}
                   </div>
                 ))}

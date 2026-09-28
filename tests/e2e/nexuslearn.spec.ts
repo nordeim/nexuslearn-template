@@ -124,12 +124,15 @@ test.describe("landing page", () => {
     await expect(section.getByRole("button", { name: "Get Lifetime Access" })).toBeVisible();
   });
 
-  test("learning-path cards use the reference gray surface without borders", async ({ page }) => {
+  test("learning-path cards use the reference gray surface with the transparent border", async ({ page }) => {
     await page.goto("/");
     const section = page.locator("main section", { has: page.getByRole("heading", { name: "Structured Learning Paths" }) });
     const card = section.locator(".grid > div").first();
     await expect(card).toHaveClass(/bg-gray-50/);
-    await expect(card).not.toHaveClass(/border/);
+    // Session-7 audit: the reference cards carry the transparent border +
+    // hover:border-gray-100 pair (the session-3 borderless form has been
+    // replaced on the live app).
+    await expect(card).toHaveClass(/border border-transparent hover:border-gray-100/);
   });
 
   test("hero illustration is the reference flowing-lines SVG", async ({ page }) => {
@@ -220,13 +223,14 @@ test.describe("course detail", () => {
     await page.locator("main a[href*='CourseDetail']").first().click();
     await expect(page).toHaveURL(/CourseDetail\?id=/);
 
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Cloud Computing with AWS");
+    // Session-7 reorder: the first catalog course is the WebDev bootcamp.
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Complete Web Development Bootcamp 2026");
     await expect(page.getByRole("button", { name: "Enroll Now" })).toBeVisible();
-    await expect(page.getByText("$69.99").first()).toBeVisible();
-    await expect(page.getByText("$179.99").first()).toBeVisible();
+    await expect(page.getByText("$49.99").first()).toBeVisible();
+    await expect(page.getByText("$149.99").first()).toBeVisible();
 
     await expect(page.getByRole("heading", { name: "Course Curriculum" })).toBeVisible();
-    // Reference curriculum rows: "Lesson N: Module Content" (220 for the AWS course)
+    // Reference curriculum rows: "Lesson N: Module Content" (380 for the WebDev course)
     const lessons = page.getByText("Lesson 1: Module Content", { exact: true });
     await expect(lessons).toBeVisible();
     const lessonCount = await page.locator("main span.font-medium", { hasText: "Lesson " }).count();
@@ -234,7 +238,8 @@ test.describe("course detail", () => {
 
     // What You'll Learn = tags + level
     await expect(page.getByRole("heading", { name: "What You'll Learn" })).toBeVisible();
-    for (const topic of ["AWS", "Cloud", "DevOps", "Serverless", "Microservices", "Intermediate Level"]) {
+    // WebDev bootcamp tag list (seed) + the sidebar level row
+    for (const topic of ["HTML", "CSS", "JavaScript", "React", "Node.js", "MongoDB", "Beginner Level"]) {
       await expect(page.getByText(topic, { exact: true }).first()).toBeVisible();
     }
   });
@@ -424,7 +429,7 @@ test.describe("session-4 parity: page shells", () => {
 
 test.describe("session-4 parity: course detail About This Course", () => {
   test("ML course shows the expandable About This Course section", async ({ page }) => {
-    await page.goto("/CourseDetail?id=seed-3");
+    await page.goto("/CourseDetail?id=seed-6");
     await expect(page.getByRole("heading", { name: "About This Course" })).toBeVisible();
 
     // Long description, clamped to 6 lines
@@ -439,8 +444,8 @@ test.describe("session-4 parity: course detail About This Course", () => {
     await expect(page.locator("p.line-clamp-6")).toHaveCount(0);
   });
 
-  test("AWS course has no About This Course section (reference behavior)", async ({ page }) => {
-    await page.goto("/CourseDetail?id=seed-1");
+  test("courses without longDescription render no About This Course section (reference behavior)", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-2");
     await expect(page.getByRole("heading", { name: "About This Course" })).toHaveCount(0);
   });
 });
@@ -734,7 +739,9 @@ test.describe("session-5 parity: cards + nav + newsletter", () => {
   test("EQ course card eyebrow shows the reference short label", async ({ page }) => {
     await page.goto("/Courses");
     const eyebrows = page.locator("a[href*='CourseDetail'] p.text-purple-600");
-    await expect(eyebrows.nth(8)).toHaveText("Personal Dev");
+    // EQ (Emotional Intelligence & Mindfulness) is the 5th card in the
+    // reference display order (session-7 reorder).
+    await expect(eyebrows.nth(4)).toHaveText("Personal Dev");
     // The filter still offers the full category name
     await expect(page.getByRole("combobox").first()).toContainText("All Categories");
   });
@@ -796,7 +803,7 @@ test.describe("session-5 parity: residual class drift", () => {
 
 test.describe("session-6 parity: course detail level row + enroll button", () => {
   test("What You'll Learn card ends with the reference level row (Award icon + level)", async ({ page }) => {
-    await page.goto("/CourseDetail?id=seed-1");
+    await page.goto("/CourseDetail?id=seed-3");
     const card = page.locator("main .sticky.top-24");
     // The divider section under the tag checklist
     const divider = card.locator("div.mt-6.pt-6.border-t.border-gray-100");
@@ -955,5 +962,298 @@ test.describe("session-6 parity: landing + AI assistant drift", () => {
     const badge = page.locator("main .grid a").first().locator("span[data-slot='badge'], .absolute.top-3").first();
     await expect(badge).toHaveClass(/hover:bg-primary\/80/);
     await expect(badge).toHaveClass(/\bborder-0\b/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session 7 — parity pass: display order, category icons, featured header,
+// testimonials redesign, button bases, filter card, form controls, hero sizes.
+// Audit: docs/remediation-plan-session7.md (live re-audit, agent-browser).
+// ---------------------------------------------------------------------------
+test.describe("session-7 parity: reference display order", () => {
+  test("catalog lists courses in the reference 'Newest' order", async ({ page }) => {
+    await page.goto("/Courses");
+    await page.waitForSelector("main .grid a");
+    const titles = page.locator("main .grid a h3");
+    expect(await titles.count()).toBe(9);
+    expect(await titles.first().textContent()).toBe("Complete Web Development Bootcamp 2026");
+    const order = await titles.allTextContents();
+    expect(order).toEqual([
+      "Complete Web Development Bootcamp 2026",
+      "Data Science with Python & SQL",
+      "Cloud Computing with AWS",
+      "Business Strategy & Leadership",
+      "Emotional Intelligence & Mindfulness",
+      "Machine Learning & AI Masterclass",
+      "UI/UX Design Professional Certificate",
+      "Advanced Python Programming",
+      "Digital Marketing Strategy A-Z",
+    ]);
+  });
+
+  test("landing featured grid follows the reference featured subsequence", async ({ page }) => {
+    await page.goto("/");
+    const featured = page.locator("main section").nth(1); // Featured Courses
+    const titles = featured.locator(".grid a h3");
+    expect(await titles.allTextContents()).toEqual([
+      "Complete Web Development Bootcamp 2026",
+      "Business Strategy & Leadership",
+      "Machine Learning & AI Masterclass",
+      "UI/UX Design Professional Certificate",
+      "Advanced Python Programming",
+      "Digital Marketing Strategy A-Z",
+    ]);
+  });
+});
+
+test.describe("session-7 parity: category grid", () => {
+  test("category icons carry the reference dead-gradient classes (not text colors)", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("main section").first(); // Browse by Category
+    const icons = section.locator("div.grid a svg");
+    expect(await icons.count()).toBe(7);
+    // The reference ships bg-gradient + bg-clip-text classes (rendered near-black)
+    await expect(icons.first()).toHaveClass(/bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text/);
+    await expect(icons.nth(1)).toHaveClass(/from-cyan-500 to-cyan-600/);
+    await expect(icons.nth(2)).toHaveClass(/from-pink-500 to-pink-600/);
+    await expect(icons.nth(3)).toHaveClass(/from-purple-500 to-purple-600/);
+    await expect(icons.nth(4)).toHaveClass(/from-rose-500 to-rose-600/);
+    await expect(icons.nth(5)).toHaveClass(/from-emerald-500 to-emerald-600/);
+    await expect(icons.nth(6)).toHaveClass(/from-violet-500 to-violet-600/);
+    for (let i = 0; i < 7; i++) {
+      await expect(icons.nth(i)).not.toHaveClass(/text-blue-600|text-cyan-600|text-orange-600/);
+    }
+  });
+
+  test("Technology category uses the reference monitor icon", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("main section").first();
+    await expect(section.locator("svg.lucide-monitor")).toHaveCount(1);
+    await expect(section.locator("svg.lucide-cpu")).toHaveCount(0);
+  });
+
+  test("category tint wrappers use the reference palette", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("main section").first();
+    await expect(section.locator("div.bg-pink-500\\/10")).toHaveCount(1);
+    await expect(section.locator("div.bg-rose-500\\/10")).toHaveCount(1);
+    await expect(section.locator("div.bg-emerald-500\\/10")).toHaveCount(1);
+    await expect(section.locator("div.bg-violet-500\\/10")).toHaveCount(1);
+  });
+
+  test("category hover overlay has no rounded-2xl (reference class string)", async ({ page }) => {
+    await page.goto("/");
+    const overlay = page.locator("main section").first().locator("div.absolute.inset-0.bg-gradient-to-br").first();
+    await expect(overlay).not.toHaveClass(/rounded-2xl/);
+  });
+});
+
+test.describe("session-7 parity: featured header + learning paths + testimonials", () => {
+  test("featured section header is the reference flex row with the in-header CTA", async ({ page }) => {
+    await page.goto("/");
+    const featured = page.locator("main section").nth(1);
+    const container = featured.locator("div.max-w-7xl");
+    // Header row + grid only — no below-grid button row
+    expect(await container.locator("> div, > a").count()).toBe(2);
+    const header = container.locator("> div.flex.flex-col");
+    await expect(header).toHaveClass(/flex flex-col md:flex-row md:items-end md:justify-between mb-16/);
+    // Left-aligned title block (subtitle max-w-xl, not the centered max-w-2xl)
+    await expect(header.locator("p.mt-4.text-lg.text-gray-500.max-w-xl")).toHaveCount(1);
+    // The outline button lives in the header (a.mt-6.md:mt-0), not below the grid
+    const cta = header.locator("a.mt-6");
+    await expect(cta).toHaveCount(1);
+    const btn = cta.locator("button");
+    await expect(btn).toHaveClass(/border-gray-300/);
+    await expect(btn).toHaveClass(/hover:border-purple-500/);
+    await expect(btn).toHaveClass(/\[&_svg\]:size-4/);
+    await expect(featured.locator("div.text-center.mt-12")).toHaveCount(0);
+  });
+
+  test("learning path cards match the reference borders + per-path icons", async ({ page }) => {
+    await page.goto("/");
+    const paths = page.locator("main section").nth(2); // Structured Learning Paths
+    const cards = paths.locator("div.grid > div");
+    expect(await cards.count()).toBe(3);
+    for (let i = 0; i < 3; i++) {
+      await expect(cards.nth(i)).toHaveClass(/border border-transparent hover:border-gray-100/);
+    }
+    await expect(paths.locator("svg.lucide-trending-up")).toHaveCount(1);
+    await expect(paths.locator("svg.lucide-target")).toHaveCount(1);
+    await expect(paths.locator("div.inline-flex.p-3.bg-gradient-to-r.from-amber-500.to-orange-600")).toHaveCount(1);
+  });
+
+  test("testimonial cards use the reference design (rounded-3xl gray, h-10 quote)", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("main section").nth(5); // What Our Students Say
+    const cards = section.locator("div.grid > div");
+    expect(await cards.count()).toBe(3);
+    for (let i = 0; i < 3; i++) {
+      await expect(cards.nth(i)).toHaveClass(/relative bg-gray-50 rounded-3xl p-8/);
+      await expect(cards.nth(i)).toHaveClass(/hover:shadow-xl/);
+      await expect(cards.nth(i)).toHaveClass(/border border-transparent hover:border-gray-100/);
+    }
+    await expect(section.locator("svg.lucide-quote.h-10")).toHaveCount(3);
+    await expect(section.locator("svg.lucide-quote.h-8")).toHaveCount(0);
+    // Avatar row: no divider, name text-sm, role text-xs
+    const first = cards.first();
+    await expect(first.locator("div.flex.items-center.gap-3")).toHaveCount(1);
+    await expect(first.locator("div.flex.items-center.gap-3.pt-6")).toHaveCount(0);
+    await expect(first.locator("p.font-semibold.text-gray-900.text-sm")).toHaveCount(1);
+    await expect(first.locator("p.text-xs.text-gray-500")).toHaveCount(1);
+  });
+
+  test("testimonials follow the reference order (Sarah, Elena, Marcus)", async ({ page }) => {
+    await page.goto("/");
+    const section = page.locator("main section").nth(5);
+    const names = section.locator("div.grid > div p.font-semibold");
+    expect(await names.allTextContents()).toEqual(["Sarah Chen", "Elena Rodriguez", "Marcus Johnson"]);
+    // Elena's avatar is the reference photo
+    const elenaAvatar = section.locator("div.grid > div").nth(1).locator("img");
+    await expect(elenaAvatar).toHaveAttribute(
+      "src",
+      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80"
+    );
+  });
+});
+
+test.describe("session-7 parity: landing button bases", () => {
+  test("hero buttons carry the reference shadcn base", async ({ page }) => {
+    await page.goto("/");
+    const browse = page.getByRole("button", { name: "Browse Courses" });
+    await expect(browse).toHaveClass(/\[&_svg\]:pointer-events-none/);
+    await expect(browse).toHaveClass(/\[&_svg\]:size-4/);
+    await expect(browse).toHaveClass(/hover:bg-primary\/90/);
+    await expect(browse).toHaveClass(/disabled:opacity-50/);
+    const start = page.getByRole("button", { name: "Start Learning" });
+    await expect(start).toHaveClass(/\[&_svg\]:size-4/);
+    await expect(start).toHaveClass(/disabled:opacity-50/);
+  });
+
+  test("section CTA buttons carry the reference base (AI, instructor, pricing, paths)", async ({ page }) => {
+    await page.goto("/");
+    const ai = page.getByRole("button", { name: "Try AI Assistant" });
+    await expect(ai).toHaveClass(/hover:bg-primary\/90/);
+    await expect(ai).toHaveClass(/\[&_svg\]:size-4/);
+    const teach = page.getByRole("button", { name: "Start Teaching Today" });
+    await expect(teach).toHaveClass(/hover:bg-primary\/90/);
+    await expect(teach).toHaveClass(/disabled:opacity-50/);
+    const startPro = page.getByRole("button", { name: "Start Pro Trial" });
+    await expect(startPro).toHaveClass(/hover:bg-primary\/90/);
+    await expect(startPro).toHaveClass(/\[&_svg\]:size-4/);
+    const getStarted = page.getByRole("button", { name: "Get Started" });
+    await expect(getStarted).toHaveClass(/disabled:opacity-50/);
+    await expect(getStarted).toHaveClass(/\[&_svg\]:size-4/);
+    const path = page.getByRole("button", { name: "Start This Path" }).first();
+    await expect(path).toHaveClass(/\[&_svg\]:size-4/);
+    await expect(path).toHaveClass(/disabled:opacity-50/);
+  });
+});
+
+test.describe("session-7 parity: courses filter card + badge", () => {
+  test("filter card leads with the sliders icon and uses the old-style triggers", async ({ page }) => {
+    await page.goto("/Courses");
+    await page.waitForSelector("main .grid a");
+    const card = page.locator("main div.bg-white.rounded-2xl.shadow-lg");
+    await expect(card.locator("svg.lucide-sliders-horizontal")).toHaveCount(1);
+    await expect(card.locator("svg.lucide-sliders-horizontal")).toHaveClass(/h-5 w-5 text-gray-400 hidden sm:block/);
+    const triggers = card.locator("button");
+    expect(await triggers.count()).toBe(3);
+    for (let i = 0; i < 3; i++) {
+      await expect(triggers.nth(i)).toHaveClass(/ring-offset-background/);
+      await expect(triggers.nth(i)).toHaveClass(/\[&>span\]:line-clamp-1/);
+      await expect(triggers.nth(i)).not.toHaveClass(/data-\[slot=select-value\]/);
+    }
+    await expect(card.locator("svg.lucide-chevron-down.h-4")).toHaveCount(3);
+  });
+
+  test("level badge renders as the reference DIV with emerald Beginner", async ({ page }) => {
+    await page.goto("/Courses");
+    await page.waitForSelector("main .grid a");
+    const first = page.locator("main .grid a").first(); // WebDev — Beginner
+    const badge = first.locator("div.inline-flex.items-center.rounded-md.px-2\\.5");
+    await expect(badge).toHaveCount(1);
+    await expect(badge).toHaveClass(/bg-emerald-100 text-emerald-700/);
+    await expect(badge).toHaveClass(/hover:bg-primary\/80 absolute top-3 left-3/);
+    await expect(first.locator("span[data-slot='badge']")).toHaveCount(0);
+  });
+});
+
+test.describe("session-7 parity: route-level fixes", () => {
+  test("CourseDetail lessons stat uses the circle-play icon", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-1");
+    const statRow = page.locator("main span.flex.items-center.gap-2", { hasText: "380 lessons" });
+    await expect(statRow.locator("svg.lucide-circle-play")).toHaveCount(1);
+    await expect(statRow.locator("svg.lucide-book-open")).toHaveCount(0);
+  });
+
+  test("Pricing FAQ icon is the reference circle-help and the hero h1 base is text-3xl", async ({ page }) => {
+    await page.goto("/Pricing");
+    await expect(page.locator("svg[class*='lucide-circle-help']")).toHaveCount(4);
+    await expect(page.locator("svg[class*='lucide-circle-question-mark']")).toHaveCount(0);
+    await expect(page.locator("main h1")).toHaveClass(/^text-3xl md:text-5xl/);
+  });
+
+  test("Contact form controls match the reference (labels, textarea, send button)", async ({ page }) => {
+    await page.goto("/Contact");
+    const form = page.locator("main form");
+    await expect(form.locator("label").first()).toHaveClass(
+      /text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 font-medium/
+    );
+    await expect(form.locator("textarea")).toHaveClass(/min-h-\[60px\]/);
+    const send = form.getByRole("button", { name: "Send Message" });
+    await expect(send).toHaveClass(/px-8 py-6/);
+    await expect(send).toHaveClass(/hover:scale-105/);
+    await expect(send).toHaveClass(/hover:bg-primary\/90/);
+    await expect(send.locator("svg.lucide-send")).toHaveCount(1);
+    await expect(send.locator("svg.lucide-send")).toHaveClass(/ml-2 h-4 w-4/);
+    // Info card anchors: no text-sm on the value links
+    const email = page.locator("main a[href='mailto:hello@nexuslearn.com']");
+    await expect(email).toHaveClass(/^text-gray-500 hover:text-purple-600 transition-colors$/);
+  });
+
+  test("Contact hero h1 base is text-3xl", async ({ page }) => {
+    await page.goto("/Contact");
+    await expect(page.locator("main h1")).toHaveClass(/^text-3xl md:text-5xl/);
+  });
+
+  test("About stats grid is bare inside the max-w-7xl wrapper with font-medium labels", async ({ page }) => {
+    await page.goto("/About");
+    const grid = page.locator("main div.grid.grid-cols-2");
+    await expect(grid).toHaveClass(/^grid grid-cols-2 md:grid-cols-4 gap-8$/);
+    await expect(grid.locator("..")).toHaveClass(/max-w-7xl mx-auto/);
+    await expect(grid.locator("p.mt-2.text-gray-500.font-medium").first()).toBeVisible();
+    await expect(grid.locator("p.mt-2.text-sm.text-gray-500")).toHaveCount(0);
+  });
+
+  test("BecomeInstructor hero matches the reference (h1, gradient, video icon)", async ({ page }) => {
+    await page.goto("/BecomeInstructor");
+    const h1 = page.locator("main h1");
+    await expect(h1).toHaveClass(/^text-3xl md:text-5xl/);
+    await expect(h1.locator("span.bg-gradient-to-r")).toHaveClass(/from-cyan-400 to-purple-500/);
+    await expect(h1.locator("span.bg-gradient-to-r")).not.toHaveClass(/via-purple-500/);
+    await expect(page.locator("main svg.lucide-video")).toHaveCount(1);
+    await expect(page.locator("main svg.lucide-clapperboard")).toHaveCount(0);
+    const subtitle = page.locator("main p.mt-6.text-lg.text-gray-400").first();
+    await expect(subtitle).not.toHaveClass(/leading-relaxed/);
+    const benefitH3 = page.locator("main h3.font-bold.text-gray-900.text-lg").first();
+    await expect(benefitH3).toBeVisible();
+  });
+
+  test("AIAssistant send button + icon match the reference", async ({ page }) => {
+    await page.goto("/AIAssistant");
+    const send = page.locator("main form button[type='submit'], main button[aria-label='Send message']");
+    await expect(send).toHaveClass(/hover:bg-primary\/90/);
+    await expect(send).toHaveClass(/\[&_svg\]:size-4/);
+    await expect(send).not.toHaveClass(/disabled:hover:scale-100/);
+    await expect(send.locator("svg.lucide-send")).toHaveClass(/h-5 w-5$/);
+  });
+
+  test("login Google icon is wrapped in the reference -ml-4 div", async ({ page }) => {
+    await page.goto("/login");
+    const btn = page.getByRole("button", { name: "Continue with Google" });
+    const wrapper = btn.locator("div.-ml-4");
+    await expect(wrapper).toHaveCount(1);
+    await expect(wrapper).toHaveClass(/transition-transform duration-200/);
+    await expect(wrapper.locator("svg")).toHaveClass(/^h-5 w-5$/);
   });
 });

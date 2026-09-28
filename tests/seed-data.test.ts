@@ -71,6 +71,43 @@ describe("seed imagery parity (session-4 audit)", () => {
   });
 });
 
+describe("seed display order (session-7 audit: reference 'Newest' order)", () => {
+  // The live app's default /Courses order (stable across reloads) drives both the
+  // catalog's "Newest" listing and the landing featured grid (featured = the
+  // subsequence with featured=true: WebDev, Business, ML, UI/UX, AdvancedPython,
+  // DigitalMarketing).
+  it("orders the catalog like the reference display order", () => {
+    expect(COURSES.map((c) => c.title)).toEqual([
+      "Complete Web Development Bootcamp 2026",
+      "Data Science with Python & SQL",
+      "Cloud Computing with AWS",
+      "Business Strategy & Leadership",
+      "Emotional Intelligence & Mindfulness",
+      "Machine Learning & AI Masterclass",
+      "UI/UX Design Professional Certificate",
+      "Advanced Python Programming",
+      "Digital Marketing Strategy A-Z",
+    ]);
+  });
+
+  it("numbers sortOrder 1-9 following the array order (id sort == display sort)", () => {
+    COURSES.forEach((course, i) => {
+      expect(course.sortOrder).toBe(i + 1);
+    });
+  });
+
+  it("keeps the reference featured subsequence (landing featured grid order)", () => {
+    expect(COURSES.filter((c) => c.featured).map((c) => c.title)).toEqual([
+      "Complete Web Development Bootcamp 2026",
+      "Business Strategy & Leadership",
+      "Machine Learning & AI Masterclass",
+      "UI/UX Design Professional Certificate",
+      "Advanced Python Programming",
+      "Digital Marketing Strategy A-Z",
+    ]);
+  });
+});
+
 describe("long descriptions (reference About This Course data)", () => {
   it("carries the 4 reference long descriptions", () => {
     const byTitle = (t: string) => COURSES.find((c) => c.title === t);
