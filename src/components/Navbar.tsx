@@ -37,6 +37,15 @@ const NAV_LINKS = [
  *    it was opened on), so navigation closes it without an effect
  *  - Escape closes; border only renders while open (a closed 0-height panel
  *    must not leave a 1px artifact under the transparent hero nav)
+ *
+ * Session-9 notes (Tailwind v4 space-y engine trap): the reference panel
+ * lists the Dashboard CTA as `block mt-3`, but under the reference's v3
+ * engine the space-y-1 margin-top (specificity 0,2,0) OVERRIDES the mt-3,
+ * rendering a 4px gap. Tailwind v4's engine is
+ * `:where(.space-y-1 > :not(:last-child)) { margin-block-end }` — :where()
+ * has ZERO specificity, so a child's mt-3 WINS (12px gap, +8px panel). The
+ * clone therefore ships the CTA WITHOUT mt-3 (engine-variance class-form
+ * fix — same precedent as the hero gradient's sRGB arbitrary form).
  */
 export function Navbar() {
   const pathname = usePathname();
@@ -107,8 +116,9 @@ export function Navbar() {
             </div>
             <span
               className={cn(
-                "text-lg font-bold transition-colors duration-300",
-                overHero ? "text-white" : "text-gray-900"
+                "text-lg font-bold",
+                overHero ? "text-white" : "text-gray-900",
+                "transition-colors duration-300"
               )}
             >
               NexusLearn
@@ -133,13 +143,15 @@ export function Navbar() {
 
           <div className="hidden md:flex items-center gap-3">
             <Link href="/Dashboard">
-              <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-medium rounded-xl px-6 py-2.5 shadow-lg shadow-purple-500/20 transition-all duration-300 hover:shadow-purple-500/30 hover:scale-105">
+              <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-9 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-medium rounded-xl px-6 py-2.5 shadow-lg shadow-purple-500/20 transition-all duration-300 hover:shadow-purple-500/30 hover:scale-105">
                 My Dashboard
               </button>
             </Link>
           </div>
 
-          {/* Mobile trigger — real button, ARIA wired, symmetric md:hidden */}
+          {/* Mobile trigger — real button, ARIA wired (a11y hardening the
+              reference does not ship), symmetric md:hidden, and the BARE
+              reference class string (no hover/transition utilities). */}
           <button
             type="button"
             aria-expanded={open}
@@ -147,8 +159,8 @@ export function Navbar() {
             aria-label="Toggle navigation menu"
             onClick={() => setOpenFor((v) => (v ? null : pathname))}
             className={cn(
-              "md:hidden p-2 rounded-lg transition-colors",
-              overHero ? "text-white/80 hover:text-white" : "text-gray-700 hover:text-gray-900"
+              "md:hidden p-2 rounded-lg",
+              overHero ? "text-white/80" : "text-gray-700"
             )}
           >
             {open ? (
@@ -187,8 +199,12 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <Link className="block mt-3" href="/Dashboard" tabIndex={open ? 0 : -1}>
-              <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring shadow h-9 px-4 w-full bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-medium rounded-xl py-3">
+            {/* The reference ships `block mt-3`, but its v3 space-y engine
+                overrides the mt-3 (4px gap). v4's :where() engine would let
+                the mt-3 win (12px gap, +8px panel) — so the clone omits it.
+                See the session-9 notes in the component docblock. */}
+            <Link className="block" href="/Dashboard" tabIndex={open ? 0 : -1}>
+              <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 shadow hover:bg-primary/90 h-9 px-4 w-full bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-medium rounded-xl py-3">
                 My Dashboard
               </button>
             </Link>

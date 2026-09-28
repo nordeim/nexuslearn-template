@@ -1,9 +1,9 @@
 ---
 name: nexuslearn-template
-description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from an 8-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons), the three Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients), the hardened mobile navigation pattern, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference page-shell pattern (main.pt-20 + gray wrapper under the fixed navbar), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing, 2-col AI section, dark popular pricing card, FAQ stack, expandable About This Course, light-slate 404, in-page CourseDetail not-found, simulated-delivery signup + verify), the head-metadata parity layer (root description, OG/Twitter cards, canonicals, logo favicon, manifest, per-route OG identity via a routeMetadata() helper), the CourseDetail sidebar level row + tags-only What-You'll-Learn list, the idempotent seed (Prisma update skips undefined keys — restate optional fields as null), the pricing -mt-8 overlap, the h-9+py-6 input collapse pattern, and the full test pyramid (31 Vitest unit + 122 Playwright e2e incl. 6 mobile-nav guards)."
-version: 2.6.0
+description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from a 9-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons), the four Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients, and the space-y/space-x selector rewrite — v4's :where() zero-specificity engine lets a child's mt-3 win where v3 overrode it), the hardened mobile navigation pattern, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference page-shell pattern (main.pt-20 + gray wrapper under the fixed navbar), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing, 2-col AI section, dark popular pricing card, FAQ stack, expandable About This Course, light-slate 404, in-page CourseDetail not-found, simulated-delivery signup + verify), the head-metadata parity layer (root description, OG/Twitter cards, canonicals, logo favicon, manifest, per-route OG identity via a routeMetadata() helper), the CourseDetail sidebar level row + tags-only What-You'll-Learn list, the idempotent seed (Prisma update skips undefined keys — restate optional fields as null), the pricing -mt-8 overlap, the h-9+py-6 input collapse pattern, the chrome-subtree audit pattern (the Navbar lives outside <main> — a main*-scoped class diff never catches its drift), and the full test pyramid (31 Vitest unit + 128 Playwright e2e incl. 10 mobile-nav guards)."
+version: 2.7.0
 last_updated: "2026-09-28"
-project_state: "153 tests green (31 unit + 122 e2e); lint/typecheck/build clean; parity verified vs live reference (session-8 pass: seed idempotency — prisma/seed.ts restates longDescription ?? null so re-seeds clear removed optional fields, killing the stale phantom About-sections from the session-7 reorder; What-You'll-Learn check list re-pinned to tags-only with the level once in the Award divider row; Dashboard class parity — bare stats grid, lucide stat icons, empty-state button bases; sessions 1-7 previously closed shells, content, head, OG identity, login state machine, class-verbatim, display-order and section-design parity)"
+project_state: "159 tests green (31 unit + 128 e2e); lint/typecheck/build clean; parity verified vs live reference (session-9 pass: the Tailwind v4 space-y engine trap — the mobile nav panel's CTA `block mt-3` resurrected under v4's :where() zero-specificity engine into a 12px gap + 8px taller panel where the reference's v3 engine rendered 4px/405px; the clone ships the CTA without the mt-3, byte-exact; navbar chrome parity — the My Dashboard buttons re-pinned with the shadcn base trio + hover:bg-primary/90, the mobile trigger aligned to the bare reference strings, the logo span byte order, all found by the NEW chrome-subtree audit since the Navbar lives outside <main>; sessions 1-8 previously closed shells, content, head, OG identity, login state machine, class-verbatim, display-order, section-design and seed-idempotency parity)"
 ---
 
 # NexusLearn — Complete Engineering Skill
@@ -101,18 +101,22 @@ excluded from tsconfig/eslint/vitest/playwright.
 (`auth.test.ts` 5, `course-tags.test.ts` 3, `course-eyebrow.test.ts` 3,
 `seed-data.test.ts` 15 — incl. the reference imagery/avatar map,
 lesson-count pins, display-order pins, the longDescription presence matrix
-and the metadata helper) + 122 e2e specs across 2 files
-(`mobile-navigation.spec.ts` 6, `nexuslearn.spec.ts` 116 — incl. the 9
+and the metadata helper) + 128 e2e specs across 2 files
+(`mobile-navigation.spec.ts` 10, `nexuslearn.spec.ts` 118 — incl. the 9
 session-3 parity specs, the 16 session-4 specs (page shells, About-Course,
 AI chat shell, 404, robots/sitemap), the 18 session-5 specs (head
 metadata incl. manifest, the login 5-view state machine (reset, reset-sent,
 signup, 6-digit verify, duplicate-email + password-mismatch errors), the
 in-place newsletter success state, the CourseDetail not-found state, the EQ
 eyebrow short label, Home-active-on-/ nav state and the BI/Pricing/About
-class parity pins), the session-6/7 blocks and the 15 session-8 specs (the
+class parity pins), the session-6/7 blocks, the 15 session-8 specs (the
 About-presence matrix across all 9 courses — the seed-idempotency guard,
 the tags-only WYL list + single divider level row, and the Dashboard class
-parity: bare stats grid, lucide stat icons, empty-state button bases).
+parity: bare stats grid, lucide stat icons, empty-state button bases) and
+the 6 session-9 specs (the Tailwind v4 space-y engine trap — the mobile
+panel CTA's 4px reference gap + the 405px open panel + the panel button
+base; the bare trigger string on both nav states; the desktop My Dashboard
+button base trio; the logo span byte order).
 
 ---
 

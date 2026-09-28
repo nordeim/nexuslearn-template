@@ -82,3 +82,64 @@ test.describe("mobile navigation", () => {
     await expect(panel.getByRole("link", { name: "Pricing", exact: true })).toBeVisible();
   });
 });
+
+test.describe("session-9 parity: the Tailwind v4 space-y engine trap", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+  });
+
+  // Tailwind v4 rewrote the space-y-* engine: v3 shipped
+  // `.space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top }`
+  // (specificity 0,2,0 — it OVERRIDES a child's own .mt-3), while v4 ships
+  // `:where(.space-y-1 > :not(:last-child)) { margin-block-end }` (zero
+  // specificity — the child's .mt-3 WINS). The reference panel lists the CTA
+  // link as `block mt-3` but renders a 4px gap (the v3 engine wins); a naive
+  // v4 port renders 12px and an 8px taller panel. The clone therefore ships
+  // the CTA WITHOUT mt-3 (an engine-variance class-form fix, same precedent
+  // as the hero gradient) and these specs pin the reference layout.
+  test("panel CTA renders the reference 4px space-y gap (no mt-3 resurrection)", async ({ page }) => {
+    const trigger = page.getByRole("button", { name: "Toggle navigation menu" });
+    await trigger.tap();
+    const panel = page.locator("nav div.md\\:hidden.bg-white");
+
+    // The CTA link is the LAST child of the px-4 py-4 space-y-1 list: no
+    // engine margin lands on it, and it must not carry a resurrected mt-3.
+    const cta = panel.getByRole("link", { name: "My Dashboard" });
+    await expect(cta).toHaveCSS("margin-top", "0px");
+    // The gap is carried by the previous sibling's margin-block-end (4px).
+    const contact = panel.getByRole("link", { name: "Contact", exact: true });
+    await expect(contact).toHaveCSS("margin-bottom", "4px");
+  });
+
+  test("open panel height matches the reference 405px", async ({ page }) => {
+    const trigger = page.getByRole("button", { name: "Toggle navigation menu" });
+    await trigger.tap();
+    const panel = page.locator("nav div.md\\:hidden.bg-white");
+    // Live reference: 405px (7 links x 44px + 4px gaps + the 36px CTA + the
+    // py-4 padding + 1px border-t). The pre-fix v4 clone rendered 413px.
+    await expect(panel).toHaveCSS("height", "405px");
+  });
+
+  test("panel My Dashboard button carries transition-colors + the base trio", async ({ page }) => {
+    const trigger = page.getByRole("button", { name: "Toggle navigation menu" });
+    await trigger.tap();
+    const panel = page.locator("nav div.md\\:hidden.bg-white");
+    const cta = panel.getByRole("button", { name: "My Dashboard" });
+    await expect(cta).toHaveClass(/transition-colors/);
+    await expect(cta).toHaveClass(/disabled:pointer-events-none/);
+    await expect(cta).toHaveClass(/disabled:opacity-50/);
+    await expect(cta).toHaveClass(/\[&_svg\]:pointer-events-none/);
+    await expect(cta).toHaveClass(/\[&_svg\]:size-4/);
+    await expect(cta).toHaveClass(/\[&_svg\]:shrink-0/);
+    await expect(cta).toHaveClass(/hover:bg-primary\/90/);
+  });
+
+  test("mobile trigger is the bare reference string (no hover/transition classes)", async ({ page }) => {
+    // The trigger keeps its ARIA wiring (a11y hardening) but must not carry
+    // the transition/hover utilities the reference does not ship.
+    const trigger = page.getByRole("button", { name: "Toggle navigation menu" });
+    await expect(trigger).toHaveClass(/^md:hidden p-2 rounded-lg text-white\/80$/);
+    await page.goto("/Courses");
+    await expect(trigger).toHaveClass(/^md:hidden p-2 rounded-lg text-gray-700$/);
+  });
+});

@@ -221,3 +221,43 @@ Your text correctly warns that certain legacy config options are outright unsupp
 
 #### Conclusion
 The text you provided is a meticulously researched and factually sound summary of Tailwind CSS v4's migration path. The quotes and links provided align perfectly with the official documentation and verified community discussions.
+
+---
+
+## Appendix — Project Trap Log (bugs found in THIS codebase)
+
+Three engine-level v3→v4 differences were found and fixed during the build (see
+`AGENTS.md` gotchas + `Project_Architecture_Document.md` ADR-004/005 and §4.4):
+
+1. **Bare-HSL transparent theme** — under `@theme inline`, `--background: 0 0% 100%`
+   (a bare triplet) silently resolves to *transparent*; theme vars must be full
+   `hsl(…)` color values.
+2. **oklch palette drift** — v4's default palette drifts 1–3 sRGB units per channel
+   from the v3 hexes; the v3-era palette is pinned in `@theme` for byte-identical
+   computed colors.
+3. **in-oklab gradient interpolation** — v4 interpolates `bg-gradient-to-*` in oklab;
+   the hero gradient ships the sRGB-equivalent arbitrary `bg-[linear-gradient(…)]`
+   form to keep the computed gradient identical.
+
+**4. The space-y/space-x selector rewrite (session 9)** — the newest find, and the
+first one that changes *layout* rather than color:
+
+- **v3 (the reference app's compiled CSS):**
+  `.space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top: calc(.25rem * …) }`
+  — the margin lands on subsequent siblings and the selector's specificity (0,2,0)
+  **overrides a child's own `.mt-3`** (0,1,0).
+- **v4 (this codebase):**
+  `:where(.space-y-1 > :not(:last-child)) { margin-block-end: calc(var(--spacing) * …) }`
+  — the margin moves to margin-bottom-of-all-but-last-children and the `:where()`
+  wrapper contributes **zero specificity**, so a child's `.mt-3` **wins**.
+
+Consequences for a v3→v4 port with byte-identical class attributes: (a) the
+margin-side swap is visually equivalent *when no child carries explicit margin
+utilities* (a computed-margin walk of every `space-*` container on every route
+confirmed this app has exactly one violation), but (b) any `space-y-*` container
+with an explicit `mt-*`/`mb-*` child renders **different gaps and a different total
+height**. The one case: the mobile nav panel's Dashboard CTA (`block mt-3`) — the
+reference's v3 engine overrides the `mt-3` to a 4px space-y gap (405px panel),
+while v4's engine resurrects it into a 12px gap (413px panel). Fix: ship the CTA
+without the `mt-3` (an engine-variance class-form fix, the same precedent as trap 3),
+pinned by the session-9 e2e specs (`tests/e2e/mobile-navigation.spec.ts`).

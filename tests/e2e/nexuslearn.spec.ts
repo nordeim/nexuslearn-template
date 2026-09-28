@@ -1356,3 +1356,30 @@ test.describe("session-8 parity: Dashboard class-level parity", () => {
     await expect(cta).toHaveClass(/hover:bg-primary\/90/);
   });
 });
+
+test.describe("session-9 parity: navbar chrome (button bases + the bare trigger)", () => {
+  // The Navbar renders outside <main> (root layout), so the session-2..8
+  // class-set audits (main * only) never covered it. This block pins today's
+  // reference chrome: the live app's navbar buttons now carry the shadcn base
+  // trio + hover:bg-primary/90. (The mobile trigger + panel specs live in
+  // mobile-navigation.spec.ts at the mobile viewport.)
+  test("desktop My Dashboard button carries the shadcn base trio + hover:bg-primary/90", async ({ page }) => {
+    await page.goto("/");
+    // Scoped to the desktop CTA row — the mobile panel's copy is pinned in
+    // mobile-navigation.spec.ts at the mobile viewport.
+    const btn = page.locator("nav div.hidden.md\\:flex button", { hasText: "My Dashboard" }).first();
+    await expect(btn).toBeVisible();
+    await expect(btn).toHaveClass(/disabled:pointer-events-none/);
+    await expect(btn).toHaveClass(/disabled:opacity-50/);
+    await expect(btn).toHaveClass(/\[&_svg\]:pointer-events-none/);
+    await expect(btn).toHaveClass(/\[&_svg\]:size-4/);
+    await expect(btn).toHaveClass(/\[&_svg\]:shrink-0/);
+    await expect(btn).toHaveClass(/hover:bg-primary\/90/);
+  });
+
+  test("logo span matches the reference byte order", async ({ page }) => {
+    await page.goto("/");
+    const span = page.locator("nav span.text-lg");
+    await expect(span).toHaveClass(/^text-lg font-bold text-white transition-colors duration-300$/);
+  });
+});
