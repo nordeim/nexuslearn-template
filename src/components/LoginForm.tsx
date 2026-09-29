@@ -220,6 +220,15 @@ export function LoginForm() {
         </div>
 
         <div className="w-full">
+          {/* Session 13: the reference nests ONLY the Google button inside the
+              div.space-y-3; the OR divider and the form are its SIBLINGS inside
+              this div.w-full (each drives its own margins — the OR divider's
+              my-24px margins collapse against the neighbors in the block
+              layout, rendering the reference 24px gaps). The previous nesting
+              (everything inside space-y-3) rendered the same 24px gaps only by
+              accident of margin collapse + v4's :where() space-y engine — a
+              latent trap (any child margin < 12px would drift) and a DOM
+              structure drift. */}
           <div className="space-y-3">
             <button
               type="button"
@@ -250,10 +259,11 @@ export function LoginForm() {
               </div>
               <span>Continue with Google</span>
             </button>
+          </div>
 
-            {/* The reference divider renders "OR" via text-transform on
-                the label wrapper, with the shadcn Separator rule */}
-            <div className="relative my-6">
+          {/* The reference divider renders "OR" via text-transform on
+              the label wrapper, with the shadcn Separator rule */}
+          <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div
                   data-orientation="horizontal"
@@ -340,7 +350,6 @@ export function LoginForm() {
                 </div>
               </div>
             </form>
-          </div>
         </div>
       </>
     );

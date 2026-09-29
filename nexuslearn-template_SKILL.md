@@ -1,9 +1,9 @@
 ---
 name: nexuslearn-template
-description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from a 12-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons + normalized text-content diffs + per-view state diffs + computed box-shadow/border-radius sweeps + hover-state computed-style diffs), the FIVE Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients, the space-y/space-x selector rewrite — v4's :where() zero-specificity engine lets a child's mt-3 win where v3 overrode it — and the shadow-scale shift: v4 renamed v3's shadow-sm to shadow-xs and moved shadow-sm up to v3's bare-shadow geometry, so byte-identical shadow-sm classes render one notch heavier; pin --shadow-sm in @theme inline), the hardened mobile navigation pattern, the hover-audit methodology rules (v4 gates hover: variants behind @media (hover: hover) — touch-emulating headless browsers produce false parity failures; v4 renders translate-y/scale/rotate via the standalone CSS properties, not transform: matrix — read the right property per stack), the Next 16 allowedDevOrigins dev-hydration trap, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference page-shell pattern (main.pt-20 + gray wrapper under the fixed navbar), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing WITH its hero-state navbar, 2-col AI section, dark popular pricing card, FAQ stack, expandable About This Course, light-slate 404, in-page CourseDetail not-found, simulated-delivery signup + verify, the login card's 5-view state machine owning the WHOLE card interior), the head-metadata parity layer (root description, OG/Twitter cards, canonicals, logo favicon, manifest, per-route OG identity via a routeMetadata() helper), the CourseDetail sidebar level row + tags-only What-You'll-Learn list, the idempotent seed (Prisma update skips undefined keys — restate optional fields as null), the pricing -mt-8 overlap, the h-9+py-6 input collapse pattern, the chrome-subtree audit pattern (the Navbar lives outside <main> — a main*-scoped class diff never catches its drift), the route-STATE audit pattern (/Home renders the landing CONTENT but its navbar state escaped every audit that only checked content + height), the synced-viewport audit rule (set BOTH browser sessions' viewports in the same command — a live@1920 vs clone@375 comparison produces false 4-digit px drifts), the text-content audit surface (normalized innerText diffs catch copy + glyph drift — U+201C vs U+0022 — that height and class sweeps structurally cannot), and the full test pyramid (31 Vitest unit + 147 Playwright e2e incl. 12 mobile-nav guards)."
-version: 3.0.0
+description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from a 13-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons + normalized text-content diffs + per-view state diffs + computed box-shadow/border-radius sweeps + hover-state computed-style diffs + focus-ring parity sweeps + scroll-behavior/scroll-reveal comparisons), the FIVE Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients, the space-y/space-x selector rewrite — v4's :where() zero-specificity engine lets a child's mt-3 win where v3 overrode it — and the shadow-scale shift: v4 renamed v3's shadow-sm to shadow-xs and moved shadow-sm up to v3's bare-shadow geometry, so byte-identical shadow-sm classes render one notch heavier; pin --shadow-sm in @theme inline), the hardened mobile navigation pattern, the hover-audit methodology rules (v4 gates hover: variants behind @media (hover: hover) — touch-emulating headless browsers produce false parity failures; v4 renders translate-y/scale/rotate via the standalone CSS properties, not transform: matrix — read the right property per stack), the runtime-cascade pin pattern (the reference's Base44 runtime injects a page-level utility sheet AFTER its static build — cascade-ORDER variances flip utility winners with byte-identical classes; the third structural blind spot after token values and DOM nesting; fix with an UNLAYERED rule that beats every @layer rule), the focus-audit methodology (UA-default outline: auto computes dynamic contrast-adaptive values — never probe it for parity; transition-all elements render rings mid-transition — wait 2x the duration; v4's ring composition prefixes empty zero-alpha slots — full-string reads required), the universal scroll-behavior pin (the reference's runtime ships * { scroll-behavior: smooth } — pin the universal rule, not just html), the Next 16 allowedDevOrigins dev-hydration trap, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference page-shell pattern (main.pt-20 + gray wrapper under the fixed navbar), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing WITH its hero-state navbar, 2-col AI section, dark popular pricing card, FAQ stack, expandable About This Course, light-slate 404, in-page CourseDetail not-found, simulated-delivery signup + verify, the login card's 5-view state machine owning the WHOLE card interior), the head-metadata parity layer (root description, OG/Twitter cards, canonicals, logo favicon, manifest, per-route OG identity via a routeMetadata() helper), the CourseDetail sidebar level row + tags-only What-You'll-Learn list, the idempotent seed (Prisma update skips undefined keys — restate optional fields as null), the pricing -mt-8 overlap, the h-9+py-6 input collapse pattern, the chrome-subtree audit pattern (the Navbar lives outside <main> — a main*-scoped class diff never catches its drift), the route-STATE audit pattern (/Home renders the landing CONTENT but its navbar state escaped every audit that only checked content + height), the synced-viewport audit rule (set BOTH browser sessions' viewports in the same command — a live@1920 vs clone@375 comparison produces false 4-digit px drifts), the text-content audit surface (normalized innerText diffs catch copy + glyph drift — U+201C vs U+0022 — that height and class sweeps structurally cannot), and the full test pyramid (31 Vitest unit + 155 Playwright e2e incl. 12 mobile-nav guards)."
+version: 3.1.0
 last_updated: "2026-09-29"
-project_state: "178 tests green (31 unit + 147 e2e); lint/typecheck/build clean; parity verified vs live reference (session-12 pass: the Tailwind v4 shadow-scale shift fixed — v4 moved shadow-sm up to v3's bare-shadow geometry, one notch heavier across 21 usages + every hover:shadow-sm; the --shadow-sm token pin in globals.css @theme inline restores the v3 value with byte-identical classes, pinned by computed box-shadow specs + md/lg/xl/2xl GUARD specs; PLUS the computed box-shadow/border-radius sweep and the hover-state computed-style diff cleared every other surface — prefers-reduced-motion, AI-chat streaming, rounded-sm, the CourseDetail price card + lesson rows all verified at parity; sessions 1-11 previously closed shells, content, head, OG identity, login state machine, class-verbatim, display-order, section-design, seed-idempotency, space-y-engine, navbar-chrome, route-state-chrome, copy + glyph and component-state parity)"
+project_state: "186 tests green (31 unit + 155 e2e); lint/typecheck/build clean; parity verified vs live reference (session-13 pass: the login inputs' keyboard-focus ring cascade flip fixed — the reference's Base44 runtime re-asserts focus:ring-slate-400 after its static build so slate-400 wins the --tw-ring-color cascade on keyboard focus; restored by the UNLAYERED cascade pin in globals.css with GUARD specs proving every other control keeps the --ring ring; PLUS the signin-view DOM nesting restructured to the reference form — div.w-full > [space-y-3 (Google ONLY), OR divider, form] — closing a latent v4 space-y trap that margin collapse had hidden; PLUS the universal * { scroll-behavior: smooth } pin; sessions 1-12 previously closed shells, content, head, OG identity, login state machine, class-verbatim, display-order, section-design, seed-idempotency, space-y-engine, navbar-chrome, route-state-chrome, copy + glyph, component-state and computed-shadow parity)"
 ---
 
 # NexusLearn — Complete Engineering Skill
@@ -101,8 +101,8 @@ excluded from tsconfig/eslint/vitest/playwright.
 (`auth.test.ts` 5, `course-tags.test.ts` 3, `course-eyebrow.test.ts` 3,
 `seed-data.test.ts` 15 — incl. the reference imagery/avatar map,
 lesson-count pins, display-order pins, the longDescription presence matrix
-and the metadata helper) + 147 e2e specs across 2 files
-(`mobile-navigation.spec.ts` 12, `nexuslearn.spec.ts` 135 — incl. the 9
+and the metadata helper) + 155 e2e specs across 2 files
+(`mobile-navigation.spec.ts` 12, `nexuslearn.spec.ts` 143 — incl. the 9
 session-3 parity specs, the 16 session-4 specs (page shells, About-Course,
 AI chat shell, 404, robots/sitemap), the 18 session-5 specs (head
 metadata incl. manifest, the login 5-view state machine (reset, reset-sent,
@@ -127,7 +127,14 @@ restored on the round trip back to sign-in) and the 6 session-12 specs
 (the Tailwind v4 shadow-scale shift — COMPUTED box-shadow pins for the
 white navbar, the login Sign in button, the hero secondary CTA and the
 lesson-row hover at the v3 `0 1px 2px/0.05` geometry, plus the md/lg/xl/2xl
-GUARD specs proving the rest of the scale was never shifted).
+GUARD specs proving the rest of the scale was never shifted) and the 8
+session-13 specs (the login focus-ring cascade pin — the signin/signup/
+reset inputs' keyboard-focus ring reads slate-400 with GUARD specs proving
+the /Contact input + the Sign in button keep the `--ring` near-black; the
+signin-view reference nesting — the OR divider + form are the space-y-3's
+siblings inside the `div.w-full`, the space-y-3 wraps ONLY the Google
+button, the 24px gaps pinned; the universal scroll-behavior — body + main
+sections compute smooth).
 
 ---
 
@@ -241,6 +248,45 @@ Pinned by the session-12 specs (computed box-shadow assertions with v4's
 empty composition slots stripped, plus GUARD specs on shadow-lg/2xl). When
 diffing computed shadows, split components parens-aware and drop the
 `rgba(0, 0, 0, 0) 0px 0px 0px 0px` slots v4's var-composition emits.
+
+### 4.4c The runtime-cascade pin — cascade-ORDER variances (session 13)
+
+The reference app (Tailwind v3 + the Base44 runtime) injects a page-level
+utility `<style>` sheet AFTER its static build. On `/login` that runtime
+sheet re-asserts `.focus:ring-slate-400:focus` at a later cascade position,
+which wins `--tw-ring-color` over the static
+`.focus-visible:ring-ring:focus-visible` whenever BOTH pseudos match
+(keyboard focus — the norm for text inputs): the reference's login inputs
+render a SLATE-400 focus ring, not the `--ring` near-black. A single
+compiled v4 sheet emits the focus-visible variant later (alphabetical
+variant order), so the winner flips on the clone. **This is the third
+structural blind spot with byte-identical classes** — after the shadow-scale
+shift (token VALUES, session 12) and DOM nesting (session 13): class diffs,
+text diffs, height sweeps and computed-shadow buckets are ALL blind to it.
+Only a per-pseudo computed-property probe (`--tw-ring-color` under real
+focus) can see it. The fix is the UNLAYERED rule (unlayered beats every
+`@layer` rule in the cascade — the cascade-layers spec does the work):
+
+```css
+/* globals.css, AFTER the @layer blocks */
+.focus\:ring-slate-400:focus {
+  --tw-ring-color: var(--color-slate-400);
+}
+```
+
+The selector matches ONLY the login inputs' class strings (the three CLS
+constants in `LoginForm.tsx` are the only `focus:ring-slate-400` usages) —
+every other control keeps the `--ring` ring, pinned by GUARD specs.
+
+Focus-audit methodology (same session): (a) the UA-default `outline: auto`
+computes DYNAMIC values (contrast-adaptive colors, animation-dependent
+widths/alphas) that differ run-to-run — never probe it for parity; read the
+site-CSS-controlled properties (`--tw-ring-*`, explicit outlines). (b)
+Elements carrying `transition-all` render their focus ring MID-TRANSITION
+on an immediate computed read (the ring slots read zero-alpha) — wait
+≥ 2× the transition duration. (c) v4's ring composition prefixes every
+box-shadow with empty zero-alpha slots — full-string reads or parens-aware
+slot filtering required; truncation hides the ring entirely.
 
 ### 4.5 The cosmic section recipe
 
@@ -807,7 +853,24 @@ The repeatable loop used to reach (and re-verify) parity:
    transition (up to 700ms) before reading computed styles. Real-world
    variance (an improvement, documented): v4 kills v3's sticky-hover on
    touch devices.
-9. **Gate** — lint → typecheck → unit → build → e2e; then re-screenshot
+9. **Focus-ring diffs read the site CSS, post-transition** — keyboard-focus
+   each interactive element type (real Tab or `locator.focus()`; text inputs
+   match `:focus-visible` either way) and read `--tw-ring-color` + the
+   visible box-shadow slots. NEVER compare the UA-default `outline: auto`
+   (dynamic computed values); wait ≥ 2× the element's `transition-all`
+   duration before reading (immediate reads show mid-transition zero-alpha
+   rings); strip v4's empty composition slots (or read the full string —
+   truncation hides the ring). Diff the ring COLOR and GEOMETRY per element
+   type (inputs vs selects vs buttons vs bare links).
+10. **Scroll-behavior / scroll-reveal comparison** — read the computed
+    `scroll-behavior` on html AND body AND arbitrary sections (the
+    reference's runtime ships the UNIVERSAL `*` rule — pin it, not just
+    html; the universal form also smooths programmatic scrolls inside inner
+    scrollers, e.g. Radix SelectContent keyboard nav). Probe scroll-reveal
+    by counting offscreen-hidden elements (opacity < 1 or transformed while
+    below the fold) BEFORE scrolling, then re-count after scrolling into
+    view — if both sites show zero, there is no reveal animation to match.
+11. **Gate** — lint → typecheck → unit → build → e2e; then re-screenshot
    `docs/screenshots/`.
 
 Key extractions worth keeping (from the live reference): the hero

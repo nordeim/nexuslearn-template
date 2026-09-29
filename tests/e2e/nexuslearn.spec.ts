@@ -1637,3 +1637,146 @@ test.describe("session-12 parity: the v4 shadow-scale pin", () => {
     expect(sh).toContain("0px 10px 15px -3px");
   });
 });
+
+test.describe("session-13 parity: the login inputs' focus ring color (the v3 runtime-cascade pin)", () => {
+  // The reference app (Tailwind v3 + the Base44 runtime) injects a page-level
+  // utility sheet AFTER its static build; on /login that sheet re-asserts
+  // .focus:ring-slate-400:focus at a later cascade position, which wins
+  // --tw-ring-color over the static .focus-visible:ring-ring whenever both
+  // pseudos match (keyboard focus). The clone's single v4 sheet emits
+  // focus-visible:ring-ring later, so the login inputs rendered the --ring
+  // near-black instead of the reference slate-400. The UNLAYERED cascade pin
+  // in globals.css (unlayered beats every @layer rule) restores the reference
+  // winner with byte-identical classes. The login inputs carry no transition
+  // utilities, so the computed ring reads are stable immediately after focus.
+
+  test("the signin email input's focus ring is slate-400", async ({ page }) => {
+    await page.goto("/login");
+    const input = page.locator("#email");
+    await input.focus();
+    const ringColor = await input.evaluate((el) => getComputedStyle(el).getPropertyValue("--tw-ring-color").trim());
+    expect(ringColor).toBe("#94a3b8"); // = rgb(148,163,184) — the pinned token literal (the live reports the same sRGB color as "rgb(148 163 184 / 1)" — a form variance)
+    const shadow = await input.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(shadow).toContain("rgb(148, 163, 184) 0px 0px 0px 4px");
+  });
+
+  test("the signup view's input focus ring is slate-400", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Need an account? Sign up" }).click();
+    const input = page.locator("#email");
+    await input.focus();
+    const ringColor = await input.evaluate((el) => getComputedStyle(el).getPropertyValue("--tw-ring-color").trim());
+    expect(ringColor).toBe("#94a3b8"); // = rgb(148,163,184) — the pinned token literal (the live reports the same sRGB color as "rgb(148 163 184 / 1)" — a form variance)
+  });
+
+  test("the reset view's input focus ring is slate-400", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Forgot password?" }).click();
+    const input = page.locator("#email");
+    await input.focus();
+    const ringColor = await input.evaluate((el) => getComputedStyle(el).getPropertyValue("--tw-ring-color").trim());
+    expect(ringColor).toBe("#94a3b8"); // = rgb(148,163,184) — the pinned token literal (the live reports the same sRGB color as "rgb(148 163 184 / 1)" — a form variance)
+  });
+
+  // GUARD: the pin's selector (.focus:ring-slate-400:focus) exists ONLY on
+  // the login card's inputs — every other form control keeps the --ring
+  // near-black ring (verified against the live /Contact + /Courses controls).
+  test("GUARD: the Contact input's focus ring stays the --ring near-black", async ({ page }) => {
+    await page.goto("/Contact");
+    const input = page.locator("input[type='email']");
+    await input.focus();
+    const ringColor = await input.evaluate((el) => getComputedStyle(el).getPropertyValue("--tw-ring-color").trim());
+    expect(ringColor).toBe("#0a0a0a");
+  });
+
+  // GUARD: the buttons never carried focus:ring-slate-400 — their focus ring
+  // must stay the --ring near-black. The Sign in button transitions its
+  // box-shadow (transition-all 200ms), so the read waits out the transition
+  // (the session-13 methodology rule: immediate reads on transition-all
+  // elements report mid-transition zero-alpha slots).
+  test("GUARD: the Sign in button's focus ring stays the --ring near-black", async ({ page }) => {
+    await page.goto("/login");
+    const btn = page.getByRole("button", { name: "Sign in" });
+    await btn.focus();
+    await page.waitForTimeout(450);
+    const ringColor = await btn.evaluate((el) => getComputedStyle(el).getPropertyValue("--tw-ring-color").trim());
+    expect(ringColor).toBe("#0a0a0a");
+  });
+});
+
+test.describe("session-13 parity: the signin-view DOM nesting (the reference card structure)", () => {
+  // The live card interior: div.w-full > [div.space-y-3 (the Google button
+  // ONLY), div.relative.my-6 (the OR divider), form.space-y-4]. The clone
+  // previously nested the OR divider + the form INSIDE the space-y-3 — the
+  // gaps measured 24px/24px on both sites only because block-context margin
+  // collapse hid the difference (a latent v4 :where() space-y trap). These
+  // specs pin the reference nesting so the structure cannot drift again.
+
+  test("the OR divider and the form are the space-y-3's siblings inside the w-full", async ({ page }) => {
+    await page.goto("/login");
+    const structure = await page.evaluate(() => {
+      const or = document.querySelector("main .relative.my-6");
+      const form = document.querySelector("main form");
+      const google = [...document.querySelectorAll("main button")].find((b) =>
+        b.textContent?.includes("Continue with Google")
+      );
+      if (!or || !form || !google) return null;
+      return {
+        orParentCls: or.parentElement!.className,
+        formParentCls: form.parentElement!.className,
+        orAndFormShareParent: or.parentElement === form.parentElement,
+        spaceY3Cls: google.parentElement!.className,
+        spaceY3ChildCount: google.parentElement!.children.length,
+      };
+    });
+    expect(structure).not.toBeNull();
+    expect(structure!.orParentCls).toBe("w-full");
+    expect(structure!.formParentCls).toBe("w-full");
+    expect(structure!.orAndFormShareParent).toBe(true);
+    expect(structure!.spaceY3Cls).toContain("space-y-3");
+    expect(structure!.spaceY3ChildCount).toBe(1);
+  });
+
+  test("the visual gaps stay the reference 24px (Google to OR, OR to form)", async ({ page }) => {
+    await page.goto("/login");
+    const gaps = await page.evaluate(() => {
+      const google = [...document.querySelectorAll("main button")].find((b) =>
+        b.textContent?.includes("Continue with Google")
+      );
+      const or = document.querySelector("main .relative.my-6");
+      const form = document.querySelector("main form");
+      if (!google || !or || !form) return null;
+      const g = google.getBoundingClientRect();
+      const o = or.getBoundingClientRect();
+      const f = form.getBoundingClientRect();
+      return {
+        googleToOR: Math.round(o.top - g.bottom),
+        orToForm: Math.round(f.top - o.bottom),
+      };
+    });
+    expect(gaps).not.toBeNull();
+    expect(gaps!.googleToOR).toBe(24);
+    expect(gaps!.orToForm).toBe(24);
+  });
+});
+
+test.describe("session-13 parity: the universal scroll-behavior rule", () => {
+  // The reference's Base44 runtime ships `* { scroll-behavior: smooth }` —
+  // every element (html, body, head, sections) computes smooth, and every
+  // programmatic scroll inside inner scroll containers (e.g. the Radix
+  // SelectContent viewport during dropdown keyboard navigation) animates.
+  // The clone previously smoothed only html. The universal rule in
+  // globals.css @layer base restores the reference behavior.
+
+  test("body and section elements compute scroll-behavior smooth", async ({ page }) => {
+    await page.goto("/");
+    const behavior = await page.evaluate(() => ({
+      html: getComputedStyle(document.documentElement).scrollBehavior,
+      body: getComputedStyle(document.body).scrollBehavior,
+      section: getComputedStyle(document.querySelector("main > div")!).scrollBehavior,
+    }));
+    expect(behavior.html).toBe("smooth");
+    expect(behavior.body).toBe("smooth");
+    expect(behavior.section).toBe("smooth");
+  });
+});

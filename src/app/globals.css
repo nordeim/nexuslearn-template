@@ -174,7 +174,32 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
-  html {
+  /* Session 13: the reference's Base44 runtime ships a UNIVERSAL
+   * `* { scroll-behavior: smooth }` (measured on every element incl. body
+   * and head) — not just on html. The universal form also smooths every
+   * programmatic scroll (scrollIntoView/scrollTo without an explicit
+   * behavior) inside inner scroll containers, e.g. the Radix SelectContent
+   * viewport during dropdown keyboard navigation. */
+  * {
     scroll-behavior: smooth;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Session 13 — the v3 runtime-cascade pin: the login inputs' focus ring color.
+ *
+ * The reference app (Tailwind v3 + the Base44 runtime) injects a page-level
+ * utility <style> sheet AFTER its static build. On /login that runtime sheet
+ * re-asserts `.focus:ring-slate-400:focus`, and its later cascade position
+ * beats the static `.focus-visible:ring-ring:focus-visible` whenever BOTH
+ * pseudos match (keyboard focus) — so the reference's login inputs render a
+ * SLATE-400 focus ring, not the --ring near-black. Tailwind v4 compiles a
+ * single sheet that emits `focus-visible:ring-ring` later, which flipped the
+ * winner on the clone to near-black (#0a0a0a). This UNLAYERED rule (unlayered
+ * beats every @layer rule in the cascade) restores the reference winner with
+ * byte-identical class strings — the ADR-005 token-pin precedent applied to
+ * a cascade-order variance instead of a token value.
+ * ------------------------------------------------------------------------- */
+.focus\:ring-slate-400:focus {
+  --tw-ring-color: var(--color-slate-400);
 }
