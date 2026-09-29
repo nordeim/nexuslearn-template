@@ -1,6 +1,29 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* The compiled stylesheet is generated from APP SOURCE ONLY (src/ + the
+ * public/ assets). Tailwind v4's automatic source detection scans every
+ * non-gitignored file in the repo — which pulled class-like strings out of
+ * agent documentation into the production CSS:
+ *   - skills/ (283 files with class strings; the gift-evaluator demo alone
+ *     leaked 1027 unused utility rules — 51% of the compiled sheet);
+ *   - docs/ + tests/ (session logs, remediation plans and the parity specs
+ *     QUOTE utility class names — e.g. the leak-canary assertions in
+ *     tests/e2e/nexuslearn.spec.ts re-leaked the very utilities they pin);
+ *   - the root agent/project markdown files (AGENTS.md, CLAUDE.md, the
+ *     SKILL documents — they discuss Tailwind classes in prose).
+ * Every exclusion below is verified by the session-14 leak spec. */
+@source not "../../skills";
+@source not "../../docs";
+@source not "../../tests";
+@source not "../../test-results";
+@source not "../../AGENTS.md";
+@source not "../../CLAUDE.md";
+@source not "../../README.md";
+@source not "../../Project_Architecture_Document.md";
+@source not "../../nexuslearn-template_SKILL.md";
+@source not "../../scandihaven_SKILL.md";
+
 @custom-variant dark (&:is(.dark *));
 
 /* ---------------------------------------------------------------------------
@@ -37,6 +60,15 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Session 14 — font parity: the reference (Base44 + v3) ships NO webfont;
+   * its runtime injects `body { font-family: Inter, system-ui, -apple-system,
+   * sans-serif }` (an inline sheet on every app page) and no @font-face for
+   * Inter — the stack resolves to the visitor's system font (or a
+   * locally-installed Inter). Replaces the previous next/font/google bundle
+   * (which rendered real Inter glyphs the reference never shows) and the
+   * root-causes the documented "font-metric height bands". */
+  --font-sans: Inter, system-ui, -apple-system, sans-serif;
 
   /* Tailwind v3-era SHADOW scale, pinned for parity with the original app:
    * v4 shifted the shadow scale one notch (v3 shadow-sm became shadow-xs,
@@ -183,6 +215,18 @@
   * {
     scroll-behavior: smooth;
   }
+  /* Session 14: Tailwind v4's preflight DROPPED the v3
+   * `button, [role="button"] { cursor: pointer }` rule (the sixth v4 trap —
+   * v4 buttons revert to the UA-default arrow cursor). The reference (v3 +
+   * Base44) ships the rule in BOTH its static sheet and its runtime sheet;
+     every button there computes cursor: pointer. Restoring the exact v3
+     preflight form here keeps any element-level cursor-* utility winning
+     (utilities layer > base layer), matching the reference for every button
+     without a cursor class. */
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -202,4 +246,123 @@
  * ------------------------------------------------------------------------- */
 .focus\:ring-slate-400:focus {
   --tw-ring-color: var(--color-slate-400);
+}
+
+/* ---------------------------------------------------------------------------
+ * Session 14 — the v3 variant-order line-height pins (the seventh v4 trap).
+ *
+ * v3 emits every responsive text-* rule inside its media block AFTER all the
+ * base utilities, so a `md:text-7xl` on an element that ALSO carries a plain
+ * `leading-tight` re-asserts the SIZE utility's own line-height at a later
+ * cascade position and WINS (measured on the reference: hero H1 lh = 1 at
+ * >=768px, hero P lh = 1.75rem, CTA H2 lh = 1). v4's --tw-leading custom-
+ * property composition flips that: `leading-*` sets --tw-leading, which every
+ * text-* utility reads with priority, so leading-tight (1.25) /
+ * leading-relaxed (1.625) win regardless of order — the clone's hero H1
+ * rendered 90px line boxes vs the reference's 72px (+36px on the H1, +14px on
+ * the hero P, +50px on the hero content column; the root cause of the
+ * remaining / and /Home height delta after the font parity fix).
+ *
+ * These UNLAYERED, media-scoped pins restore the reference winner for the
+ * three co-occurrences (src/app/page.tsx hero H1, hero P, CTA H2). Below the
+ * breakpoint the variant is inert on both engines and the plain leading-*
+ * wins on both (v3 base order: text-* before leading-*), so the pins are
+ * scoped inside the same media queries as the variants they pin.
+ * ------------------------------------------------------------------------- */
+@media (min-width: 640px) {
+  .sm\:text-5xl.leading-tight {
+    line-height: 1;
+  }
+}
+@media (min-width: 768px) {
+  .md\:text-5xl.leading-tight {
+    line-height: 1;
+  }
+  .md\:text-7xl.leading-tight {
+    line-height: 1;
+  }
+  .md\:text-xl.leading-relaxed {
+    line-height: 1.75rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Session 14 — the dead scale-105 pin (the ninth v4 trap: the reference's
+ * scroll-reveal system kills the popular-card scale).
+ *
+ * The reference (Base44) ships a scroll-reveal system that pre-hides
+ * offscreen sections with INLINE `opacity: 0; transform: translateY(20px)`
+ * and, once each element scrolls into view, leaves INLINE
+ * `opacity: 1; transform: none` on it FOREVER. That inline transform beats
+ * every stylesheet rule — including the popular pricing card's own
+ * `.scale-105` (v3 transform-template form) — so BOTH live popular cards
+ * (on / and /Pricing) render UNSCALED (498px layout box) in their resting,
+ * post-reveal state. The clone has no reveal system, so its v4 standalone
+ * `scale: 1.05` applied — the clone's card rendered 5% larger (523px
+ * bounding box) than the reference's, and every rect-based measurement
+ * inside the card (gaps, icons) read 1.05x inflated.
+ *
+ * This UNLAYERED pin neutralizes the plain `.scale-105` utility exactly like
+ * the reference's inline transform does (hover:/group-hover:/active: scale
+ * variants are different class names and untouched — the reference's hover
+ * transforms stay live). Layout heights are unaffected either way (transforms
+ * never move layout); only the visual box matches the reference now.
+ * ------------------------------------------------------------------------- */
+.scale-105 {
+  scale: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Session 14 — the inline-child space-y pin (the eighth v4 trap).
+ *
+ * v4's space-y engine puts the gap on every NON-LAST child as
+ * margin-block-end; v3's engine put it on every FOLLOWER as margin-top.
+ * For BLOCK children both render the same gap — but when the non-last child
+ * is INLINE (the login form's <label>s are display:inline), a vertical
+ * margin is INERT, so v4 silently loses the gap: the reference's
+ * label-to-input gap inside the space-y-1.5 field groups is 6px (v3's
+ * follower-margin lands on the block input wrapper), while the clone's
+ * label carried the inert margin and the gap collapsed to the line-box
+ * slack (4px measured) — every field group 6px shorter, the /login card
+ * 12px shorter (email + password groups), visible in the mobile height
+ * sweep (-12px). Desktop was masked by the h-screen viewport clamp.
+ *
+ * The pin restores v3's follower-margin for exactly the affected pattern
+ * (an inline label followed by a sibling inside a space-y-1.5 container —
+ * the login signin/signup/reset field groups; all other space-y containers
+ * hold block children and keep v4's engine, which the gap audit verified
+ * at parity on every route). The label's own v4 margin-block-end stays on
+ * the inline box where it remains inert — no double-gap risk.
+ * ------------------------------------------------------------------------- */
+.space-y-1\.5 > label + * {
+  margin-block-start: calc(var(--spacing) * 1.5);
+}
+
+/* ---------------------------------------------------------------------------
+ * Session 14 — the overridden-gap space-y pin (the tenth v4 trap).
+ *
+ * v4's space-y engine assigns the gap with a :where() rule (ZERO
+ * specificity) — so a child's OWN margin utility replaces it. The login
+ * card's "Back to sign in" button carries `-mb-2` (its own negative
+ * margin): on v3 the gap rides the FOLLOWER's margin-top (unaffected by
+ * the button's mb), but on v4 the button WAS the gap carrier and its
+ * `-mb-2` utility replaced the 16/24px gap with −8px — pulling the view
+ * heading up into the button (measured: the signup header block −16px,
+ * the reset header block −24px; the signin/reset-sent views don't start
+ * with the button and stay at parity; the verify view shares the pattern).
+ * Desktop /login heights never showed it (the h-screen viewport clamp) —
+ * found by the per-view sibling-gap audit.
+ *
+ * The pin restores the follower's gap for exactly this pattern (the
+ * `-mb-2` utility is used ONCE in the app — the back-button). The
+ * breakpoint pair mirrors the containers' own responsive gap scale
+ * (space-y-4 base, sm:space-y-6 on the reset/verify headers).
+ * ------------------------------------------------------------------------- */
+.space-y-4 > .\-mb-2 + * {
+  margin-block-start: calc(var(--spacing) * 4);
+}
+@media (min-width: 640px) {
+  .sm\:space-y-6 > .\-mb-2 + * {
+    margin-block-start: calc(var(--spacing) * 6);
+  }
 }

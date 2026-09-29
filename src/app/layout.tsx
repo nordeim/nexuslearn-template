@@ -1,14 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 
 import { REFERENCE_DESCRIPTION } from "@/lib/metadata";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-});
+/**
+ * Session 14 — font parity: the reference (Base44 + Tailwind v3) NEVER loads
+ * a webfont. Its runtime injects `body { font-family: Inter, system-ui,
+ * -apple-system, sans-serif }` as an inline sheet on every app page (absent
+ * on /login, which falls to the engine default) and ships NO @font-face for
+ * Inter — `document.fonts` is empty on every route, so the declared stack
+ * resolves to the visitor's system font (or a locally-installed Inter).
+ * The previous next/font/google bundle rendered real Inter glyphs while the
+ * reference rendered the system font — the root cause of the documented
+ * "font-metric height bands" (−30 /, −49 /Courses, −29 /About, …).
+ * The stack is now declared in globals.css `@theme` (--font-sans), matching
+ * the reference's declaration AND rendered font in every environment.
+ */
 
 /**
  * Reference head parity (session 5): the live app ships ONE root description
@@ -72,7 +79,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en">
       <body className="font-sans antialiased">{children}</body>
     </html>
   );

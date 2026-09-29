@@ -1780,3 +1780,339 @@ test.describe("session-13 parity: the universal scroll-behavior rule", () => {
     expect(behavior.section).toBe("smooth");
   });
 });
+
+test.describe("session-14 parity: the v3 button-cursor preflight (the sixth v4 trap)", () => {
+  // Tailwind v4's preflight DROPPED v3's `button, [role="button"] {
+  // cursor: pointer }` — every button on the clone rendered the UA-default
+  // arrow cursor while the reference (v3 + the Base44 runtime, which ships
+  // the rule in BOTH its static sheet and its runtime sheet) renders the
+  // hand cursor on every button. The restored @layer base rule brings the
+  // computed cursor back to pointer for every button without a cursor-*
+  // utility (utilities still win where a class sets one).
+
+  test("every button on /login computes cursor pointer (no element inside a button defaults)", async ({ page }) => {
+    await page.goto("/login");
+    const state = await page.evaluate(() => {
+      const buttons = [...document.querySelectorAll("button")];
+      const badButtons = buttons.filter((b) => getComputedStyle(b).cursor === "default").length;
+      const defaultInside = [...document.querySelectorAll("button *")].filter(
+        (e) => getComputedStyle(e).cursor === "default"
+      ).length;
+      return { total: buttons.length, badButtons, defaultInside };
+    });
+    expect(state.total).toBeGreaterThan(0);
+    expect(state.badButtons).toBe(0);
+    expect(state.defaultInside).toBe(0);
+  });
+
+  test("every button on / computes cursor pointer and the page has zero default-cursor elements", async ({ page }) => {
+    await page.goto("/");
+    const state = await page.evaluate(() => {
+      const buttons = [...document.querySelectorAll("button")];
+      const badButtons = buttons.filter((b) => getComputedStyle(b).cursor === "default").length;
+      const allDefault = [...document.querySelectorAll("body *")].filter(
+        (e) => getComputedStyle(e).cursor === "default"
+      ).length;
+      return { total: buttons.length, badButtons, allDefault };
+    });
+    expect(state.total).toBeGreaterThan(0);
+    expect(state.badButtons).toBe(0);
+    // The reference's landing page computes ZERO default-cursor elements
+    // (even the labels are absent there).
+    expect(state.allDefault).toBe(0);
+  });
+
+  test("GUARD: the login labels keep the default cursor and inputs stay text", async ({ page }) => {
+    await page.goto("/login");
+    const state = await page.evaluate(() => {
+      const labels = [...document.querySelectorAll("label")].map((l) => getComputedStyle(l).cursor);
+      const input = document.querySelector("input[type='email']")!;
+      return { labels, input: getComputedStyle(input).cursor };
+    });
+    // The reference's only default-cursor elements on /login are the two
+    // form labels (never buttons) — the pin must not over-apply.
+    expect(state.labels.every((c) => c === "default")).toBe(true);
+    expect(state.input).toBe("text");
+  });
+});
+
+test.describe("session-14 parity: the declared font stack + no bundled webfont", () => {
+  // The reference ships NO webfont: document.fonts is empty on every route
+  // (no @font-face for Inter anywhere) and its runtime injects
+  // `body { font-family: Inter, system-ui, -apple-system, sans-serif }` as
+  // an inline sheet — the stack resolves to the visitor's system font (or a
+  // locally-installed Inter). The clone previously bundled next/font Inter
+  // and rendered real Inter glyphs the reference never shows — the root
+  // cause of the 13-session "font-metric height bands".
+
+  test("body computes the reference's declared Inter stack on / and /login", async ({ page }) => {
+    for (const route of ["/", "/login"]) {
+      await page.goto(route);
+      const ff = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
+      expect(ff).toBe("Inter, system-ui, -apple-system, sans-serif");
+    }
+  });
+
+  test("no Inter webfont is registered and html carries no font-module class", async ({ page }) => {
+    await page.goto("/");
+    const state = await page.evaluate(() => ({
+      interFaces: [...document.fonts].filter((f) => /^inter$/i.test(f.family)).length,
+      htmlClass: document.documentElement.className,
+    }));
+    expect(state.interFaces).toBe(0);
+    expect(state.htmlClass).toBe("");
+  });
+});
+
+test.describe("session-14 parity: the v3 variant-order line-height winners (the seventh v4 trap)", () => {
+  // v3 emits responsive text-* rules in media blocks AFTER every base
+  // utility, so the SIZE utility's own line-height beats a plain leading-*
+  // on the same element (hero H1 lh 1, hero P lh 1.75rem, CTA H2 lh 1).
+  // v4's --tw-leading composition flips the winner (leading-* always wins).
+  // The four unlayered media-scoped pins restore the reference winners.
+
+  test("the hero H1 line boxes are 72px (md:text-7xl's own line-height, not leading-tight's 1.25)", async ({ page }) => {
+    await page.goto("/");
+    const lh = await page.evaluate(() => {
+      const h1 = document.querySelector("h1")!;
+      return { lh: getComputedStyle(h1).lineHeight, h: Math.round(h1.getBoundingClientRect().height) };
+    });
+    expect(lh.lh).toBe("72px");
+    expect(lh.h).toBe(144); // 2 lines x 72
+  });
+
+  test("the hero P line boxes are 28px (md:text-xl's rem-based 1.75rem, not leading-relaxed's 1.625)", async ({ page }) => {
+    await page.goto("/");
+    const lh = await page.evaluate(() => {
+      const p = [...document.querySelectorAll("main p")].find((x) =>
+        (x.textContent ?? "").includes("Master the most in-demand")
+      )!;
+      return { lh: getComputedStyle(p).lineHeight, h: Math.round(p.getBoundingClientRect().height) };
+    });
+    expect(lh.lh).toBe("28px");
+    expect(lh.h).toBe(84); // 3 lines x 28
+  });
+
+  test("the CTA H2 (md:text-5xl + leading-tight) computes the 48px line-height", async ({ page }) => {
+    await page.goto("/");
+    const lh = await page.evaluate(() => {
+      const h2 = [...document.querySelectorAll("h2")].find((x) =>
+        (x.textContent ?? "").includes("Your Personal")
+      )!;
+      return { lh: getComputedStyle(h2).lineHeight, fs: getComputedStyle(h2).fontSize };
+    });
+    expect(lh.fs).toBe("48px");
+    expect(lh.lh).toBe("48px");
+  });
+});
+
+test.describe("session-14 parity: the dead popular-card scale (the ninth v4 trap)", () => {
+  // The reference's scroll-reveal system leaves INLINE
+  // `opacity: 1; transform: none` on every revealed element FOREVER — which
+  // beats the popular pricing card's own .scale-105 class. Both live popular
+  // cards (/, /Pricing) render UNSCALED in their resting state (498px box).
+  // The unlayered `.scale-105 { scale: none }` pin replicates that resting
+  // state; the hover: variants are different class names and stay live.
+
+  test("the popular card computes scale none and renders its layout box unscaled", async ({ page }) => {
+    await page.goto("/");
+    const state = await page.evaluate(() => {
+      const card = [...document.querySelectorAll("[class*=scale-105]")].find((c) =>
+        c.className.includes("rounded-3xl")
+      ) as HTMLElement | undefined;
+      if (!card) return null;
+      const cs = getComputedStyle(card);
+      return {
+        scale: cs.scale,
+        rectH: Math.round(card.getBoundingClientRect().height),
+        offsetH: card.offsetHeight,
+      };
+    });
+    expect(state).not.toBeNull();
+    expect(state!.scale).toBe("none");
+    expect(state!.rectH).toBe(state!.offsetH); // bounding box == layout box
+    expect(state!.offsetH).toBe(498);
+  });
+
+  test("the feature-list gaps inside the popular card are 16px (not 1.05x-inflated)", async ({ page }) => {
+    await page.goto("/");
+    const gap = await page.evaluate(() => {
+      const list = [...document.querySelectorAll("[class*=space-y-4]")].find((x) =>
+        (x.textContent ?? "").includes("Unlimited course access")
+      )!;
+      const kids = [...list.children];
+      const a = kids[0].getBoundingClientRect();
+      const b = kids[1].getBoundingClientRect();
+      return Math.round((b.top - (a.top + a.height)) * 10) / 10;
+    });
+    expect(gap).toBe(16);
+  });
+
+  test("GUARD: the hover:scale-105 rule still exists (the hover variants stay live)", async ({ page }) => {
+    await page.goto("/");
+    const hasHoverScale = await page.evaluate(() => {
+      function walk(rs: CSSRuleList): boolean {
+        for (const r of Array.from(rs)) {
+          const st = (r as CSSStyleRule).selectorText ?? "";
+          if (/hover\\:scale-105/.test(st)) return true;
+          if ((r as CSSMediaRule).cssRules) {
+            try {
+              if (walk((r as CSSMediaRule).cssRules)) return true;
+            } catch {
+              /* CORS */
+            }
+          }
+        }
+        return false;
+      }
+      for (const s of Array.from(document.styleSheets)) {
+        try {
+          if (walk(s.cssRules)) return true;
+        } catch {
+          /* CORS */
+        }
+      }
+      return false;
+    });
+    expect(hasHoverScale).toBe(true);
+  });
+});
+
+test.describe("session-14 parity: the skills/ folder stays out of the compiled CSS", () => {
+  // Tailwind v4's automatic source detection scanned the repo's skills/
+  // folder (283 files with class-like strings) and leaked 1027 unused
+  // utility rules into the stylesheet — 51% of the compiled CSS (canaries:
+  // the .selection:bg-red-200/.selection:text-red-900 demo string from
+  // skills/gift-evaluator/html_tools.py, plus .bg-indigo-500/.bg-lime-50/
+  // .bg-teal-600/.bg-amber-400, all with zero src/ usage). The
+  // `@source not "../../skills"` directive in globals.css closes the last
+  // skills-exclusion gap.
+
+  test("no ::selection rules and no skills-leaked color utilities in the stylesheets", async ({ page }) => {
+    await page.goto("/");
+    const found = await page.evaluate(() => {
+      const hits: string[] = [];
+      const canaries = ["bg-indigo-500", "bg-lime-50", "bg-teal-600", "bg-amber-400"];
+      function walk(rs: CSSRuleList) {
+        for (const r of Array.from(rs)) {
+          const st = (r as CSSStyleRule).selectorText ?? "";
+          if (/::(moz-)?selection/.test(st)) hits.push("::selection");
+          for (const c of canaries) if (st.includes(c)) hits.push(c);
+          if ((r as CSSMediaRule).cssRules) {
+            try {
+              walk((r as CSSMediaRule).cssRules);
+            } catch {
+              /* CORS */
+            }
+          }
+        }
+      }
+      for (const s of Array.from(document.styleSheets)) {
+        try {
+          walk(s.cssRules);
+        } catch {
+          /* CORS */
+        }
+      }
+      return hits;
+    });
+    expect(found).toEqual([]);
+  });
+});
+
+test.describe("session-14 parity: the inline-label space-y gap (the eighth v4 trap)", () => {
+  // v4's space-y engine assigns the gap to NON-LAST children as
+  // margin-block-end — inert when the child is inline (the login labels).
+  // The reference's v3 engine put the gap on the FOLLOWER's margin-top (the
+  // block input wrapper) — effective. The unlayered follower pin restores
+  // the 6px gap; the field groups return to the reference 74px.
+
+  test("the email field group's input wrapper carries the 6px follower gap", async ({ page }) => {
+    await page.goto("/login");
+    const state = await page.evaluate(() => {
+      const group = document.querySelector("form > div > div")!;
+      const wrapper = [...group.children].find((c) => c.tagName === "DIV") as HTMLElement;
+      const label = group.querySelector("label")!;
+      const g = group.getBoundingClientRect();
+      const l = label.getBoundingClientRect();
+      const w = wrapper.getBoundingClientRect();
+      return {
+        mt: getComputedStyle(wrapper).marginBlockStart,
+        // browser-independent structural read: the label bottom -> wrapper
+        // top span equals the line-box slack + the pinned 6px gap, and the
+        // wrapper's top sits exactly the gap below the label's line box
+        // (the group's own height is font-metric dependent — the reference
+        // measures 74 in one Chromium build and 78 in another — so the
+        // absolute number is pinned by the mobile-page-height spec below).
+        wrapperTopMinusLabelTop: Math.round(w.top - l.top),
+        groupHeightEqualsParts: Math.round(g.height) === Math.round(w.top - g.top) + Math.round(w.height),
+      };
+    });
+    expect(state.mt).toBe("6px");
+    // the wrapper starts at least 22px below the label top (16px label box
+    // + 6px pinned gap) — the gap is present in every browser
+    expect(state.wrapperTopMinusLabelTop).toBeGreaterThanOrEqual(22);
+    expect(state.groupHeightEqualsParts).toBe(true);
+  });
+
+  test("the mobile /login page height is the reference 762 (email + password groups intact)", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("/login");
+    const h = await page.evaluate(
+      () => Math.max(document.documentElement.scrollHeight, document.body.scrollHeight)
+    );
+    expect(h).toBe(762);
+  });
+});
+
+test.describe("session-14 parity: the overridden back-button space-y gap (the tenth v4 trap)", () => {
+  // v4's :where() gap carrier is replaced by a child's OWN margin utility:
+  // the login card's "Back to sign in" button carries -mb-2, which on v4
+  // replaced the header block's 16/24px space-y gap (on v3 the gap rides
+  // the FOLLOWER and survives). The unlayered pins restore the follower gap
+  // for the signup/reset/verify header blocks.
+
+  test("the signup view's heading block gaps are the reference [8, 16] (height 382)", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByText("Sign up").first().click();
+    await page.waitForTimeout(400);
+    const state = await page.evaluate(() => {
+      const block = [...document.querySelectorAll("div")].find(
+        (d) => /(^|\s)space-y-4(\s|$)/.test(d.className) &&
+          [...d.children].some((c) => c.tagName === "BUTTON" && (c.textContent ?? "").includes("Back to sign in"))
+      )!;
+      const kids = [...block.children];
+      const gaps: number[] = [];
+      for (let i = 1; i < kids.length; i++) {
+        const a = kids[i - 1].getBoundingClientRect();
+        const b = kids[i].getBoundingClientRect();
+        gaps.push(Math.round(b.top - (a.top + a.height)));
+      }
+      return { gaps, h: Math.round(block.getBoundingClientRect().height) };
+    });
+    expect(state.gaps).toEqual([8, 16]);
+    expect(state.h).toBe(382);
+  });
+
+  test("the reset view's heading block gaps are the reference [16, 24] (height 286)", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByText("Forgot password?").first().click();
+    await page.waitForTimeout(400);
+    const state = await page.evaluate(() => {
+      const block = [...document.querySelectorAll("div")].find(
+        (d) => /(^|\s)space-y-4(\s|$)/.test(d.className) &&
+          [...d.children].some((c) => c.tagName === "BUTTON" && (c.textContent ?? "").includes("Back to sign in"))
+      )!;
+      const kids = [...block.children];
+      const gaps: number[] = [];
+      for (let i = 1; i < kids.length; i++) {
+        const a = kids[i - 1].getBoundingClientRect();
+        const b = kids[i].getBoundingClientRect();
+        gaps.push(Math.round(b.top - (a.top + a.height)));
+      }
+      return { gaps, h: Math.round(block.getBoundingClientRect().height) };
+    });
+    expect(state.gaps).toEqual([16, 24]);
+    expect(state.h).toBe(286);
+  });
+});
