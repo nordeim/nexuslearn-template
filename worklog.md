@@ -276,3 +276,5 @@ Stage Summary:
 - Key finds: the last documented visible behavioral variance closed (the reveal system replicated with a zero-dependency WAAPI controller whose keyframes are baked from frame-resolution measurements of the live); 34 classless motion-wrapper divs recovered (a nesting-variance family invisible to class-set diffs for 14 sessions); the post-gate worklog CSS leak (any file written after the final gate can invalidate it — the leak spec now re-runs LAST).
 - New standing audit surfaces: the reveal characterization probes (target inventories, curve sampling, stagger/mount/remount, style-string diffs) + the forced-colors/accessibility emulation sweep.
 - Ready for commit + SSH-wrapper push to main.
+
+Push confirmed: commit ecb4846 on main at git@github.com:nordeim/nexuslearn-template.git (remote verified by the wrapper; operator key shredded).
