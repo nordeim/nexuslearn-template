@@ -19,9 +19,9 @@ const CATEGORY_SLUGS: Record<string, string> = {
   technology: "Technology",
   marketing: "Marketing",
   design: "Design",
-  "personal-development": "Personal Development",
+  personal_development: "Personal Development",
   programming: "Programming",
-  "ai-innovation": "AI & Innovation",
+  ai_innovation: "AI & Innovation",
 };
 
 type Course = CourseCardData;
@@ -31,8 +31,13 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
   const initialCategory = params.get("category");
 
   const [query, setQuery] = useState("");
+  // Reference semantics (session 17): the slug maps through the
+  // case-sensitive slug->name lookup; an UNMAPPED slug leaves the filter in
+  // a no-match state (empty trigger via the "" placeholder, 0 cards, the
+  // no-results copy) — NOT a fallback to "all". An absent or EMPTY param
+  // value is "all" (the live treats ?category= as absent).
   const [category, setCategory] = useState<string>(
-    initialCategory && CATEGORY_SLUGS[initialCategory] ? CATEGORY_SLUGS[initialCategory] : "all"
+    initialCategory ? (CATEGORY_SLUGS[initialCategory] ?? "") : "all"
   );
   const [level, setLevel] = useState("all");
   const [sort, setSort] = useState("newest");
@@ -144,7 +149,7 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
                 className="w-[180px] rounded-xl border-gray-200"
                 aria-label="Filter by category"
               >
-                <SelectValue placeholder="All Categories" />
+                <SelectValue placeholder="" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>

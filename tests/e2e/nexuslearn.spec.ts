@@ -2520,3 +2520,132 @@ test.describe("session-16 parity: back/forward scroll restoration", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Session 17 — deep-link / query-parameter parity
+// ---------------------------------------------------------------------------
+
+test.describe("session-17 parity: duplicate query params (first value wins)", () => {
+  test("duplicate ?id= keys render the FIRST id's course (URLSearchParams.get semantics)", async ({ page }) => {
+    // Next.js App Router delivers a repeated search param as string[]; the
+    // naive destructure passed the array to Prisma and rendered the error
+    // boundary ("This page couldn't load"). The live takes the first value.
+    await page.goto("/CourseDetail?id=seed-1&id=x");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Complete Web Development Bootcamp");
+    // The page is NOT the server-error boundary
+    expect(await page.textContent("body")).not.toContain("This page couldn’t load");
+  });
+
+  test("duplicate ?id= keys with an unknown FIRST id render the in-page not-found state", async ({ page }) => {
+    await page.goto("/CourseDetail?id=x&id=seed-1");
+    await expect(page.getByText("Course not found")).toBeVisible();
+    expect(await page.textContent("body")).not.toContain("This page couldn’t load");
+  });
+
+  test("the canonical/og:url of a duplicate-id URL uses only the first value", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-1&id=x");
+    const canonical = await page.getAttribute('link[rel="canonical"]', "href");
+    expect(canonical).toContain("/CourseDetail?id=seed-1");
+    expect(canonical).not.toContain("seed-1,x");
+    expect(canonical).not.toContain("id=x");
+  });
+});
+
+test.describe("session-17 parity: the underscore category slugs", () => {
+  test("the landing's Personal Development card links to the underscore slug", async ({ page }) => {
+    await page.goto("/");
+    const card = page.locator("main a[href*='personal']");
+    await expect(card).toHaveAttribute("href", "/Courses?category=personal_development");
+  });
+
+  test("the landing's AI & Innovation card links to the underscore slug", async ({ page }) => {
+    await page.goto("/");
+    const card = page.locator("main a[href*='ai_']");
+    await expect(card).toHaveAttribute("href", "/Courses?category=ai_innovation");
+  });
+
+  test("deep-linking the underscore slug pre-selects the category", async ({ page }) => {
+    await page.goto("/Courses?category=personal_development");
+    const trigger = page.locator("main [role=combobox]").first();
+    await expect(trigger).toHaveText("Personal Development");
+    // exactly the 1 Personal Development course
+    expect(await page.locator("main a[href*='CourseDetail']").count()).toBe(1);
+  });
+
+  test("deep-linking the ai_innovation slug pre-selects the category", async ({ page }) => {
+    await page.goto("/Courses?category=ai_innovation");
+    const trigger = page.locator("main [role=combobox]").first();
+    await expect(trigger).toHaveText("AI & Innovation");
+    expect(await page.locator("main a[href*='CourseDetail']").count()).toBe(1);
+  });
+});
+
+test.describe("session-17 parity: unknown category slug semantics (the raw filter state)", () => {
+  test("an unknown slug renders 0 cards, the no-results state and an EMPTY category trigger", async ({ page }) => {
+    // The live maps the slug through its case-sensitive slug->name lookup; an
+    // unmapped slug leaves the filter in a no-match state: empty trigger
+    // (Radix placeholder), 0 cards, "No courses found".
+    await page.goto("/Courses?category=bogus");
+    const trigger = page.locator("main [role=combobox]").first();
+    await expect(trigger).toHaveText("");
+    expect(await page.locator("main a[href*='CourseDetail']").count()).toBe(0);
+    await expect(page.getByText("No courses found")).toBeVisible();
+  });
+
+  test("a case-variant slug is UNKNOWN (the map is case-sensitive)", async ({ page }) => {
+    await page.goto("/Courses?category=Business");
+    const trigger = page.locator("main [role=combobox]").first();
+    await expect(trigger).toHaveText("");
+    expect(await page.locator("main a[href*='CourseDetail']").count()).toBe(0);
+  });
+
+  test("an EMPTY category value is absent — the all default (GREEN by design)", async ({ page }) => {
+    for (const url of ["/Courses?category=", "/Courses?category"]) {
+      await page.goto(url);
+      const trigger = page.locator("main [role=combobox]").first();
+      await expect(trigger).toHaveText("All Categories");
+      expect(await page.locator("main a[href*='CourseDetail']").count()).toBe(9);
+    }
+  });
+});
+
+test.describe("session-17 parity: route-casing rewrites (case-insensitive content routes)", () => {
+  test("lowercase /courses renders the catalog with the URL preserved", async ({ page }) => {
+    await page.goto("/courses");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Explore Our Courses");
+    expect(await page.locator("main a[href*='CourseDetail']").count()).toBe(9);
+    // No redirect — the typed URL stays, exactly like the live.
+    expect(page.url()).toContain("/courses");
+    // The nav's Courses link is active (the live highlights it on /courses)
+    const coursesLink = page.locator("nav .hidden.md\\:flex a", { hasText: "Courses" }).first();
+    expect(await coursesLink.getAttribute("class")).toMatch(/text-purple-600/);
+  });
+
+  test("uppercase /COURSES renders the catalog too", async ({ page }) => {
+    await page.goto("/COURSES");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Explore Our Courses");
+    expect(await page.locator("main a[href*='CourseDetail']").count()).toBe(9);
+  });
+
+  test("lowercase /pricing renders the Pricing page", async ({ page }) => {
+    await page.goto("/pricing");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Simple, Transparent Pricing");
+  });
+
+  test("lowercase /coursedetail?id= renders the course", async ({ page }) => {
+    await page.goto("/coursedetail?id=seed-1");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Complete Web Development Bootcamp");
+  });
+
+  test("/login is EXACT-match — its case variants still 404 (GREEN by design)", async ({ page }) => {
+    for (const url of ["/Login", "/LOGIN"]) {
+      await page.goto(url);
+      await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+    }
+  });
+
+  test("unknown routes still 404 through the middleware (the regression guard)", async ({ page }) => {
+    await page.goto("/nonexistent-page-xyz");
+    await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+  });
+});

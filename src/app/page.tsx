@@ -37,9 +37,9 @@ const CATEGORIES = [
   { name: "Technology", slug: "technology", icon: Monitor },
   { name: "Marketing", slug: "marketing", icon: Megaphone },
   { name: "Design", slug: "design", icon: Palette },
-  { name: "Personal Development", slug: "personal-development", icon: Heart },
+  { name: "Personal Development", slug: "personal_development", icon: Heart },
   { name: "Programming", slug: "programming", icon: Code },
-  { name: "AI & Innovation", slug: "ai-innovation", icon: Sparkles },
+  { name: "AI & Innovation", slug: "ai_innovation", icon: Sparkles },
 ];
 
 // Reference icon tint wrappers (session-7 audit): the /10 tint backgrounds

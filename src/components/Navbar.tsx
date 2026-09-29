@@ -97,12 +97,17 @@ export function Navbar() {
   // Reference active-state semantics: the Home link is active on BOTH the
   // canonical landing "/" and the reference footer target "/Home"; every
   // other link matches by prefix (so /CourseDetail keeps "Courses" active).
+  // Case-INSENSITIVE (session 17): the live highlights "Courses" on /courses
+  // and every other case variant (its router matches routes
+  // case-insensitively); the clone's middleware rewrite preserves the typed
+  // URL, so usePathname() reports the raw casing too.
+  const path = pathname.toLowerCase();
   const isActive = (href: string) =>
     href === "/Home"
-      ? pathname === "/" || pathname === "/Home"
+      ? path === "/" || path === "/home"
       : href === "/"
-        ? pathname === "/"
-        : pathname.startsWith(href);
+        ? path === "/"
+        : path.startsWith(href.toLowerCase());
 
   return (
     <nav

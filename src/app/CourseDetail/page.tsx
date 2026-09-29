@@ -22,14 +22,25 @@ import { routeMetadata } from "@/lib/metadata";
 
 export const dynamic = "force-dynamic";
 
+// Next.js App Router delivers a REPEATED search param as string[] (the type
+// below reflects what actually arrives). The reference's URLSearchParams.get
+// semantics take the FIRST value — `?id=<real>&id=x` renders the course,
+// `?id=x&id=<real>` the not-found state. The naive destructure passed the
+// array to Prisma and rendered the error boundary (session 17).
+type IdSearchParams = Promise<{ id?: string | string[] }>;
+
+function firstId(params: { id?: string | string[] }): string | undefined {
+  return Array.isArray(params.id) ? params.id[0] : params.id;
+}
+
 // The reference canonical + og:url include the query string
 // (origin + /CourseDetail?id=<id>) — session 6 mirrors both via the helper.
 export async function generateMetadata({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string }>;
+  searchParams: IdSearchParams;
 }): Promise<Metadata> {
-  const { id } = await searchParams;
+  const id = firstId(await searchParams);
   return routeMetadata({
     title: "Course Detail",
     canonical: id ? `/CourseDetail?id=${id}` : "/CourseDetail",
@@ -46,9 +57,9 @@ const COURSE_PERKS = [
 export default async function CourseDetailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string }>;
+  searchParams: IdSearchParams;
 }) {
-  const { id } = await searchParams;
+  const id = firstId(await searchParams);
 
   const course = id
     ? await db.course.findUnique({
