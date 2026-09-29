@@ -261,3 +261,53 @@ reference's v3 engine overrides the `mt-3` to a 4px space-y gap (405px panel),
 while v4's engine resurrects it into a 12px gap (413px panel). Fix: ship the CTA
 without the `mt-3` (an engine-variance class-form fix, the same precedent as trap 3),
 pinned by the session-9 e2e specs (`tests/e2e/mobile-navigation.spec.ts`).
+
+---
+
+## Appendix: Project Trap Log — Trap 5: The Shadow-Scale Shift (session 12)
+
+**Found by**: the session-12 computed box-shadow + border-radius sweep (walk every
+visible element per route, bucket the computed `boxShadow`/`borderRadius`, diff live
+vs clone). Class-set diffs are structurally blind to this trap — the class strings
+are byte-identical; only the token VALUE changed between engines.
+
+- **v3 (the reference app's compiled CSS):**
+  `.shadow-sm { --tw-shadow: 0 1px 2px 0 #0000000d; … }`
+- **v4 (this codebase, pre-fix):**
+  `.shadow-xs { --tw-shadow: 0 1px 2px 0 var(--tw-shadow-color, #0000000d); … }`
+  `.shadow-sm { --tw-shadow: 0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a); … }`
+
+v4 inserted `shadow-xs` at v3's `shadow-sm` position and moved `shadow-sm` up to
+v3's bare-`shadow` geometry — so every byte-identical `shadow-sm` class renders ONE
+NOTCH heavier on v4. Measured live vs clone: the white navbar rendered
+`rgba(0,0,0,0.05) 0px 1px 2px 0px` on the live vs
+`rgba(0,0,0,0.1) 0px 1px 3px 0px, rgba(0,0,0,0.1) 0px 1px 2px -1px` on the clone —
+a visibly heavier drop shadow under the fixed navbar on EVERY white-nav route. The
+same shift hit 21 `shadow-sm` usages (Navbar, LoginForm, the hero secondary CTA,
+ContactForm, NewsletterForm, AIAssistantChat, CourseCatalog, MyCourses, ui/card,
+ui/select, ui/input, ui/button variants) plus every `hover:shadow-sm` (the
+380-per-course lesson rows, the Google button hover). The bare `shadow` and
+md/lg/xl/2xl levels are UNCHANGED in v4 (verified computed-identical).
+
+Fix: the token pin in `src/app/globals.css` `@theme inline` (the ADR-005
+palette-pin precedent — pin the token, keep every class byte-identical; one line
+fixes all usages):
+
+```css
+--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+```
+
+Pinned by the session-12 e2e specs (computed box-shadow assertions on the white
+navbar, the login Sign in button, the hero secondary CTA and the lesson-row hover —
+v4's empty `rgba(0, 0, 0, 0) 0px 0px 0px 0px` composition slots stripped — plus
+GUARD specs proving shadow-lg/2xl were never shifted).
+
+**Related session-12 methodology findings** (documented in AGENTS.md gotchas 31–32):
+(a) v4 wraps every `hover:` variant in `@media (hover: hover)` — touch-emulating
+headless browsers (the agent-browser daemon) produce FALSE hover-parity failures;
+probe hovers in Playwright. (b) v4 renders `translate-y-*`/`scale-*`/`rotate-*`
+through the standalone CSS properties, not `transform: matrix(...)` — computed-style
+assertions must read the right property per stack. (c) Next 16's dev-origin
+protection silently blocks dev chunks for the `127.0.0.1` origin (unhydrated page,
+native form GET fallbacks) — `allowedDevOrigins: ["127.0.0.1"]` in next.config.ts
+restores both origins.

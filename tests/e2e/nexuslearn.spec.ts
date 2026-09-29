@@ -1557,3 +1557,83 @@ test.describe("session-11 parity: the login card interior is owned by the active
     await expect(page.locator("span.bg-white.px-3")).toBeVisible();
   });
 });
+
+test.describe("session-12 parity: the v4 shadow-scale pin", () => {
+  // Tailwind v4 shifted the shadow scale one notch: v3's shadow-sm
+  // (0 1px 2px rgb(0 0 0/0.05)) became shadow-xs, and shadow-sm now renders
+  // v3's bare-shadow geometry (0 1px 3px/0.1 + 0 1px 2px -1px/0.1) — one
+  // notch heavier than the reference. The --shadow-sm token pin in
+  // globals.css restores the v3 value with byte-identical classes. These
+  // specs pin the COMPUTED box-shadows (v4's shadow composition emits empty
+  // zero-alpha slots that are stripped by normShadow) so a future engine
+  // bump cannot silently regress the shadow chrome.
+  const normShadow = (sh: string): string => {
+    // parens-aware split into components, then drop v4's empty slots
+    // (zero-alpha black with zero geometry) — they are invisible.
+    const parts: string[] = [];
+    let depth = 0;
+    let cur = "";
+    for (const ch of sh) {
+      if (ch === "(") depth++;
+      if (ch === ")") depth--;
+      if (ch === "," && depth === 0) {
+        parts.push(cur.trim());
+        cur = "";
+        continue;
+      }
+      cur += ch;
+    }
+    if (cur.trim()) parts.push(cur.trim());
+    return parts.filter((p) => !p.startsWith("rgba(0, 0, 0, 0)")).join(", ");
+  };
+
+  test("the white navbar carries the v3 shadow-sm", async ({ page }) => {
+    await page.goto("/Courses");
+    const sh = await page.locator("nav").evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(normShadow(sh)).toBe("rgba(0, 0, 0, 0.05) 0px 1px 2px 0px");
+  });
+
+  test("the login Sign in button carries the v3 shadow-sm", async ({ page }) => {
+    await page.goto("/login");
+    const sh = await page
+      .getByRole("button", { name: "Sign in" })
+      .evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(normShadow(sh)).toBe("rgba(0, 0, 0, 0.05) 0px 1px 2px 0px");
+  });
+
+  test("the hero secondary CTA carries the v3 shadow-sm at rest", async ({ page }) => {
+    await page.goto("/");
+    const sh = await page
+      .getByRole("button", { name: "Start Learning" })
+      .evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(normShadow(sh)).toBe("rgba(0, 0, 0, 0.05) 0px 1px 2px 0px");
+  });
+
+  test("the lesson-row hover carries the v3 hover:shadow-sm", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-1");
+    const row = page.locator("div.hover\\:shadow-sm").first();
+    await row.scrollIntoViewIfNeeded();
+    await row.hover();
+    // transition-all (150ms) — let the hover shadow finish animating.
+    await page.waitForTimeout(300);
+    const sh = await row.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(normShadow(sh)).toBe("rgba(0, 0, 0, 0.05) 0px 1px 2px 0px");
+  });
+
+  // Guards: v4 did NOT shift md/lg/xl/2xl — the pin must never touch them
+  // (these pin the reference geometry that already matches).
+  test("GUARD: the price card keeps the v3 shadow-2xl", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-1");
+    const card = page.locator("div.bg-white.rounded-2xl.shadow-2xl").first();
+    const sh = await card.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(normShadow(sh)).toContain("0.25) 0px 25px 50px -12px");
+  });
+
+  test("GUARD: the hero primary CTA keeps the v3 shadow-lg geometry", async ({ page }) => {
+    await page.goto("/");
+    const sh = await page
+      .getByRole("button", { name: "Browse Courses" })
+      .evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(sh).toContain("0px 10px 15px -3px");
+  });
+});

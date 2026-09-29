@@ -38,6 +38,15 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
+  /* Tailwind v3-era SHADOW scale, pinned for parity with the original app:
+   * v4 shifted the shadow scale one notch (v3 shadow-sm became shadow-xs,
+   * and shadow-sm now renders v3's bare-shadow geometry — 0 1px 3px/0.1 +
+   * 0 1px 2px -1px/0.1 — one notch heavier than the reference's
+   * 0 1px 2px/0.05). Same engine-variance pinning precedent as the v3
+   * color palette below (ADR-005): pin the token, keep the classes
+   * byte-identical. md/lg/xl/2xl are unchanged in v4 and need no pin. */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+
   /* Brand tokens (measured :root custom properties of the original app) */
   --color-brand-cyan: #18ccfc;
   --color-brand-purple: #6344f5;
