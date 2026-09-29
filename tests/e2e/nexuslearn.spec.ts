@@ -2167,14 +2167,27 @@ test.describe("session-15 parity: the reveal pre-hide state", () => {
       return h1 ? h1.getAttribute("style") : "missing";
     });
     // Either still pre-hidden (translateY(30px)) or already revealed by the
-    // mount animation — never a bare/unstyled state.
-    expect(["opacity: 0; transform: translateY(30px);", "opacity: 1; transform: none;"]).toContain(h1Style);
+    // mount animation — never a bare/unstyled state. BOTH serializations are
+    // accepted: the SSR markup ships React's compact form
+    // (opacity:0;transform:…) and the controller re-serializes to the live's
+    // spaced form on hydration — a probe landing inside that window reads the
+    // compact form (a session-16 flake fix; the pin's intent — the Y30 hero
+    // family + the end state — is unchanged).
+    expect([
+      "opacity: 0; transform: translateY(30px);",
+      "opacity: 1; transform: none;",
+      "opacity:0;transform:translateY(30px)",
+      "opacity:1;transform:none",
+    ]).toContain(h1Style);
 
     await page.goto("/Pricing");
     const faq = page.locator('[data-reveal="faq"]').first();
     await expect(faq).toHaveCount(1);
-    expect(await faq.evaluate((el) => el.getAttribute("style"))).toBe(
-      "opacity: 0; transform: translateY(10px);"
+    // Both serializations (the SSR compact form pre-normalization + the
+    // live's spaced form) — the FAQ items are below-fold and never animate
+    // before scrolling, so these are the only two possible states.
+    expect(await faq.evaluate((el) => el.getAttribute("style"))).toMatch(
+      /^opacity: ?0; ?transform: ?translateY\(10px\);?$/
     );
   });
 });
@@ -2388,5 +2401,122 @@ test.describe("session-15 parity: GUARD — the reveal cannot break the pinned p
     await page.waitForTimeout(2600);
     const lh = await page.evaluate(() => getComputedStyle(document.querySelector("h1[data-reveal]")!).lineHeight);
     expect(lh).toBe("72px");
+  });
+});
+
+// session-16 parity: the navigation-transition surface — scroll restoration,
+// managed navigation semantics, title-on-soft-nav and the CLS guard.
+//
+// The audit (live vs clone, desktop + mobile, dev + production builds) found:
+// the reference's back/forward restoration is the BROWSER-NATIVE INSTANT SNAP
+// (its CSR router never calls scrollTo); the clone's Next.js restoration rides
+// window.scrollTo, which the session-13 universal `* { scroll-behavior: smooth }`
+// pin (the same rule the reference ships) turns into a ~0.9-1.5s glide — and a
+// navigation click fired mid-smooth-scroll (a footer link clicked while its
+// scroll-into-view animation is still running) races the restore to 0 on mobile.
+// The fix: ScrollRestoreNormalizer suppresses smooth for the popstate window.
+//
+// Also pinned here (deliberate-better parity decisions, the unhardened-reference
+// family — like the ARIA/scroll-lock/Escape mobile-menu hardening):
+//  - the reference NEVER resets scroll on in-app navigation (its SPA router
+//    carries the position over, clamped by the new page's CSR loading shell —
+//    measured: /@2000 -> /Courses lands 493, /@7000 -> /Pricing lands 1289,
+//    /Courses@800 -> CourseDetail lands 492). The clone keeps Next.js's managed
+//    reset-to-top (exact shell-clamp replication is impossible and the reference
+//    behavior lands users mid-page).
+//  - the reference's document.title NEVER updates on soft navigation (stays the
+//    previous route's title — "NexusLearn" after nav to /Pricing, /Courses,
+//    /About; fresh loads are correct). The clone updates per-route.
+test.describe("session-16 parity: back/forward scroll restoration", () => {
+  test("popstate restoration lands INSTANTLY (the reference's browser-native snap, not a smooth glide)", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => window.scrollTo(0, 3000));
+    await page.waitForTimeout(1000);
+    // the fixed navbar link is in view — no scroll-into-view, a clean capture of 3000
+    await page.click('nav a[href="/Courses"]');
+    await page.waitForURL((u) => u.pathname === "/Courses");
+    await page.waitForTimeout(1200);
+    await page.goBack();
+    // The reference's native snap lands within one frame of the route swap
+    // (<300ms incl. the RSC cache re-render); the pre-fix clone glide sits at
+    // ~43% of the distance here (measured 1289 of 3000 at +250ms).
+    await page.waitForTimeout(250);
+    const early = await page.evaluate(() => Math.round(window.scrollY));
+    expect(early).toBeGreaterThanOrEqual(2700);
+    // …and it settles at exactly the saved position.
+    await page.waitForTimeout(1500);
+    const settled = await page.evaluate(() => Math.round(window.scrollY));
+    expect(settled).toBe(3000);
+  });
+
+  test("a navigation click fired mid-smooth-scroll still restores correctly (the footer-link race)", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => window.scrollTo(0, 3000));
+    await page.waitForTimeout(1000);
+    // locator.click() scrolls the footer link into view — a SMOOTH scroll under
+    // the universal pin — and the click lands while the scroll settles. Pre-fix
+    // this raced the clone's own smooth restoration to 0 (3/3 reproductions on
+    // mobile; the reference restores correctly under identical conditions).
+    await page.locator('footer a[href="/Pricing"]').first().click();
+    await page.waitForURL((u) => u.pathname === "/Pricing");
+    await page.waitForTimeout(1200);
+    await page.goBack();
+    await page.waitForTimeout(1800);
+    const scrollY = await page.evaluate(() => Math.round(window.scrollY));
+    // Pre-fix: 0. Post-fix: the position captured at click time (~14200 — the
+    // footer scroll-into-view position on the mobile landing page).
+    expect(scrollY).toBeGreaterThan(1000);
+  });
+
+  test("in-app navigation resets to the top (managed Next.js behavior — a deliberate-better parity decision)", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => window.scrollTo(0, 2000));
+    await page.waitForTimeout(1000);
+    await page.click('nav a[href="/Courses"]');
+    await page.waitForURL((u) => u.pathname === "/Courses");
+    // The reset itself animates under the universal smooth rule — wait out the
+    // glide (~600ms for 2000px) before asserting the landing position.
+    await page.waitForTimeout(2000);
+    const scrollY = await page.evaluate(() => Math.round(window.scrollY));
+    expect(scrollY).toBeLessThanOrEqual(5);
+  });
+
+  test("document.title updates on soft navigation (the reference's router leaves the stale title — a deliberate-better decision)", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.click('nav a[href="/Pricing"]');
+    await page.waitForURL((u) => u.pathname === "/Pricing");
+    await page.waitForTimeout(500);
+    // The reference keeps "NexusLearn" here (its SPA router never touches the
+    // title on soft navigation); fresh-load titles are byte-identical on both.
+    expect(await page.title()).toBe("Pricing | NexusLearn");
+  });
+
+  test("zero cumulative layout shift on load (the performance-surface guard)", async ({ page }) => {
+    for (const route of ["/", "/Courses"]) {
+      await page.goto(route, { waitUntil: "commit" });
+      const cls = await page.evaluate(
+        () =>
+          new Promise((resolve) => {
+            let total = 0;
+            try {
+              new PerformanceObserver((l) => {
+                for (const e of l.getEntries() as unknown as { hadRecentInput: boolean; value: number }[])
+                  if (!e.hadRecentInput) total += e.value;
+              }).observe({ type: "layout-shift", buffered: true });
+            } catch {
+              /* observer unsupported — resolve 0 */
+            }
+            setTimeout(() => resolve(Math.round(total * 10000) / 10000), 3000);
+          })
+      );
+      // Both sites measure CLS 0.0000 on every probed route (the reveal system
+      // animates opacity/transform only; images ship fixed dimensions).
+      expect(cls).toBe(0);
+    }
   });
 });

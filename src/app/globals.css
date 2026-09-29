@@ -372,3 +372,26 @@
     margin-block-start: calc(var(--spacing) * 6);
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Session 16 — the popstate scroll-restoration suppression.
+ *
+ * The reference's back/forward restoration is the BROWSER-NATIVE instant
+ * snap (its CSR router never calls scrollTo — the saved position lands
+ * within one frame on every route and viewport). Next.js restores via
+ * window.scrollTo after the route re-render commits, and the session-13
+ * universal `* { scroll-behavior: smooth }` pin above (the same rule the
+ * reference ships) turns that restoration into a ~0.9-1.5s glide — and, on
+ * the dev server, into a restore-to-0 race when the navigation click fired
+ * mid-smooth-scroll.
+ *
+ * ScrollRestoreNormalizer sets data-scroll-restore on <html> for the
+ * popstate window; this UNLAYERED rule (it must beat the @layer-base
+ * universal pin regardless of specificity) switches scroll-behavior to auto
+ * for exactly that window, so the restoration snaps like the reference's.
+ * Every other programmatic scroll keeps the pinned smooth behavior.
+ * ------------------------------------------------------------------------- */
+html[data-scroll-restore],
+html[data-scroll-restore] * {
+  scroll-behavior: auto;
+}

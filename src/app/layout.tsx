@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+import { ScrollRestoreNormalizer } from "@/components/ScrollRestoreNormalizer";
 import { REFERENCE_DESCRIPTION } from "@/lib/metadata";
 
 /**
@@ -80,7 +81,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {/* Session 16: instant popstate scroll restoration (the reference's
+            browser-native snap) — see src/components/ScrollRestoreNormalizer.tsx */}
+        <ScrollRestoreNormalizer />
+        {children}
+      </body>
     </html>
   );
 }
