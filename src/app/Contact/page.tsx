@@ -3,6 +3,7 @@ import { Mail, Phone, MapPin } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ContactForm } from "@/components/ContactForm";
+import { RevealController } from "@/components/reveal/RevealController";
 
 import { routeMetadata } from "@/lib/metadata";
 
@@ -28,8 +29,14 @@ export default function ContactPage() {
           {/* Hero */}
           <div className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-12 px-4">
             <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Get In Touch</h1>
-              <p className="mt-4 text-lg text-gray-400">
+              <h1
+                className="text-3xl md:text-5xl font-bold text-white tracking-tight"
+                data-reveal="a"
+                style={{ opacity: 0, transform: "translateY(20px)" }}
+              >
+                Get In Touch
+              </h1>
+              <p className="mt-4 text-lg text-gray-400" data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
                 We&apos;d love to hear from you. Send us a message and we&apos;ll respond as soon as possible.
               </p>
             </div>
@@ -41,10 +48,10 @@ export default function ContactPage() {
               {/* Info cards */}
               <div className="space-y-6">
                 {INFO.map((item) => (
-                  <div
-                    key={item.title}
-                    className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-all duration-300"
-                  >
+                  <div key={item.title} data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
+                    <div
+                      className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-all duration-300"
+                    >
                     <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center mb-4">
                       <item.icon className="h-5 w-5 text-purple-600" aria-hidden="true" />
                     </div>
@@ -59,12 +66,13 @@ export default function ContactPage() {
                     ) : (
                       <p className="text-gray-500">{item.value}</p>
                     )}
+                    </div>
                   </div>
                 ))}
               </div>
 
               {/* Form */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2" data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
                   <ContactForm />
                 </div>
@@ -73,6 +81,9 @@ export default function ContactPage() {
           </div>
         </div>
       </main>
+      {/* Session 15: the reference scroll-reveal system (6 targets here). */}
+      <RevealController />
+
       <Footer />
     </div>
   );

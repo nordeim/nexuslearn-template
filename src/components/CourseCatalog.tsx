@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Search, SlidersHorizontal } from "lucide-react";
 
 import { CourseCard, type CourseCardData } from "@/components/CourseCard";
+import { RevealController } from "@/components/reveal/RevealController";
 import {
   Select,
   SelectContent,
@@ -90,13 +91,25 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
       {/* Dark hero with the search field (reference structure) */}
       <div className="bg-[linear-gradient(to_right_bottom,#0a0a1a,#0d0d2b,#0a0a1a)] pt-16 pb-20 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
+          <h1
+            className="text-3xl md:text-5xl font-bold text-white tracking-tight"
+            data-reveal="a"
+            style={{ opacity: 0, transform: "translateY(20px)" }}
+          >
             Explore Our Courses
           </h1>
-          <p className="mt-4 text-lg text-gray-400 max-w-2xl mx-auto">
+          <p
+            className="mt-4 text-lg text-gray-400 max-w-2xl mx-auto"
+            data-reveal="a"
+            style={{ opacity: 0, transform: "translateY(20px)" }}
+          >
             Discover hundreds of expert-led courses to advance your career
           </p>
-          <div className="mt-10 max-w-2xl mx-auto relative">
+          <div
+            className="mt-10 max-w-2xl mx-auto relative"
+            data-reveal="a"
+            style={{ opacity: 0, transform: "translateY(20px)" }}
+          >
             <Search
               className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"
               aria-hidden="true"
@@ -200,12 +213,18 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {filtered.map((course) => (
-                  <CourseCard key={course.id} course={course} />
+                  <div key={course.id} data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
+                    <CourseCard course={course} />
+                  </div>
                 ))}
               </div>
             )}
           </div>
         </div>
+      {/* Session 15: the reference scroll-reveal system (12 targets here —
+          the MutationObserver inside re-reveals newly-mounted cards when the
+          catalog re-renders on search/filter, like the live's remount). */}
+      <RevealController />
     </>
   );
 }

@@ -3,6 +3,7 @@ import { Check, Sparkles } from "lucide-react";
 
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { RevealController } from "@/components/reveal/RevealController";
 
 import { routeMetadata } from "@/lib/metadata";
 
@@ -82,10 +83,18 @@ export default function PricingPage() {
         <div className="min-h-screen bg-gray-50">
           <div className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-12 px-4">
             <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
+              <h1
+                className="text-3xl md:text-5xl font-bold text-white tracking-tight"
+                data-reveal="a"
+                style={{ opacity: 0, transform: "translateY(20px)" }}
+              >
                 Simple, Transparent Pricing
               </h1>
-              <p className="mt-4 text-lg text-gray-400">
+              <p
+                className="mt-4 text-lg text-gray-400"
+                data-reveal="a"
+                style={{ opacity: 0, transform: "translateY(20px)" }}
+              >
                 Start free, upgrade when you&apos;re ready. No hidden fees.
               </p>
             </div>
@@ -97,7 +106,7 @@ export default function PricingPage() {
           <div className="-mt-8">
             <section className="py-24 px-4 bg-gray-50">
               <div className="max-w-7xl mx-auto">
-                <div className="text-center mb-16">
+                <div className="text-center mb-16" data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
                   <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Pricing</span>
                   <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
                     Choose Your Plan
@@ -116,6 +125,8 @@ export default function PricingPage() {
                         ? "bg-gradient-to-br from-[#0a0a1a] to-[#1a1a3a] text-white shadow-2xl shadow-purple-500/20 scale-105 border border-purple-500/30"
                         : "bg-white border border-gray-100 hover:shadow-xl hover:border-gray-200"
                     }`}
+                    data-reveal="a"
+                    style={{ opacity: 0, transform: "translateY(20px)" }}
                   >
                     {plan.popular && (
                       <div className="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -176,6 +187,8 @@ export default function PricingPage() {
                   <div
                     key={faq.q}
                     className="bg-gray-50 rounded-2xl p-6 hover:bg-white hover:shadow-lg transition-all duration-300 border border-transparent hover:border-gray-100"
+                    data-reveal="faq"
+                    style={{ opacity: 0, transform: "translateY(10px)" }}
                   >
                     <h3 className="flex items-center gap-2 font-semibold text-gray-900">
                       {/* Reference icon (session 7): the live app renders the
@@ -209,6 +222,9 @@ export default function PricingPage() {
           </section>
         </div>
       </main>
+      {/* Session 15: the reference scroll-reveal system (10 targets here). */}
+      <RevealController />
+
       <Footer />
     </div>
   );

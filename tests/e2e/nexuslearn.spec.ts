@@ -2116,3 +2116,277 @@ test.describe("session-14 parity: the overridden back-button space-y gap (the te
     expect(state.h).toBe(286);
   });
 });
+
+// ---------------------------------------------------------------------------
+// session-15 parity: the scroll-reveal ENTRY animation + the worklog CSS leak
+// ---------------------------------------------------------------------------
+// The live app (Base44 + framer-motion, confirmed in its bundle) pre-hides
+// 103 reveal targets across 9 routes with inline `opacity: 0; transform:
+// translate…` styles at mount, reveals each element ONCE when it scrolls into
+// view (measured: any-pixel intersection, ~10-36ms intrinsic latency, sibling
+// cards staggered ~100ms), and leaves inline `opacity: 1; transform: none;`
+// FOREVER (the mechanism session 14 proved kills the popular card's
+// scale-105). Pre-hide variants: translateY(20px) standard, translateY(30px)
+// the / hero, translateY(10px) the /Pricing FAQ, translateX(±30px) the
+// AI/BI/Our-Story sliders, opacity-only the / stats bar. Animation families
+// (frame-resolution fits): A "snappy" (op ~310ms ease-out + transform spring
+// settle ~280ms, 12% overshoot), B "floaty" (op ~310ms + slow back-loaded
+// transform ~700ms), HERO (coupled ~735ms from y=30), FAQ (slower coupled
+// ~500-610ms from y=10), X (spring ~7-10% overshoot). Only elements in the
+// initial viewport reveal at mount — every below-fold target (incl. /About's
+// values cards, verified twice) waits for scroll. The clone renders SSR
+// pre-hide styles + a zero-dependency WAAPI controller; /login ships no
+// targets (parity).
+test.describe("session-15 parity: the reveal pre-hide state", () => {
+  test("below-fold / targets carry the exact live pre-hide style strings", async ({ page }) => {
+    await page.goto("/");
+    const cat = page.locator('div[data-reveal]:has(> a[href*="/Courses?category="])').first();
+    await expect(cat).toHaveCount(1);
+    const catStyle = await cat.evaluate((el) => el.getAttribute("style"));
+    expect(catStyle).toBe("opacity: 0; transform: translateY(20px);");
+    await expect(cat).toHaveCSS("opacity", "0");
+
+    const aiBadge = page.locator('div[data-reveal]:has(span:text("Powered by AI"))');
+    expect(await aiBadge.evaluate((el) => el.getAttribute("style"))).toBe(
+      "opacity: 0; transform: translateX(-30px);"
+    );
+    const biBadge = page.locator('div[data-reveal]:has(span:text("Teach With Us"))');
+    expect(await biBadge.evaluate((el) => el.getAttribute("style"))).toBe(
+      "opacity: 0; transform: translateX(30px);"
+    );
+    // The hero stats bar is the opacity-only variant.
+    const stats = page.locator('[data-reveal="hero-op"]');
+    expect(await stats.evaluate((el) => el.getAttribute("style"))).toBe("opacity: 0;");
+  });
+
+  test("the / hero blocks pre-hide from translateY(30px) and the FAQ from translateY(10px)", async ({ page }) => {
+    await page.goto("/");
+    // Read fast: the hero animates on mount (~735ms + up to ~400ms stagger).
+    const h1Style = await page.evaluate(() => {
+      const h1 = document.querySelector("h1[data-reveal]");
+      return h1 ? h1.getAttribute("style") : "missing";
+    });
+    // Either still pre-hidden (translateY(30px)) or already revealed by the
+    // mount animation — never a bare/unstyled state.
+    expect(["opacity: 0; transform: translateY(30px);", "opacity: 1; transform: none;"]).toContain(h1Style);
+
+    await page.goto("/Pricing");
+    const faq = page.locator('[data-reveal="faq"]').first();
+    await expect(faq).toHaveCount(1);
+    expect(await faq.evaluate((el) => el.getAttribute("style"))).toBe(
+      "opacity: 0; transform: translateY(10px);"
+    );
+  });
+});
+
+test.describe("session-15 parity: the reveal animation + end state", () => {
+  test("a category card animates in gradually (not instant) and lands the exact end state", async ({ page }) => {
+    await page.goto("/");
+    const series = await page.evaluate(async () => {
+      const el = document.querySelector('div[data-reveal]:has(> a[href*="/Courses?category="])');
+      if (!el) return null;
+      el.scrollIntoView({ block: "center" });
+      const ops: number[] = [];
+      const t0 = performance.now();
+      while (performance.now() - t0 < 1500) {
+        ops.push(+getComputedStyle(el).opacity);
+        if (el.getAttribute("style") === "opacity: 1; transform: none;") break;
+        await new Promise((r) => setTimeout(r, 30));
+      }
+      return { ops, endStyle: el.getAttribute("style"), endOpacity: +getComputedStyle(el).opacity };
+    });
+    expect(series).not.toBeNull();
+    // Pre-animation samples at 0, a strictly-intermediate sample (gradual,
+    // not instant), and the final state byte-identical to the live. The
+    // opacity tween finishes ~10ms before the transform track, so trailing
+    // 1.0 samples may precede the end-style flip — compare up to the first
+    // >=0.99 sample instead of the raw last element.
+    const ops = series!.ops;
+    const firstDone = ops.findIndex((o) => o >= 0.99);
+    expect(firstDone).toBeGreaterThan(0);
+    expect(ops[0]).toBeLessThan(0.01);
+    expect(ops.slice(0, firstDone).some((o) => o > 0.01 && o < 0.99)).toBe(true);
+    expect(series!.endOpacity).toBe(1);
+    expect(series!.endStyle).toBe("opacity: 1; transform: none;");
+  });
+
+  test("the reveal is one-way — scrolling back up never re-hides", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => {
+      const el = document.querySelector('div[data-reveal]:has(> a[href*="/Courses?category="])');
+      el?.scrollIntoView({ block: "center" });
+    });
+    await page.waitForTimeout(1200);
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    await page.waitForTimeout(400);
+    const state = await page.evaluate(() => {
+      const el = document.querySelector('div[data-reveal]:has(> a[href*="/Courses?category="])');
+      return { style: el?.getAttribute("style"), op: el ? getComputedStyle(el).opacity : "n/a" };
+    });
+    expect(state.style).toBe("opacity: 1; transform: none;");
+    expect(state.op).toBe("1");
+  });
+
+  test("sibling cards stagger — the last testimonial lands >= 80ms after the first", async ({ page }) => {
+    await page.goto("/");
+    const times = await page.evaluate(async () => {
+      // The testimonial cards are the rounded-3xl reveal targets with the
+      // yellow star svgs (the featured cards' wrappers are classless).
+      const cards = [...document.querySelectorAll('div[data-reveal].rounded-3xl:has(svg.fill-yellow-400)')];
+      if (cards.length !== 3) return { n: cards.length, t: [] as number[] };
+      cards[0].scrollIntoView({ block: "center" });
+      const done: number[] = [0, 0, 0];
+      const t0 = performance.now();
+      while (performance.now() - t0 < 2500 && done.some((d) => !d)) {
+        cards.forEach((c, i) => {
+          if (!done[i] && c.getAttribute("style") === "opacity: 1; transform: none;") {
+            done[i] = Math.round(performance.now() - t0);
+          }
+        });
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      return { n: cards.length, t: done };
+    });
+    expect(times.n).toBe(3);
+    expect(times.t[0]).toBeGreaterThan(0);
+    expect(times.t[2] - times.t[0]).toBeGreaterThanOrEqual(80);
+  });
+});
+
+test.describe("session-15 parity: the route target inventory + mount behavior", () => {
+  // The live's measured inventory: / 40, /Courses 12, /Pricing 10, /About 12,
+  // /Contact 6, /BecomeInstructor 13, /AIAssistant 3, /Dashboard 5,
+  // /CourseDetail 2, /login 0 (+ /Home renders the landing = 40).
+  const COUNTS: Array<[string, number]> = [
+    ["/", 40],
+    ["/Home", 40],
+    ["/Courses", 12],
+    ["/Pricing", 10],
+    ["/About", 12],
+    ["/Contact", 6],
+    ["/BecomeInstructor", 13],
+    ["/AIAssistant", 3],
+    ["/Dashboard", 5],
+    ["/CourseDetail?id=seed-1", 2],
+    ["/login", 0],
+  ];
+  for (const [route, count] of COUNTS) {
+    test(`${route} ships exactly ${count} reveal targets`, async ({ page }) => {
+      await page.goto(route);
+      await expect(page.locator("[data-reveal]")).toHaveCount(count);
+    });
+  }
+
+  test("/About follows the standard whileInView contract — the below-fold values cards stay hidden until scrolled", async ({ page }) => {
+    await page.goto("/About");
+    await page.waitForTimeout(2600);
+    const before = await page.evaluate(() => ({
+      scrollY: window.scrollY,
+      cards: [...document.querySelectorAll('div[data-reveal].text-center.p-6')].map(
+        (el) => el.getAttribute("style")
+      ),
+    }));
+    expect(before.scrollY).toBe(0);
+    expect(before.cards).toHaveLength(4);
+    // Hidden at load (the live's own values cards stay `opacity: 0` until
+    // scrolled — measured; only the 8 in-view targets reveal at mount).
+    for (const s of before.cards) expect(s).toBe("opacity: 0; transform: translateY(20px);");
+
+    const after = await page.evaluate(async () => {
+      const el = document.querySelector('div[data-reveal].text-center.p-6');
+      el?.scrollIntoView({ block: "center" });
+      await new Promise((r) => setTimeout(r, 1200));
+      return [...document.querySelectorAll('div[data-reveal].text-center.p-6')].map((c) => c.getAttribute("style"));
+    });
+    for (const s of after) expect(s).toBe("opacity: 1; transform: none;");
+  });
+
+  test("the / hero blocks complete their mount animation", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForTimeout(2600);
+    const styles = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-reveal="hero"], [data-reveal="hero-op"]')].map(
+        (el) => el.getAttribute("style")
+      )
+    );
+    expect(styles).toHaveLength(5);
+    for (const s of styles) {
+      expect(["opacity: 1; transform: none;", "opacity: 1;"]).toContain(s);
+    }
+  });
+
+  test("every route's in-view targets complete their mount reveal (a controller must mount on every render branch)", async ({ page }) => {
+    // /CourseDetail's hero targets are in view at load — they must reach the
+    // end state. (The first implementation shipped the controller on only
+    // ONE of the page's two render branches — the main render's targets
+    // stayed hidden forever. This spec pins the fix.)
+    await page.goto("/CourseDetail?id=seed-1");
+    await page.waitForTimeout(2000);
+    const styles = await page.evaluate(() =>
+      [...document.querySelectorAll("[data-reveal]")].map((el) => el.getAttribute("style"))
+    );
+    expect(styles).toHaveLength(2);
+    for (const s of styles) expect(s).toBe("opacity: 1; transform: none;");
+    // The not-found branch ships the controller too (the live's not-found
+    // state has 0 targets — the controller is a no-op there).
+    await page.goto("/CourseDetail?id=nonexistent");
+    await page.waitForTimeout(600);
+    await expect(page.locator("[data-reveal]")).toHaveCount(0);
+  });
+});
+
+test.describe("session-15 parity: GUARD — the reveal cannot break the pinned parity", () => {
+  test("the popular pricing card renders unscaled pre- AND post-reveal (same width as its siblings)", async ({ page }) => {
+    await page.goto("/");
+    const widths = await page.evaluate(() => {
+      // Viewport-relative GUARD: the live's reveal leaves inline
+      // `transform: none` which kills the card's scale-105 — so the popular
+      // card must measure the SAME width as its unscaled siblings at any
+      // viewport (a live scale-105 would read 1.05x wider).
+      // Scope to the pricing section (its h2 reads "Choose Your Plan") —
+      // the featured course cards also carry h3 + $ text.
+      const section = [...document.querySelectorAll("section")].find((s) =>
+        /Choose Your Plan/.test(s.querySelector("h2")?.textContent || "")
+      );
+      const cards = section ? [...section.querySelectorAll('[data-reveal="b"]')] : [];
+      if (cards.length !== 3) return { n: cards.length, pre: [] as number[] };
+      return { n: 3, pre: cards.map((el) => Math.round(el.getBoundingClientRect().width)) };
+    });
+    expect(widths.n).toBe(3);
+    expect(widths.pre[0]).toBe(widths.pre[1]);
+    expect(widths.pre[0]).toBe(widths.pre[2]);
+
+    const card = page.locator('[data-reveal="b"]:has-text("Most Popular")');
+    await card.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1400);
+    const post = await card.evaluate((el) => ({
+      w: Math.round(el.getBoundingClientRect().width),
+      style: el.getAttribute("style"),
+    }));
+    expect(post.w).toBe(widths.pre[0]);
+    expect(post.style).toBe("opacity: 1; transform: none;");
+  });
+
+  test("the reveal moves no layout — scrollHeight is identical hidden vs revealed", async ({ page }) => {
+    await page.goto("/");
+    const heights = await page.evaluate(async () => {
+      const before = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" });
+      await new Promise((r) => setTimeout(r, 900));
+      window.scrollTo({ top: 0, behavior: "instant" });
+      await new Promise((r) => setTimeout(r, 200));
+      return {
+        before,
+        after: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight),
+      };
+    });
+    expect(heights.after).toBe(heights.before);
+  });
+
+  test("the hero H1 keeps the session-14 line-height winner through the reveal", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForTimeout(2600);
+    const lh = await page.evaluate(() => getComputedStyle(document.querySelector("h1[data-reveal]")!).lineHeight);
+    expect(lh).toBe("72px");
+  });
+});

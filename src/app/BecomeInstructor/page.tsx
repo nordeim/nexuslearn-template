@@ -11,6 +11,7 @@ import {
 
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { RevealController } from "@/components/reveal/RevealController";
 
 import { routeMetadata } from "@/lib/metadata";
 
@@ -49,23 +50,35 @@ export default function BecomeInstructorPage() {
             <div className="absolute top-20 left-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
             <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-500/8 rounded-full blur-3xl" />
             <div className="max-w-4xl mx-auto text-center relative z-10">
-              <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
+              <h1
+                className="text-3xl md:text-5xl font-bold text-white tracking-tight"
+                data-reveal="a"
+                style={{ opacity: 0, transform: "translateY(20px)" }}
+              >
                 Share Your Knowledge,
                 <br />
                 <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
                   Build Your Legacy
                 </span>
               </h1>
-              <p className="mt-6 text-lg text-gray-400 max-w-2xl mx-auto">
+              <p
+                className="mt-6 text-lg text-gray-400 max-w-2xl mx-auto"
+                data-reveal="a"
+                style={{ opacity: 0, transform: "translateY(20px)" }}
+              >
                 Join thousands of instructors earning income while making an impact. No technical
                 expertise required — we handle the platform, you bring the knowledge.
               </p>
-              <Link href="/Contact">
+              {/* Session 15: the live wraps the hero CTA link in a classless
+                  motion div (measured live structure). */}
+              <div data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
+                <Link href="/Contact">
                 <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-9 mt-8 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-semibold px-10 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
                   Apply Now
                   <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
                 </button>
-              </Link>
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -76,7 +89,7 @@ export default function BecomeInstructorPage() {
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-16">How It Works</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {STEPS.map((step) => (
-                <div key={step.num} className="text-center">
+                <div key={step.num} className="text-center" data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
                   <div className="text-5xl font-bold bg-gradient-to-r from-cyan-500 to-purple-600 bg-clip-text text-transparent mb-4">
                     {step.num}
                   </div>
@@ -99,6 +112,8 @@ export default function BecomeInstructorPage() {
                 <div
                   key={b.title}
                   className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-xl hover:border-gray-200 transition-all duration-300"
+                  data-reveal="b"
+                  style={{ opacity: 0, transform: "translateY(20px)" }}
                 >
                   <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center mb-5">
                     <b.icon className="h-6 w-6 text-purple-600" aria-hidden="true" />
@@ -128,6 +143,9 @@ export default function BecomeInstructorPage() {
         </section>
         </div>
       </main>
+      {/* Session 15: the reference scroll-reveal system (13 targets here). */}
+      <RevealController />
+
       <Footer />
     </div>
   );

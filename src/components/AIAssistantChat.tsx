@@ -5,6 +5,7 @@ import { Bot, Send, Sparkles, User } from "lucide-react";
 
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { RevealController } from "@/components/reveal/RevealController";
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -148,15 +149,27 @@ export function AIAssistantChat() {
           {/* Hero — reference: max-w-3xl, Sparkles in a w-14 gradient box */}
           <div className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-12 px-4">
             <div className="max-w-3xl mx-auto text-center">
-              <div className="flex items-center justify-center gap-3 mb-4">
+              <div
+                className="flex items-center justify-center gap-3 mb-4"
+                data-reveal="a"
+                style={{ opacity: 0, transform: "translateY(20px)" }}
+              >
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-cyan-500 to-purple-600 flex items-center justify-center">
                   <Sparkles className="h-7 w-7 text-white" aria-hidden="true" />
                 </div>
               </div>
-              <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
+              <h1
+                className="text-3xl md:text-5xl font-bold text-white tracking-tight"
+                data-reveal="a"
+                style={{ opacity: 0, transform: "translateY(20px)" }}
+              >
                 AI Study Assistant
               </h1>
-              <p className="mt-4 text-lg text-gray-400">
+              <p
+                className="mt-4 text-lg text-gray-400"
+                data-reveal="a"
+                style={{ opacity: 0, transform: "translateY(20px)" }}
+              >
                 Ask anything — get instant, expert-level answers to accelerate your learning.
               </p>
             </div>
@@ -270,6 +283,9 @@ export function AIAssistantChat() {
           </div>
         </div>
       </main>
+      {/* Session 15: the reference scroll-reveal system (3 targets here). */}
+      <RevealController />
+
       <Footer />
     </div>
   );

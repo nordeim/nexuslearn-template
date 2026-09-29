@@ -2,6 +2,7 @@ import { Target, Award, Heart, Zap, Globe } from "lucide-react";
 
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { RevealController } from "@/components/reveal/RevealController";
 
 import { routeMetadata } from "@/lib/metadata";
 
@@ -51,8 +52,18 @@ export default function AboutPage() {
           {/* Hero */}
           <div className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-20 px-4">
             <div className="max-w-4xl mx-auto text-center">
-              <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">About NexusLearn</h1>
-              <p className="mt-6 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              <h1
+                className="text-3xl md:text-5xl font-bold text-white tracking-tight"
+                data-reveal="a"
+                style={{ opacity: 0, transform: "translateY(20px)" }}
+              >
+                About NexusLearn
+              </h1>
+              <p
+                className="mt-6 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed"
+                data-reveal="a"
+                style={{ opacity: 0, transform: "translateY(20px)" }}
+              >
                 We&apos;re on a mission to democratize education by combining expert-led courses with
                 AI-powered tools, making world-class learning accessible to everyone.
               </p>
@@ -66,7 +77,7 @@ export default function AboutPage() {
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {STATS.map(([value, label]) => (
-                <div key={label} className="text-center">
+                <div key={label} className="text-center" data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
                   <p className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-500 to-purple-600 bg-clip-text text-transparent">
                     {value}
                   </p>
@@ -81,7 +92,7 @@ export default function AboutPage() {
         <section className="py-24 px-4 bg-gray-50">
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-              <div>
+              <div data-reveal="x-30" style={{ opacity: 0, transform: "translateX(-30px)" }}>
                 <h2 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">Our Story</h2>
                 <div className="mt-6 space-y-4 text-gray-600 leading-relaxed">
                   <p>
@@ -100,7 +111,7 @@ export default function AboutPage() {
                   </p>
                 </div>
               </div>
-              <div className="relative">
+              <div className="relative" data-reveal="x30" style={{ opacity: 0, transform: "translateX(30px)" }}>
                 <div className="rounded-3xl overflow-hidden aspect-[4/3]">
                   <img
                     src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80"
@@ -130,7 +141,7 @@ export default function AboutPage() {
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-16">Our Values</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {VALUES.map((v) => (
-                <div key={v.title} className="text-center p-6">
+                <div key={v.title} className="text-center p-6" data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
                   <div className="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center mx-auto mb-5">
                     <v.icon className="h-7 w-7 text-purple-600" aria-hidden="true" />
                   </div>
@@ -143,6 +154,11 @@ export default function AboutPage() {
         </section>
         </div>
       </main>
+      {/* Session 15: the reference scroll-reveal system (12 targets here —
+          the below-fold values cards stay hidden until scrolled, exactly
+          like the live). */}
+      <RevealController />
+
       <Footer />
     </div>
   );

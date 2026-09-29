@@ -11,7 +11,12 @@
  *     QUOTE utility class names — e.g. the leak-canary assertions in
  *     tests/e2e/nexuslearn.spec.ts re-leaked the very utilities they pin);
  *   - the root agent/project markdown files (AGENTS.md, CLAUDE.md, the
- *     SKILL documents — they discuss Tailwind classes in prose).
+ *     SKILL documents — they discuss Tailwind classes in prose) — and, as
+ *     session 15 proved, the repo-root worklog.md: the session-14 worklog
+ *     entry quoting the `.selection:bg-red-200` canary was written AFTER the
+ *     final gate run, so the shipped tree failed its own leak spec. Any file
+ *     written after the last gate can invalidate it — the leak spec must
+ *     re-run LAST, after every doc write.
  * Every exclusion below is verified by the session-14 leak spec. */
 @source not "../../skills";
 @source not "../../docs";
@@ -23,6 +28,7 @@
 @source not "../../Project_Architecture_Document.md";
 @source not "../../nexuslearn-template_SKILL.md";
 @source not "../../scandihaven_SKILL.md";
+@source not "../../worklog.md";
 
 @custom-variant dark (&:is(.dark *));
 

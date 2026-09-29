@@ -1,7 +1,7 @@
 ---
 name: nexuslearn-template
 description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from a 14-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons + normalized text-content diffs + per-view state diffs + computed box-shadow/border-radius sweeps + hover-state computed-style diffs + focus-ring parity sweeps + scroll-behavior/scroll-reveal comparisons + print-stylesheet comparisons + ::selection/cursor/caret sweeps + computed font/line-height probes + per-element space-y sibling-gap audits), the TEN Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients, the space-y/space-x selector rewrite — v4's :where() zero-specificity engine lets a child's mt-3 win where v3 overrode it — the shadow-scale shift: v4 renamed v3's shadow-sm to shadow-xs and moved shadow-sm up to v3's bare-shadow geometry, so byte-identical shadow-sm classes render one notch heavier (pin --shadow-sm in @theme inline); the button-cursor preflight drop (v4 removed v3's `button, [role="button"] { cursor: pointer }` — restore it in @layer base); the line-height composition flip (v3's variant-order emission makes a responsive text-* utility's OWN line-height beat a plain leading-*; v4's --tw-leading composition flips the winner — pin the reference winners unlayered and media-scoped); the inline-child space-y gap loss (v4's :where() engine assigns gaps to NON-LAST children as margin-block-end, INERT on inline labels — restore v3's follower-side gap); the overridden-gap loss (a child's own margin utility replaces the :where() gap carrier — the -mb-2 back-button case); and the reveal-killed scale (the reference's scroll-reveal system leaves inline transform: none on every revealed element, permanently killing transform utilities — replicate the RESTING state, not the class), the hardened mobile navigation pattern, the hover-audit methodology rules (v4 gates hover: variants behind @media (hover: hover) — touch-emulating headless browsers produce false parity failures; v4 renders translate-y/scale/rotate via the standalone CSS properties, not transform: matrix — read the right property per stack), the runtime-cascade pin pattern (the reference's Base44 runtime injects a page-level utility sheet AFTER its static build — cascade-ORDER variances flip utility winners with byte-identical classes; the third structural blind spot after token values and DOM nesting; fix with an UNLAYERED rule that beats every @layer rule), the focus-audit methodology (UA-default outline: auto computes dynamic contrast-adaptive values — never probe it for parity; transition-all elements render rings mid-transition — wait 2x the duration; v4's ring composition prefixes empty zero-alpha slots — full-string reads required), the universal scroll-behavior pin (the reference's runtime ships * { scroll-behavior: smooth } — pin the universal rule, not just html), the Next 16 allowedDevOrigins dev-hydration trap, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference page-shell pattern (main.pt-20 + gray wrapper under the fixed navbar), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing WITH its hero-state navbar, 2-col AI section, dark popular pricing card, FAQ stack, expandable About This Course, light-slate 404, in-page CourseDetail not-found, simulated-delivery signup + verify, the login card's 5-view state machine owning the WHOLE card interior), the head-metadata parity layer (root description, OG/Twitter cards, canonicals, logo favicon, manifest, per-route OG identity via a routeMetadata() helper), the CourseDetail sidebar level row + tags-only What-You'll-Learn list, the idempotent seed (Prisma update skips undefined keys — restate optional fields as null), the pricing -mt-8 overlap, the h-9+py-6 input collapse pattern, the chrome-subtree audit pattern (the Navbar lives outside <main> — a main*-scoped class diff never catches its drift), the route-STATE audit pattern (/Home renders the landing CONTENT but its navbar state escaped every audit that only checked content + height), the synced-viewport audit rule (set BOTH browser sessions' viewports in the same command — a live@1920 vs clone@375 comparison produces false 4-digit px drifts), the text-content audit surface (normalized innerText diffs catch copy + glyph drift — U+201C vs U+0022 — that height and class sweeps structurally cannot), and the font-parity principle (a font-family STRING match means nothing if one side loads the webfont and the other falls through — probe document.fonts + a measured probe-string width; the reference ships NO webfont, so every height band was a font-metric artifact until the bundle was removed), the skills/docs/tests CSS-leak exclusion (Tailwind v4's automatic source detection scans EVERY non-gitignored file — 51% of the compiled sheet was unused utilities generated from agent documentation; close it with @source not directives, canary-pinned), and the full test pyramid (31 Vitest unit + 171 Playwright e2e incl. 12 mobile-nav guards)."
-version: 3.2.0
+version: 3.3.0
 last_updated: "2026-09-29"
 project_state: "202 tests green (31 unit + 171 e2e); lint/typecheck/build clean; parity verified vs live reference (session-14 pass: the rendered FONT matched for the first time — the reference ships NO webfont (empty document.fonts on every route; the runtime declares Inter, system-ui, -apple-system, sans-serif inline and every browser falls through to the system font), so the next/font bundle was removed and the declared stack pinned via --font-sans in @theme — the root cause of ALL 13 sessions of documented "font-metric height bands", now collapsed to byte-exact heights on every route × viewport + all 9 CourseDetail pages; PLUS five more v4 traps pinned: the button-cursor preflight restore, the line-height composition pins (hero H1 72px / P 28px / CTA H2 48px), the inline-label + back-button space-y follower-gap pins, the dead popular-card scale (the reference's scroll-reveal inline transform: none kills scale-105 forever — replicated by .scale-105 { scale: none }), and the skills/docs/tests CSS-leak exclusion (1027 unused rules — 51% — closed by @source not); sessions 1-13 previously closed the login inputs' keyboard-focus ring cascade flip fixed — the reference's Base44 runtime re-asserts focus:ring-slate-400 after its static build so slate-400 wins the --tw-ring-color cascade on keyboard focus; restored by the UNLAYERED cascade pin in globals.css with GUARD specs proving every other control keeps the --ring ring; PLUS the signin-view DOM nesting restructured to the reference form — div.w-full > [space-y-3 (Google ONLY), OR divider, form] — closing a latent v4 space-y trap that margin collapse had hidden; PLUS the universal * { scroll-behavior: smooth } pin; sessions 1-12 previously closed shells, content, head, OG identity, login state machine, class-verbatim, display-order, section-design, seed-idempotency, space-y-engine, navbar-chrome, route-state-chrome, copy + glyph, component-state and computed-shadow parity)"
 ---
@@ -352,6 +352,28 @@ on an immediate computed read (the ring slots read zero-alpha) — wait
 ≥ 2× the transition duration. (c) v4's ring composition prefixes every
 box-shadow with empty zero-alpha slots — full-string reads or parens-aware
 slot filtering required; truncation hides the ring entirely.
+
+### 4.4e The scroll-reveal ENTRY animation — replicating motion systems without the library (session 15)
+
+The reference's framer-motion reveal system (confirmed in its bundle) is a
+RENDERED surface, not just an end state: 103 targets across 9 routes pre-hide
+with inline `opacity: 0; transform: translate…` at mount, reveal ONCE on
+scroll (any-pixel intersection; sibling cards stagger ~100ms; only in-view
+targets reveal at mount), and leave `opacity: 1; transform: none;` inline
+forever. **34 of the targets are classless motion-wrapper divs** — a nesting
+variance class-set diffs structurally cannot see (the wrapper has no
+classes); find them by dumping the live's styled elements with their children
+(the wrapper's child carries the familiar classes). The families, measured at
+frame resolution: A "snappy" (op ~310ms ease-out + transform spring zeta=0.561,
+wn=27.1 — 12% overshoot, settle ~280ms), B "floaty" (op ~310ms + a slow
+back-loaded transform ~728ms), HERO (coupled ~770ms from y=30), FAQ (slower
+coupled from y=10), X (±30px springs). Replicate with SSR pre-hide styles +
+a WAAPI controller whose keyframe tables are baked from the measured curves —
+zero dependencies, byte-identical DOM states. Two implementation traps: the
+controller must mount on EVERY render branch of a page (a branch without it
+ships permanently-hidden content), and transforms/opacity never affect layout
+(the height sweeps must stay byte-exact through any wrapper additions —
+GUARD-pin it).
 
 ### 4.5 The cosmic section recipe
 
@@ -979,8 +1001,22 @@ The repeatable loop used to reach (and re-verify) parity:
    (agent docs, session logs, specs). Canary selectors + a rule count
    before/after the `@source not` exclusions. The specs themselves quote
    class names — every quoted name re-leaks unless tests/ is excluded.
-16. **Gate** — lint → typecheck → unit → build → e2e; then re-screenshot
-   `docs/screenshots/`.
+16. **Scroll-reveal characterization** — to replicate a motion system:
+   dump every styled element per route (target inventory + variants), sample
+   the animation curves at frame resolution (opacity AND transform are
+   separate tracks with different durations — read both), measure the
+   stagger (instant scrolls; per-element first-change times), the mount
+   behavior (which targets are in view), the remount behavior (filter the
+   live's catalog and watch a fresh card), and the exact pre-hide/end style
+   STRINGS. Then verify the clone side-by-side: same inventory counts, same
+   pre-hide distribution at the same sample time, curves within tolerance.
+   A post-gate doc write can invalidate the CSS-leak gate — re-run the leak
+   spec LAST, after every doc write (the session-14 worklog entry re-leaked
+   the canary that way; session 15 closed it).
+17. **Gate** — lint → typecheck → unit → build → e2e; then re-screenshot
+   `docs/screenshots/` (full-page captures need an incremental reveal sweep
+   first — an instant jump to bottom leaves the jumped-past sections hidden,
+   on both sites).
 
 Key extractions worth keeping (from the live reference): the hero
 flowing-lines SVG (8 paths, 4 userSpaceOnUse gradients `#18CCFC → #6344F5 →

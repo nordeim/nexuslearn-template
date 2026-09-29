@@ -27,6 +27,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CourseCard } from "@/components/CourseCard";
 import { NewsletterForm } from "@/components/NewsletterForm";
+import { RevealController } from "@/components/reveal/RevealController";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -184,21 +185,38 @@ export default async function LandingPage() {
 
           <div className="relative z-10">
             <div className="text-center px-4 max-w-4xl mx-auto">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-cyan-400 text-sm font-medium mb-8 backdrop-blur-sm">
-                🚀 Over 10,000+ students already learning
-              </span>
-              <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white leading-tight tracking-tight">
+              {/* Session 15: the live wraps the hero badge in a classless
+                  motion div (measured live structure) — one of its 40
+                  scroll-reveal targets on this route. */}
+              <div data-reveal="hero" style={{ opacity: 0, transform: "translateY(30px)" }}>
+                <span className="inline-block px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-cyan-400 text-sm font-medium mb-8 backdrop-blur-sm">
+                  🚀 Over 10,000+ students already learning
+                </span>
+              </div>
+              <h1
+                className="text-4xl sm:text-5xl md:text-7xl font-bold text-white leading-tight tracking-tight"
+                data-reveal="hero"
+                style={{ opacity: 0, transform: "translateY(30px)" }}
+              >
                 Learn Skills That
                 <br />
                 <span className="bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
                   Shape Your Future
                 </span>
               </h1>
-              <p className="mt-6 text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              <p
+                className="mt-6 text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed"
+                data-reveal="hero"
+                style={{ opacity: 0, transform: "translateY(30px)" }}
+              >
                 Master the most in-demand skills with expert-led courses, AI-powered study tools, and
                 structured learning paths designed for real-world success.
               </p>
-              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div
+                className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
+                data-reveal="hero"
+                style={{ opacity: 0, transform: "translateY(30px)" }}
+              >
                 <Link href="/Courses">
                   <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-9 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-semibold px-8 py-6 text-lg rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105">
                     Browse Courses
@@ -212,7 +230,11 @@ export default async function LandingPage() {
                   </button>
                 </Link>
               </div>
-              <div className="mt-16 flex items-center justify-center gap-8 flex-wrap">
+              <div
+                className="mt-16 flex items-center justify-center gap-8 flex-wrap"
+                data-reveal="hero-op"
+                style={{ opacity: 0 }}
+              >
                 {[
                   ["10K+", "Students"],
                   ["500+", "Courses"],
@@ -280,7 +302,7 @@ export default async function LandingPage() {
         {/* ---------------------------- CATEGORIES ---------------------------- */}
         <section className="py-24 px-4 bg-white">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
+            <div className="text-center mb-16" data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
               <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Explore</span>
               <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
                 Browse by Category
@@ -292,7 +314,8 @@ export default async function LandingPage() {
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
               {CATEGORIES.map((cat) => (
-                <Link key={cat.slug} href={`/Courses?category=${cat.slug}`}>
+                <div key={cat.slug} data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
+                  <Link href={`/Courses?category=${cat.slug}`}>
                   <div className="group relative bg-gray-50 rounded-2xl p-6 md:p-8 text-center hover:bg-white hover:shadow-xl transition-all duration-500 border border-transparent hover:border-gray-100 cursor-pointer overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-transparent to-transparent group-hover:from-purple-50/50 group-hover:to-cyan-50/50 transition-all duration-500" />
                     <div className="relative z-10">
@@ -308,6 +331,7 @@ export default async function LandingPage() {
                     </div>
                   </div>
                 </Link>
+                </div>
               ))}
             </div>
           </div>
@@ -318,7 +342,11 @@ export default async function LandingPage() {
           <div className="max-w-7xl mx-auto">
             {/* Reference header (session 7): flex row — title block left, outline
                 CTA right; stacks to flex-col with the CTA under the title at mobile. */}
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-16">
+            <div
+              className="flex flex-col md:flex-row md:items-end md:justify-between mb-16"
+              data-reveal="a"
+              style={{ opacity: 0, transform: "translateY(20px)" }}
+            >
               <div>
                 <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Top Picks</span>
                 <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
@@ -338,7 +366,9 @@ export default async function LandingPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {courses.map((course) => (
-                <CourseCard key={course.id} course={course} />
+                <div key={course.id} data-reveal="b" style={{ opacity: 0, transform: "translateY(20px)" }}>
+                  <CourseCard course={course} />
+                </div>
               ))}
             </div>
           </div>
@@ -347,7 +377,7 @@ export default async function LandingPage() {
         {/* --------------------------- LEARNING PATHS ------------------------- */}
         <section className="py-24 px-4 bg-white">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
+            <div className="text-center mb-16" data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
               <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Career Tracks</span>
               <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
                 Structured Learning Paths
@@ -362,6 +392,8 @@ export default async function LandingPage() {
                 <div
                   key={path.title}
                   className="group relative bg-gray-50 rounded-3xl p-8 hover:bg-white hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-500 border border-transparent hover:border-gray-100"
+                  data-reveal="b"
+                  style={{ opacity: 0, transform: "translateY(20px)" }}
                 >
                   <div className={`inline-flex p-3 rounded-2xl bg-gradient-to-r ${path.gradient} mb-6`}>
                     <path.icon className="h-6 w-6 text-white" aria-hidden="true" />
@@ -406,9 +438,11 @@ export default async function LandingPage() {
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <div>
-                <span className="inline-block px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-medium mb-6">
-                  ✨ Powered by AI
-                </span>
+                <div data-reveal="x-30" style={{ opacity: 0, transform: "translateX(-30px)" }}>
+                  <span className="inline-block px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-medium mb-6">
+                    ✨ Powered by AI
+                  </span>
+                </div>
                 <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight leading-tight">
                   Your Personal
                   <br />
@@ -438,6 +472,8 @@ export default async function LandingPage() {
                   <div
                     key={f.title}
                     className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300"
+                    data-reveal="b"
+                    style={{ opacity: 0, transform: "translateY(20px)" }}
                   >
                     <f.icon className="h-8 w-8 text-cyan-400 mb-4" aria-hidden="true" />
                     <h3 className="font-semibold text-white mb-2">{f.title}</h3>
@@ -453,7 +489,7 @@ export default async function LandingPage() {
         <section className="py-24 px-4 bg-gray-50">
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-              <div className="relative">
+              <div className="relative" data-reveal="x-30" style={{ opacity: 0, transform: "translateX(-30px)" }}>
                 <div className="relative rounded-3xl overflow-hidden aspect-[4/3]">
                   <img
                     src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=80"
@@ -476,7 +512,9 @@ export default async function LandingPage() {
               </div>
 
               <div>
-                <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Teach With Us</span>
+                <div data-reveal="x30" style={{ opacity: 0, transform: "translateX(30px)" }}>
+                  <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Teach With Us</span>
+                </div>
                 <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
                   Become an Instructor
                 </h2>
@@ -515,7 +553,7 @@ export default async function LandingPage() {
         {/* ---------------------------- TESTIMONIALS -------------------------- */}
         <section className="py-24 px-4 bg-white">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
+            <div className="text-center mb-16" data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
               <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Testimonials</span>
               <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
                 What Our Students Say
@@ -530,6 +568,8 @@ export default async function LandingPage() {
                 <div
                   key={t.name}
                   className="relative bg-gray-50 rounded-3xl p-8 hover:bg-white hover:shadow-xl transition-all duration-500 border border-transparent hover:border-gray-100"
+                  data-reveal="b"
+                  style={{ opacity: 0, transform: "translateY(20px)" }}
                 >
                   <Quote className="h-10 w-10 text-purple-200 mb-4" aria-hidden="true" />
                   <div className="flex gap-1 mb-4">
@@ -561,7 +601,7 @@ export default async function LandingPage() {
         {/* ------------------------------ PRICING ----------------------------- */}
         <section className="py-24 px-4 bg-gray-50">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
+            <div className="text-center mb-16" data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
               <span className="text-sm font-semibold text-purple-600 tracking-wider uppercase">Pricing</span>
               <h2 className="mt-3 text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
                 Choose Your Plan
@@ -580,6 +620,8 @@ export default async function LandingPage() {
                       ? "bg-gradient-to-br from-[#0a0a1a] to-[#1a1a3a] text-white shadow-2xl shadow-purple-500/20 scale-105 border border-purple-500/30"
                       : "bg-white border border-gray-100 hover:shadow-xl hover:border-gray-200"
                   }`}
+                  data-reveal="b"
+                  style={{ opacity: 0, transform: "translateY(20px)" }}
                 >
                   {plan.popular && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -632,7 +674,9 @@ export default async function LandingPage() {
           </div>
 
           <div className="max-w-2xl mx-auto relative z-10 text-center">
-            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Stay in the Loop</h2>
+            <div data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
+              <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">Stay in the Loop</h2>
+            </div>
             <p className="mt-4 text-lg text-gray-400">
               Get the latest courses, tips, and exclusive offers delivered to your inbox.
             </p>
@@ -641,6 +685,10 @@ export default async function LandingPage() {
         </section>
         </div>
       </main>
+
+      {/* Session 15: the reference scroll-reveal system (40 targets here —
+          see docs/remediation-plan-session15.md). Renders nothing. */}
+      <RevealController />
 
       <Footer />
     </div>

@@ -14,6 +14,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { EnrollButton } from "@/components/course-detail/EnrollButton";
 import { AboutCourse } from "@/components/course-detail/AboutCourse";
+import { RevealController } from "@/components/reveal/RevealController";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { parseTags } from "@/lib/course-tags";
@@ -72,7 +73,10 @@ export default async function CourseDetailPage({
             </Link>
           </div>
         </main>
-        <Footer />
+        {/* Session 15: the reference scroll-reveal system (2 targets here). */}
+      <RevealController />
+
+      <Footer />
       </div>
     );
   }
@@ -109,8 +113,13 @@ export default async function CourseDetailPage({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
               {/* Left column — course info */}
               <div className="lg:col-span-2">
-                <div className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 shadow hover:bg-primary/80 bg-purple-500/20 text-purple-300 border-purple-500/30 mb-4">
-                  {course.category}
+                {/* Session 15: the live wraps the category badge + the price
+                    card in classless motion divs (measured live structure) —
+                    the route's 2 reveal targets, mount-animated (in view). */}
+                <div data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
+                  <div className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 shadow hover:bg-primary/80 bg-purple-500/20 text-purple-300 border-purple-500/30 mb-4">
+                    {course.category}
+                  </div>
                 </div>
                 <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
                   {course.title}
@@ -154,7 +163,8 @@ export default async function CourseDetailPage({
 
               {/* Right column — price / enroll card */}
               <div>
-                <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+                <div data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
+                  <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
                   <div className="aspect-video relative">
                     <img
                       src={course.image}
@@ -192,6 +202,7 @@ export default async function CourseDetailPage({
                       ))}
                     </div>
                   </div>
+                </div>
                 </div>
               </div>
             </div>
@@ -252,6 +263,10 @@ export default async function CourseDetailPage({
           </div>
         </div>
       </main>
+
+      {/* Session 15: the reference scroll-reveal system (2 targets here). */}
+      <RevealController />
+
       <Footer />
     </div>
   );

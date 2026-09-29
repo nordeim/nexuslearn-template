@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/Navbar";
+import { RevealController } from "@/components/reveal/RevealController";
 import { Footer } from "@/components/Footer";
 import { MyCourses } from "@/components/dashboard/MyCourses";
 import { Award, BookOpen, CirclePlay, TrendingUp } from "lucide-react";
@@ -57,10 +58,14 @@ export default async function DashboardPage() {
           {/* Hero */}
           <div className="bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0a0a1a] pt-16 pb-20 px-4">
             <div className="max-w-7xl mx-auto">
-              <h1 className="text-3xl md:text-4xl font-bold text-white">
-                {session ? `Welcome back, ${session.name}` : "Welcome back"}
-              </h1>
-              <p className="mt-2 text-gray-400">Continue your learning journey</p>
+              {/* Session 15: the live wraps the heading block in a classless
+                  motion div (measured live structure). */}
+              <div data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
+                <h1 className="text-3xl md:text-4xl font-bold text-white">
+                  {session ? `Welcome back, ${session.name}` : "Welcome back"}
+                </h1>
+                <p className="mt-2 text-gray-400">Continue your learning journey</p>
+              </div>
             </div>
           </div>
 
@@ -72,6 +77,8 @@ export default async function DashboardPage() {
               <div
                 key={card.label}
                 className="bg-white rounded-2xl p-5 md:p-6 shadow-lg border border-gray-100"
+                data-reveal="a"
+                style={{ opacity: 0, transform: "translateY(20px)" }}
               >
                 <div
                   className={`w-10 h-10 rounded-xl ${card.iconBg} ${card.iconColor} flex items-center justify-center mb-3`}
@@ -104,6 +111,9 @@ export default async function DashboardPage() {
           </div>
         </div>
       </main>
+      {/* Session 15: the reference scroll-reveal system (5 targets here). */}
+      <RevealController />
+
       <Footer />
     </div>
   );
