@@ -5,7 +5,7 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.3.3-06b6d4?logo=tailwindcss)
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2d3748?logo=prisma)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?logo=typescript)
-![Tests](https://img.shields.io/badge/tests-262_passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-270_passing-brightgreen)
 
 A production-grade e-learning platform — marketing site, searchable course catalog, enrollment with per-lesson progress tracking, a learner dashboard, and an AI study assistant. Built as a faithful, fully-functional clone of the NexusLearn reference app, rebuilt on the modern Next.js 16 stack.
 
@@ -113,7 +113,11 @@ bun run dev         # http://localhost:3000
 
 ```bash
 # SQLite path — schema-relative (prisma/), pinned at runtime by prisma/db-url.ts.
-# Use an ABSOLUTE path in production (docs/DEPLOYMENT.md).
+# The .env declaration is ENFORCED: an absolute DATABASE_URL exported in the
+# shell is ignored while .env declares this relative URL, so the database can
+# never silently leave <repo>/db/ (stale sandbox/CI exports are the failure
+# mode; the db:* scripts route through prisma/db-cli.ts for the same reason).
+# Use an ABSOLUTE path in production — set it IN the .env (docs/DEPLOYMENT.md).
 DATABASE_URL="file:../db/custom.db"
 
 # Session signing secret for HMAC cookie auth — REQUIRED in production.
@@ -127,7 +131,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ## Testing
 
 ```bash
-bun run test          # Vitest unit tests (31: auth crypto, tag parsing, eyebrow map, seed shape + display order + longDescription matrix, metadata helper)
+bun run test          # Vitest unit tests (39: auth crypto, tag parsing, eyebrow map, seed shape + display order + longDescription matrix, metadata helper, DATABASE_URL resolution — the pollution guard)
 bun run build         # required before e2e
 bun run test:e2e      # Playwright: 231 specs incl. 10 mobile-navigation guards
 ```
@@ -141,6 +145,8 @@ The session-16 specs pin the **navigation-transition surface**: back/forward scr
 The session-17 specs pin the **deep-link / query-parameter surface**: duplicate `?id=` keys take the FIRST value (Next.js delivers repeated params as `string[]` — the naive destructure passed the array to Prisma and rendered the error boundary; the reference's `URLSearchParams.get` semantics are restored by an explicit first-value normalization), the landing's Personal Development / AI & Innovation category cards link with the reference's UNDERSCORE slugs (`personal_development` / `ai_innovation` — the hyphen forms are unknown on the reference), an unknown `?category=` slug leaves the catalog filter in the reference's no-match state (EMPTY category trigger + 0 cards + "No courses found" — not a fallback to "All Categories"; an empty param value is absent → "all"), and the content routes match CASE-INSENSITIVELY like the reference's router (`/courses`, `/COURSES`, `/pricing` all render, URL preserved via the `src/proxy.ts` rewrite — `/login` stays exact-match, its case variants 404 like the reference's platform-level login route; the nav's active state is case-insensitive too). The session also VERIFIED at parity: the form-state persistence sweep (catalog search + login values reset identically on navigate-away + back) and the print-to-PDF comparison (page counts match on `/`, `/Courses`, `/Pricing` in both fresh and fully-revealed states — the reveal system's IntersectionObserver does not fire during print on either site).
 
 The session-18 specs pin the **error/empty-state + element-tag/attribute + data-mutation surfaces** — three families no settled-DOM diff can see. The **transient pending states**: the AI chat's loading bubble is the reference `loader-circle` spinner + "Thinking..." text (not bouncing dots — the bubble only exists while the request is pending, so every class/text/screenshot audit after `networkidle` structurally missed it; pinned under a delayed route), and the newsletter/contact buttons replace their ENTIRE content with the literal "..." / "Sending..." (three ASCII periods, charCodes 46,46,46 — byte-verified; not the U+2026 ellipsis glyph) while disabled during flight. The **form-control attribute surface** (placeholders, ids, alts — invisible to innerText diffs which read rendered text nodes only): the /Contact message placeholder is "Tell us how we can help...", the form ids are the reference bare names (`name`/`email`/`message` with matching label wiring — also the stronger autofill hints), the CourseDetail instructor portrait ships `alt=""` (decorative — the name renders in the adjacent paragraph; `alt={name}` made screen readers announce it twice), and the catalog search input carries NO type attribute. The **element-tag surface**: the three /Pricing card CTAs are bare INERT `<button>`s (the live's clicks fire no navigation — verified with network monitoring; the previous `next/link` wrappers made each CTA double-focusable, two tab stops, and navigated to /login, which the live does not do). The **per-route token theme**: the Base44 runtime injects PER-PAGE token sheets — 10 of 11 routes carry the shadcn NEUTRAL theme (byte-equal to the clone's :root) but `/login` alone carries ZINC, rendering the card buttons' focus rings `rgb(9,9,11)` instead of `rgb(10,10,10)`; a `body:has(main[data-login-theme])` scoped zinc block in `globals.css` restores the reference ring (the same 1-3 sRGB-unit drift family as the palette pin). VERIFIED at parity: the login wrong-credentials error, the native HTML5 validation on both forms, the newsletter success swap, the select dropdowns' rendered values, and the tab order on every route. Deliberate-better decisions (documented + pinned): the clone's explicit AI-chat error bubble + retryable newsletter/contact buttons (the live's failures leave PERMANENTLY-STUCK "Thinking..."/"..."/"Sending..." states — verified at +12-15s) and the fully-functional enrollment flow (the live's "Enroll Now" is inert — it fires only analytics requests, no enrollment ever happens; the reference dashboard ships the empty state, VLM-verified against the reference image).
+
+Session 19 was the **environment-integrity pass** (see `docs/remediation-plan-session19.md`): the database-location contract is now ENFORCED in code instead of documented as a manual workaround — `tests/db-url.test.ts` (8 Vitest specs) pins that `.env`'s `DATABASE_URL="file:../db/custom.db"` always resolves to `<repo>/db/custom.db` and that an absolute shell export pointing elsewhere (the sandbox/CI stale-export failure mode that silently created the database OUTSIDE the repository) is ignored; `prisma/db-cli.ts` extends the same guarantee to the Prisma CLI through every `db:*` script. The session also re-verified every standing surface at the byte-exact state (heights ×11 routes ×2 viewports including CourseDetail, the class-set diffs, the FULL mobile-menu battery — 405px panel, 8 links, 4px pre-CTA gap, toggle + route-change close, scroll lock, ARIA: **no Tailwind v4 bug**), the dashboard empty state against the reference image, and the AI chat end-to-end (a real SDK answer, captured in `docs/screenshots/aiassistant-answer--desktop.png`), plus three fresh-eyes audit surfaces — HTTP response headers (only CDN/proxy infrastructure differs), viewport-resize behaviors (the 768px breakpoint swap identical on both sites) and locale/intl number formatting (identical everywhere). One accepted variance documented: the /Contact subject select trigger's class ORDER differs from the live (token sets identical, rendering identical; the live's own /Courses triggers use the clone's appended form).
 
 ## API Reference
 
@@ -179,7 +185,7 @@ Full token reference with evidence: `Project_Architecture_Document.md` §5.
 | Issue | Solution |
 |---|---|
 | Everything renders transparent / no theme colors | `:root` vars must be `hsl()`-wrapped full values, not v3 bare triplets (Tailwind v4 `@theme inline` rule) |
-| "Unable to open the database file" | Ensure every PrismaClient uses `datasourceUrl: resolveDatabaseUrl()`; check `db/` exists after `bun run db:push`; a stale `DATABASE_URL` shell export overrides the repo `.env` — unset it |
+| "Unable to open the database file" | Ensure every PrismaClient uses `datasourceUrl: resolveDatabaseUrl()`; check `db/` exists after `bun run db:push` — the database lives at `<repo>/db/custom.db`. A stale ABSOLUTE `DATABASE_URL` shell export is ignored by design while `.env` declares the relative URL (a one-time `[db-url]` note prints) — put production absolute URLs IN the `.env` |
 | E2E "Enroll Now" not found | Run `bun run build` before `test:e2e`; the suite resets enrollments in global-setup — a stale build is the usual culprit |
 | Colors slightly off vs reference | The v3-era palette must stay pinned in `@theme` (do not revert to v4 oklch defaults) |
 | Login fails on standalone build | `AUTH_SECRET` must be set (any 32-hex value) — sessions won't verify across restarts otherwise |
