@@ -1431,3 +1431,129 @@ test.describe("session-10 parity: /Home renders the landing hero-state navbar", 
     await expect(page.locator("footer")).toHaveCount(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Session 11 — parity: copy + glyph fidelity (the learning-path card
+// description + the testimonial ASCII quotes) and the login card-interior
+// ownership (the 5-view state machine owns the WHOLE card interior — the
+// logo/h1/Google/OR chrome renders ONLY on the signin view, and the reset
+// email input is the text-base variant).
+// Reference: docs/remediation-plan-session11.md
+// ---------------------------------------------------------------------------
+
+test.describe("session-11 parity: landing copy + glyph fidelity", () => {
+  test("the Digital Marketing Pro path card carries the live description", async ({ page }) => {
+    await page.goto("/");
+    // The live third learning-path card (verified 2026-09-29): the clone
+    // shipped the pre-session-3 copy ("Learn modern marketing from SEO and
+    // content strategy…") — caught by the session-11 text-content diff.
+    const section = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Structured Learning Paths" }) });
+    await expect(section).toBeVisible();
+    await expect(
+      section.getByText("Learn SEO, paid ads, social media strategy, and analytics to drive real business growth.")
+    ).toBeVisible();
+    await expect(section.getByText("Learn modern marketing")).toHaveCount(0);
+  });
+
+  test("testimonial quotes render ASCII double quotes", async ({ page }) => {
+    await page.goto("/");
+    // The live testimonial paragraphs wrap the quotes in plain U+0022
+    // characters (measured charCodeAt 34/34); the clone rendered U+201C/U+201D
+    // via &ldquo;/&rdquo; entities.
+    const quotes = page.locator("section", { hasText: "What Our Students Say" })
+      .locator("p.text-gray-600.leading-relaxed");
+    await expect(quotes).toHaveCount(3);
+    for (let i = 0; i < 3; i++) {
+      const text = (await quotes.nth(i).textContent()) ?? "";
+      expect(text.charCodeAt(0)).toBe(34);            // starts with "
+      expect(text.charCodeAt(text.length - 1)).toBe(34); // ends with "
+      expect(text).not.toMatch(/[\u201C\u201D]/);     // no curly quotes anywhere
+    }
+  });
+});
+
+test.describe("session-11 parity: the login card interior is owned by the active view", () => {
+  test("the reset view replaces the card interior", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Forgot password?" }).click();
+
+    // The live reset view renders ONLY the view content inside the card —
+    // no logo, no h1, no subtitle, no Google button, no OR divider.
+    await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to NexusLearn" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Continue with Google" })).toHaveCount(0);
+    await expect(page.locator("img[alt='NexusLearn logo']")).toHaveCount(0);
+    await expect(page.locator("main h1")).toHaveCount(0);
+    // The OR divider belongs to the signin chrome too.
+    await expect(page.locator("span.bg-white.px-3")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Back to sign in" })).toBeVisible();
+  });
+
+  test("the reset email input is the text-base variant", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Forgot password?" }).click();
+    // The live reset-view input carries `text-base` after py-2 (like the
+    // signin inputs) — NOT the `text-sm sm:text-base` tail the signup
+    // inputs carry. Verified against the live DOM 2026-09-29.
+    const input = page.locator("#email");
+    const cls = await input.getAttribute("class");
+    expect(cls).toContain(" text-base ");
+    expect(cls).not.toContain("sm:text-base");
+    expect(cls).toContain("h-10 sm:h-11");
+    expect(cls).toContain("placeholder:text-slate-400");
+  });
+
+  test("the reset-sent view replaces the card interior", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Forgot password?" }).click();
+    await page.fill("#email", "session11@example.com");
+    await page.getByRole("button", { name: "Send reset link" }).click();
+
+    await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to NexusLearn" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Continue with Google" })).toHaveCount(0);
+    await expect(page.locator("main h1")).toHaveCount(0);
+    await expect(page.locator("span.bg-white.px-3")).toHaveCount(0);
+  });
+
+  test("the signup view replaces the card interior", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Need an account? Sign up" }).click();
+
+    await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to NexusLearn" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Continue with Google" })).toHaveCount(0);
+    await expect(page.locator("main h1")).toHaveCount(0);
+    await expect(page.locator("span.bg-white.px-3")).toHaveCount(0);
+  });
+
+  test("the verify view replaces the card interior", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Need an account? Sign up" }).click();
+    await page.fill("#email", `verify-interior-${Date.now()}@example.com`);
+    await page.fill("#password", "SuperSecret99!");
+    await page.fill("#confirmPassword", "SuperSecret99!");
+    await page.getByRole("button", { name: "Create account" }).click();
+
+    await expect(page.getByRole("heading", { name: "Verify your email" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to NexusLearn" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Continue with Google" })).toHaveCount(0);
+    await expect(page.locator("main h1")).toHaveCount(0);
+    await expect(page.locator("span.bg-white.px-3")).toHaveCount(0);
+  });
+
+  test("returning to sign-in restores the full chrome", async ({ page }) => {
+    // The chrome is not destroyed — it is owned by the signin view, so the
+    // round trip must bring back the logo + h1 + Google + OR divider.
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Forgot password?" }).click();
+    await expect(page.locator("main h1")).toHaveCount(0);
+    await page.getByRole("button", { name: "Back to sign in" }).click();
+    await expect(page.getByRole("heading", { name: "Welcome to NexusLearn" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+    await expect(page.locator("img[alt='NexusLearn logo']")).toBeVisible();
+    await expect(page.locator("span.bg-white.px-3")).toBeVisible();
+  });
+});

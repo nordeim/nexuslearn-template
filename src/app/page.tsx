@@ -84,7 +84,7 @@ const LEARNING_PATHS = [
   },
   {
     title: "Digital Marketing Pro",
-    description: "Learn modern marketing from SEO and content strategy to paid ads and marketing automation.",
+    description: "Learn SEO, paid ads, social media strategy, and analytics to drive real business growth.",
     gradient: "from-amber-500 to-orange-600",
     icon: Target,
     steps: ["SEO Basics", "Content Strategy", "Paid Ads", "Social Media", "Analytics", "Automation"],
@@ -537,7 +537,9 @@ export default async function LandingPage() {
                       <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" aria-hidden="true" />
                     ))}
                   </div>
-                  <p className="text-gray-600 leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
+                  {/* The live app wraps the quote in plain ASCII double quotes
+                      (U+0022) — not typographic quotes. */}
+                  <p className="text-gray-600 leading-relaxed mb-6">"{t.quote}"</p>
                   <div className="flex items-center gap-3">
                     <img
                       src={t.avatar}

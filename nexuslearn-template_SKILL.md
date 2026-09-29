@@ -1,9 +1,9 @@
 ---
 name: nexuslearn-template
-description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from a 10-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons), the four Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients, and the space-y/space-x selector rewrite — v4's :where() zero-specificity engine lets a child's mt-3 win where v3 overrode it), the hardened mobile navigation pattern, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference page-shell pattern (main.pt-20 + gray wrapper under the fixed navbar), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing WITH its hero-state navbar, 2-col AI section, dark popular pricing card, FAQ stack, expandable About This Course, light-slate 404, in-page CourseDetail not-found, simulated-delivery signup + verify), the head-metadata parity layer (root description, OG/Twitter cards, canonicals, logo favicon, manifest, per-route OG identity via a routeMetadata() helper), the CourseDetail sidebar level row + tags-only What-You'll-Learn list, the idempotent seed (Prisma update skips undefined keys — restate optional fields as null), the pricing -mt-8 overlap, the h-9+py-6 input collapse pattern, the chrome-subtree audit pattern (the Navbar lives outside <main> — a main*-scoped class diff never catches its drift), the route-STATE audit pattern (/Home renders the landing CONTENT but its navbar state escaped every audit that only checked content + height), the synced-viewport audit rule (set BOTH browser sessions' viewports in the same command — a live@1920 vs clone@375 comparison produces false 4-digit px drifts), and the full test pyramid (31 Vitest unit + 133 Playwright e2e incl. 12 mobile-nav guards)."
-version: 2.8.0
+description: "NexusLearn — e-learning platform (Next.js 16 App Router + React 19 + TypeScript strict + Tailwind CSS v4 CSS-first + Prisma 6/SQLite + first-party cookie auth). Complete engineering reference distilled from an 11-session build: pixel-parity clone methodology (computed-style gates + VLM band comparisons + normalized text-content diffs + per-view state diffs), the four Tailwind v4 migration traps (bare-HSL transparent theme, oklch palette drift, in-oklab gradients, and the space-y/space-x selector rewrite — v4's :where() zero-specificity engine lets a child's mt-3 win where v3 overrode it), the hardened mobile navigation pattern, multi-surface SQLite path resolution (CLI vs runtime vs standalone chdir trap), the reference page-shell pattern (main.pt-20 + gray wrapper under the fixed navbar), the reference-behavior parity decisions (sign-in to /, public dashboard, /Home landing WITH its hero-state navbar, 2-col AI section, dark popular pricing card, FAQ stack, expandable About This Course, light-slate 404, in-page CourseDetail not-found, simulated-delivery signup + verify, the login card's 5-view state machine owning the WHOLE card interior), the head-metadata parity layer (root description, OG/Twitter cards, canonicals, logo favicon, manifest, per-route OG identity via a routeMetadata() helper), the CourseDetail sidebar level row + tags-only What-You'll-Learn list, the idempotent seed (Prisma update skips undefined keys — restate optional fields as null), the pricing -mt-8 overlap, the h-9+py-6 input collapse pattern, the chrome-subtree audit pattern (the Navbar lives outside <main> — a main*-scoped class diff never catches its drift), the route-STATE audit pattern (/Home renders the landing CONTENT but its navbar state escaped every audit that only checked content + height), the synced-viewport audit rule (set BOTH browser sessions' viewports in the same command — a live@1920 vs clone@375 comparison produces false 4-digit px drifts), the text-content audit surface (normalized innerText diffs catch copy + glyph drift — U+201C vs U+0022 — that height and class sweeps structurally cannot), and the full test pyramid (31 Vitest unit + 141 Playwright e2e incl. 12 mobile-nav guards)."
+version: 2.9.0
 last_updated: "2026-09-29"
-project_state: "164 tests green (31 unit + 133 e2e); lint/typecheck/build clean; parity verified vs live reference (session-10 pass: the /Home hero-state navbar — the live app renders /Home (the reference footer target) with the FULL landing treatment: transparent navbar + white logo + text-white/80 mobile trigger at scroll 0 flipping to the white-nav after scroll, byte-identical to /; the clone's overHero detection covered only / and now covers both routes; plus the 404 wrapper hardening pin — the main landmark + min-h-dvh page root are deliberate documented variances vs the live's landmark-less div.min-h-screen, now pinned by a spec; sessions 1-9 previously closed shells, content, head, OG identity, login state machine, class-verbatim, display-order, section-design, seed-idempotency, space-y-engine and navbar-chrome parity)"
+project_state: "172 tests green (31 unit + 141 e2e); lint/typecheck/build clean; parity verified vs live reference (session-11 pass: copy + glyph fidelity + the login card-interior ownership — the landing's Digital Marketing Pro path card now carries the live description, the testimonial quotes render ASCII double quotes, and the login card's 5-view state machine owns the WHOLE card interior: the logo/h1/Google/OR chrome renders only on the signin branch of LoginForm.tsx while reset/reset-sent/signup/verify replace the entire card body, with the reset email input on its own text-base variant; PLUS the breakpoint-zone sweep cleared the md/lg boundaries at 640/767/768/1024/1279/1280 — no Tailwind v4 breakpoint bug; sessions 1-10 previously closed shells, content, head, OG identity, login state machine, class-verbatim, display-order, section-design, seed-idempotency, space-y-engine, navbar-chrome and route-state-chrome parity)"
 ---
 
 # NexusLearn — Complete Engineering Skill
@@ -101,8 +101,8 @@ excluded from tsconfig/eslint/vitest/playwright.
 (`auth.test.ts` 5, `course-tags.test.ts` 3, `course-eyebrow.test.ts` 3,
 `seed-data.test.ts` 15 — incl. the reference imagery/avatar map,
 lesson-count pins, display-order pins, the longDescription presence matrix
-and the metadata helper) + 133 e2e specs across 2 files
-(`mobile-navigation.spec.ts` 12, `nexuslearn.spec.ts` 121 — incl. the 9
+and the metadata helper) + 141 e2e specs across 2 files
+(`mobile-navigation.spec.ts` 12, `nexuslearn.spec.ts` 129 — incl. the 9
 session-3 parity specs, the 16 session-4 specs (page shells, About-Course,
 AI chat shell, 404, robots/sitemap), the 18 session-5 specs (head
 metadata incl. manifest, the login 5-view state machine (reset, reset-sent,
@@ -116,10 +116,14 @@ parity: bare stats grid, lucide stat icons, empty-state button bases), the
 6 session-9 specs (the Tailwind v4 space-y engine trap — the mobile
 panel CTA's 4px reference gap + the 405px open panel + the panel button
 base; the bare trigger string on both nav states; the desktop My Dashboard
-button base trio; the logo span byte order) and the 5 session-10 specs
+button base trio; the logo span byte order), the 5 session-10 specs
 (the /Home hero-state navbar on desktop + mobile incl. the scroll flip and
-the /Home panel geometry; the 404 wrapper's deliberate main.min-h-dvh
-hardening pin).
+the 404 wrapper hardening pin) and the 8 session-11 specs (the landing copy
++ glyph pins — the Digital Marketing Pro path description + the ASCII
+testimonial quotes; the login card-interior ownership — the reset /
+reset-sent / signup / verify views replace the whole card body with no
+logo/h1/Google/OR, the reset input's text-base variant, and the chrome
+restored on the round trip back to sign-in).
 
 ---
 
@@ -733,8 +737,27 @@ The repeatable loop used to reach (and re-verify) parity:
    that renders the right CONTENT at the right HEIGHT can still ship the
    wrong CHROME state (the session-10 /Home case: content + height band
    were green for 9 sessions while the navbar rendered the white-nav state
-   over the dark hero).
-5. **Gate** — lint → typecheck → unit → build → e2e; then re-screenshot
+   over the dark hero). COMPONENT-STATE views need their own diffs too —
+   the session-11 login case: a default-state-only class diff was green
+   for 6 sessions while the four non-signin views rendered inside the
+   signin chrome the live app removes (diff every view of a stateful
+   component: the login card's 5, the mobile panel open/closed, the
+   navbar's 2 states).
+5. **Text content is its own audit surface** — height sweeps absorb
+   single-line copy changes (same layout) and class/computed-style gates
+   never see glyph choice (U+201C vs U+0022 renders at identical metrics).
+   The session-11 finds (the path-card description drift + the testimonial
+   curly quotes) survived ten height/class/computed audits. Diff the
+   normalized `innerText` of `main` per route (collapse whitespace →
+   split lines → SequenceMatcher), plus the footer and every
+   component-state view.
+6. **Sweep the breakpoint zone** — 375 and 1920 alone never exercise the
+   md/lg boundaries. Sweep 640/767/768/1024/1279/1280 (both sessions,
+   synced viewports): the mobile-trigger ↔ desktop-row flip must happen at
+   exactly 768px on both sites, and every responsive grid's column count
+   must flip at the same widths (session-11: all green — no Tailwind v4
+   breakpoint bug anywhere in the zone).
+7. **Gate** — lint → typecheck → unit → build → e2e; then re-screenshot
    `docs/screenshots/`.
 
 Key extractions worth keeping (from the live reference): the hero
