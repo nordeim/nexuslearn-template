@@ -896,7 +896,11 @@ test.describe("session-6 parity: pricing overlap + courses hero", () => {
   test("courses hero search input is the reference h-9 text input", async ({ page }) => {
     await page.goto("/Courses");
     const input = page.locator("main input").first();
-    await expect(input).toHaveAttribute("type", "text");
+    // Session-18 correction: the live's search input carries NO type
+    // attribute (text is the UA default — byte-verified by the attribute
+    // sweep; the original "type=text" note was stale). The h-9 + py-6
+    // border-box collapse still produces the reference 50px height.
+    expect(await input.getAttribute("type")).toBeNull();
     await expect(input).toHaveClass(/\bh-9\b/);
     await expect(input).toHaveClass(/\bw-full\b/);
     await expect(input).toHaveClass(/file:text-foreground/);
@@ -1700,7 +1704,11 @@ test.describe("session-13 parity: the login inputs' focus ring color (the v3 run
     await btn.focus();
     await page.waitForTimeout(450);
     const ringColor = await btn.evaluate((el) => getComputedStyle(el).getPropertyValue("--tw-ring-color").trim());
-    expect(ringColor).toBe("#0a0a0a");
+    // Session-18 refinement: /login alone carries the live's ZINC token
+    // sheet (--ring #09090b = zinc-950); every other route stays neutral
+    // #0a0a0a. The guard's intent is unchanged — the buttons NEVER flip to
+    // the slate-400 ring (that stays pinned to the inputs).
+    expect(ringColor).toBe("#09090b");
   });
 });
 
@@ -2647,5 +2655,267 @@ test.describe("session-17 parity: route-casing rewrites (case-insensitive conten
   test("unknown routes still 404 through the middleware (the regression guard)", async ({ page }) => {
     await page.goto("/nonexistent-page-xyz");
     await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session 18 — the error/empty-state + element-tag/attribute + data-mutation
+// surfaces: the /Contact message placeholder, the AI chat loading bubble, the
+// /Pricing CTA tag drift, the newsletter pending label, the /login zinc token
+// theme, the instructor portrait alt, the search input type, and the
+// deliberate-better failure states. Reference: docs/remediation-plan-session18.md
+// ---------------------------------------------------------------------------
+
+test.describe("session-18 parity: the /Contact message placeholder (the attribute surface)", () => {
+  // Placeholders are ATTRIBUTES — invisible to innerText diffs (which read
+  // rendered text nodes only) and to class diffs. The live's message
+  // textarea ships "Tell us how we can help..."; the clone had drifted to
+  // "How can we help you?" — visible in every empty-form render.
+  test("the message textarea's placeholder is the reference string", async ({ page }) => {
+    await page.goto("/Contact");
+    const ta = page.locator("textarea");
+    await expect(ta).toHaveAttribute("placeholder", "Tell us how we can help...");
+  });
+
+  test("GUARD: the name + email placeholders are unchanged", async ({ page }) => {
+    await page.goto("/Contact");
+    // placeholder-based selection: the live's inputs carry no type attribute
+    // (text is the UA default) — never select them by [type=text].
+    await expect(page.getByPlaceholder("John Doe")).toHaveCount(1);
+    await expect(page.getByPlaceholder("john@example.com")).toHaveCount(1);
+  });
+
+  // The live's form-control ids are the bare reference names (name / email /
+  // message) with matching label[for] wiring; the clone had prefixed them
+  // contact-*. Ids are invisible to every rendered surface — only the
+  // attribute sweep sees them — and the bare names are also the stronger
+  // browser-autofill hints.
+  test("the form-control ids are the reference bare names with label wiring", async ({ page }) => {
+    await page.goto("/Contact");
+    await expect(page.locator("main input#name")).toHaveCount(1);
+    await expect(page.locator("main input#email")).toHaveCount(1);
+    await expect(page.locator("main textarea#message")).toHaveCount(1);
+    await expect(page.locator("main label[for='name']")).toHaveCount(1);
+    await expect(page.locator("main label[for='email']")).toHaveCount(1);
+    await expect(page.locator("main label[for='message']")).toHaveCount(1);
+  });
+});
+
+test.describe("session-18 parity: the AI chat loading bubble (the transient-state surface)", () => {
+  // The loading bubble only exists while the request is pending — every
+  // settled-DOM audit (class diffs, text diffs, post-networkidle
+  // screenshots) structurally cannot see it. The live renders a spinning
+  // lucide-loader-circle + "Thinking..." text in a px-5 py-3 flex
+  // items-center gap-2 text-gray-400 bubble; the clone shipped three
+  // animate-bounce dots in a px-4 py-3 bubble.
+  test("the pending bubble is the reference loader-circle + Thinking... text", async ({ page }) => {
+    // Hold the request open so the loading state persists for the reads.
+    await page.route("**/api/ai/chat", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ reply: "ok" }),
+      });
+    });
+    await page.goto("/AIAssistant");
+    await page.locator("textarea").fill("What is python?");
+    await page.locator("textarea").press("Enter");
+
+    const bubble = page.locator("main div.bg-gray-50.px-5.py-3.flex.items-center.gap-2.text-gray-400");
+    await expect(bubble).toBeVisible();
+    await expect(bubble).toContainText("Thinking...");
+
+    // The spinner is the reference loader-circle svg, not the dots
+    const spin = bubble.locator("svg.animate-spin");
+    await expect(spin).toHaveCount(1);
+    const cls = await spin.getAttribute("class");
+    expect(cls).toContain("lucide-loader-circle");
+    expect(cls).toContain("h-4 w-4");
+
+    // No bouncing dots anywhere in the chat (the old clone-only indicator)
+    await expect(page.locator("main .animate-bounce")).toHaveCount(0);
+  });
+});
+
+test.describe("session-18 parity: the /Pricing CTAs (the element-tag surface)", () => {
+  // Tag names are invisible to class diffs — an <a> styled exactly like a
+  // <button> passes every class-set diff but double-focuses (the anchor AND
+  // the nested button are both tab stops) and navigates differently. The
+  // live's three card CTAs are bare INERT <button>s; the clone had wrapped
+  // them in next/link anchors to /login.
+  test("the three card CTAs are buttons — no anchor wrappers to /login", async ({ page }) => {
+    await page.goto("/Pricing");
+    await expect(page.getByRole("button", { name: "Get Started", exact: true })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Start Pro Trial" })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Get Lifetime Access" })).toHaveCount(1);
+    await expect(page.locator("main a[href='/login']")).toHaveCount(0);
+  });
+
+  test("clicking a pricing CTA stays on /Pricing (the live's CTAs are inert)", async ({ page }) => {
+    await page.goto("/Pricing");
+    await page.getByRole("button", { name: "Get Started", exact: true }).click();
+    await page.waitForTimeout(800);
+    expect(page.url()).toContain("/Pricing");
+    await expect(page.getByRole("heading", { name: "Simple, Transparent Pricing" })).toBeVisible();
+  });
+});
+
+test.describe("session-18 parity: the newsletter pending label (the transient-state surface)", () => {
+  // The live's button, while the request is pending, renders disabled with
+  // the literal "..." — the Subscribe label AND the Send icon are both
+  // replaced. The clone kept the full label during pending.
+  test("the pending button renders the reference '...' label, disabled", async ({ page }) => {
+    await page.route("**/api/newsletter", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true }),
+      });
+    });
+    await page.goto("/");
+    await page.locator("main input[type='email']").fill("probe@example.com");
+    const btn = page.locator("main form button[type='submit']");
+    await btn.click();
+    await expect(btn).toBeDisabled();
+    await expect(btn).toHaveText("...");
+  });
+
+  test("GUARD: the idle button keeps the Subscribe label + the success swap", async ({ page }) => {
+    await page.goto("/");
+    const btn = page.locator("main form button[type='submit']");
+    await expect(btn).toHaveText(/Subscribe/);
+    await page.locator("main input[type='email']").fill("probe@example.com");
+    await btn.click();
+    await expect(page.getByText(/subscribed/i)).toBeVisible();
+  });
+});
+
+test.describe("session-18 parity: the /Contact pending label + form ids (the transient-state + attribute surfaces)", () => {
+  // The live's contact button, while submitting, renders disabled with the
+  // literal "Sending..." — THREE ASCII PERIODS (charCodes 46,46,46, not the
+  // U+2026 ellipsis glyph) and NO Send icon (the whole content is replaced).
+  // The live's endpoint never completes (stuck at "Sending..." on every real
+  // submit, +15s verified) — the clone keeps its working success/error
+  // states (deliberate-better) but must match the pending rendering.
+  test("the pending button renders the reference 'Sending...' label, disabled, no icon", async ({ page }) => {
+    await page.route("**/api/contact", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true }),
+      });
+    });
+    await page.goto("/Contact");
+    await page.getByPlaceholder("John Doe").fill("Probe Name");
+    await page.getByPlaceholder("john@example.com").fill("probe@example.com");
+    await page.getByPlaceholder(/help/i).fill("Probe message.");
+    await page.getByRole("combobox").click();
+    await page.getByRole("option").nth(1).click();
+    const btn = page.getByRole("button", { name: "Send Message" });
+    await btn.click();
+    const pending = page.locator("main form button[type='submit']");
+    await expect(pending).toBeDisabled();
+    await expect(pending).toHaveText("Sending...");
+    // the ASCII form, not the ellipsis glyph (the session-11 glyph lesson)
+    const codes = await pending.evaluate((el) => [...el.textContent].map((c) => c.codePointAt(0)));
+    expect(codes).toEqual([83, 101, 110, 100, 105, 110, 103, 46, 46, 46]);
+    // the Send icon is replaced during pending (the live ships svgs: 0)
+    await expect(pending.locator("svg")).toHaveCount(0);
+  });
+});
+
+test.describe("session-18 parity: the /login zinc token theme (the per-route token surface)", () => {
+  // The Base44 runtime injects PER-PAGE token sheets: 10 of 11 routes carry
+  // the shadcn NEUTRAL theme (the clone's values everywhere), but /login
+  // alone carries ZINC — --ring 240 10% 3.9% renders the card buttons'
+  // focus rings as rgb(9, 9, 11) (zinc-950) instead of rgb(10, 10, 10).
+  test("the Sign in button's keyboard-focus ring slot is the zinc near-black", async ({ page }) => {
+    await page.goto("/login");
+    const btn = page.getByRole("button", { name: "Sign in" });
+    await btn.focus();
+    // transition-all 200ms — wait out the transition before reading slots
+    await page.waitForTimeout(450);
+    const shadow = await btn.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(shadow).toContain("rgb(9, 9, 11) 0px 0px 0px 4px");
+  });
+
+  test("/login overrides the ring token at the body level (the zinc block)", async ({ page }) => {
+    await page.goto("/login");
+    const ring = await page.evaluate(() => getComputedStyle(document.body).getPropertyValue("--ring").trim());
+    // #09090b = hsl(240 10% 3.9%) = zinc-950 — the live's /login --ring
+    expect(ring).toBe("#09090b");
+  });
+
+  test("GUARD: every other route keeps the neutral ring + the Contact button slot", async ({ page }) => {
+    await page.goto("/Courses");
+    const ring = await page.evaluate(() => getComputedStyle(document.body).getPropertyValue("--ring").trim());
+    expect(ring).toBe("#0a0a0a");
+    await page.goto("/Contact");
+    const btn = page.getByRole("button", { name: "Send Message" });
+    await btn.focus();
+    await page.waitForTimeout(450);
+    const shadow = await btn.evaluate((el) => getComputedStyle(el).boxShadow);
+    // ring-1 (the shadcn base) — a 1px slot, not the login inputs' ring-2
+    expect(shadow).toContain("rgb(10, 10, 10) 0px 0px 0px 1px");
+  });
+});
+
+test.describe("session-18 parity: the CourseDetail instructor portrait alt", () => {
+  // The live ships alt="" (decorative — the instructor name renders in the
+  // adjacent paragraph, so screen readers announce it once). The clone's
+  // alt={instructorName} made readers announce the name twice.
+  test("the instructor portrait's alt is empty (the reference's decorative choice)", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-1");
+    const portrait = page.locator("main img.w-10.h-10.rounded-full");
+    await expect(portrait).toHaveCount(1);
+    await expect(portrait).toHaveAttribute("alt", "");
+  });
+
+  test("GUARD: the course hero image keeps the course-title alt", async ({ page }) => {
+    await page.goto("/CourseDetail?id=seed-1");
+    const hero = page.locator("main img.w-full.h-full.object-cover");
+    await expect(hero).toHaveCount(1);
+    await expect(hero).toHaveAttribute("alt", "Complete Web Development Bootcamp 2026");
+  });
+});
+
+test.describe("session-18 parity: the catalog search input type attribute", () => {
+  // The live's search input carries NO type attribute (text is the UA
+  // default); the clone's type="text" was based on a stale session-6 note.
+  test("the search input has no type attribute (the reference markup)", async ({ page }) => {
+    await page.goto("/Courses");
+    const input = page.getByPlaceholder("Search courses, topics, or instructors...");
+    await expect(input).toHaveCount(1);
+    expect(await input.getAttribute("type")).toBeNull();
+  });
+});
+
+test.describe("session-18 parity: the deliberate-better failure states (reference-matched decisions)", () => {
+  // The live's failure UX is a PERMANENTLY-STUCK loading state: an aborted
+  // chat request leaves the "Thinking..." bubble forever (+12s verified);
+  // an aborted subscribe leaves the button stuck at "..." forever (+15s,
+  // disabled, no retry possible). The clone deliberately recovers — the
+  // session-16 deliberate-better precedent (never ship the reference's
+  // unrecoverable states). These specs pin the decisions.
+  test("an aborted AI chat renders the explicit error bubble (not a stuck Thinking...)", async ({ page }) => {
+    await page.route("**/api/ai/chat", (route) => route.abort());
+    await page.goto("/AIAssistant");
+    await page.locator("textarea").fill("What is python?");
+    await page.locator("textarea").press("Enter");
+    await expect(page.getByText("Network error — please try again.")).toBeVisible();
+    await expect(page.getByText("Thinking...")).toHaveCount(0);
+  });
+
+  test("an aborted newsletter submit returns the button to Subscribe (retryable)", async ({ page }) => {
+    await page.route("**/api/newsletter", (route) => route.abort());
+    await page.goto("/");
+    await page.locator("main input[type='email']").fill("probe@example.com");
+    const btn = page.locator("main form button[type='submit']");
+    await btn.click();
+    await expect(btn).toBeEnabled();
+    await expect(btn).toHaveText(/Subscribe/);
   });
 });

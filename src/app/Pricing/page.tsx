@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Check, Sparkles } from "lucide-react";
 
 import { Navbar } from "@/components/Navbar";
@@ -159,17 +158,22 @@ export default function PricingPage() {
                         </div>
                       ))}
                     </div>
-                    <Link href="/login">
-                      <button
-                        className={`inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 ${
-                          plan.popular
-                            ? "hover:bg-primary/90 h-9 px-4 mt-8 w-full py-6 rounded-xl font-semibold text-base transition-all duration-300 hover:scale-105 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-lg shadow-purple-500/25"
-                            : "shadow h-9 px-4 mt-8 w-full py-6 rounded-xl font-semibold text-base transition-all duration-300 hover:scale-105 bg-gray-900 hover:bg-gray-800 text-white"
-                        }`}
-                      >
-                        {plan.cta}
-                      </button>
-                    </Link>
+                    {/* Reference markup (session 18): the live's three card
+                        CTAs are BARE INERT <button>s — no anchor wrappers, no
+                        navigation (a real click stays on /Pricing, verified
+                        with network monitoring). The previous Link wrapper
+                        made every CTA double-focusable (anchor + nested
+                        button = two tab stops each) and navigated to /login,
+                        which the live does not do. */}
+                    <button
+                      className={`inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 ${
+                        plan.popular
+                          ? "hover:bg-primary/90 h-9 px-4 mt-8 w-full py-6 rounded-xl font-semibold text-base transition-all duration-300 hover:scale-105 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-lg shadow-purple-500/25"
+                          : "shadow h-9 px-4 mt-8 w-full py-6 rounded-xl font-semibold text-base transition-all duration-300 hover:scale-105 bg-gray-900 hover:bg-gray-800 text-white"
+                      }`}
+                    >
+                      {plan.cta}
+                    </button>
                   </div>
                 ))}
               </div>

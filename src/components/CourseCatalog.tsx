@@ -119,11 +119,13 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
               className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"
               aria-hidden="true"
             />
-            {/* Reference input (session 6): the live app ships the shadcn
-                base with h-9 + py-6 — border-box collapses the content box to
-                the reference 50px height — and type="text". */}
+            {/* Reference input (session 6, corrected session 18): the live
+                app ships the shadcn base with h-9 + py-6 — border-box
+                collapses the content box to the reference 50px height — and
+                NO type attribute (text is the UA default; the earlier
+                "type=text" note was stale — the current live input is
+                attribute-less, byte-verified by the attribute sweep). */}
             <input
-              type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search courses, topics, or instructors..."

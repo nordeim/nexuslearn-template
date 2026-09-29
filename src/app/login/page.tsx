@@ -16,7 +16,16 @@ export const metadata = routeMetadata({
 // the interior to <LoginForm/>, whose sign-in branch carries the chrome.
 export default function LoginPage() {
   return (
-    <main className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    // data-login-theme: the ONE route whose Base44 runtime token sheet is
+    // the shadcn ZINC theme (measured on the live: --ring 240 10% 3.9%
+    // etc., while every other route ships NEUTRAL). globals.css scopes the
+    // zinc token block to body:has(main[data-login-theme]) — body-level
+    // custom properties cover the navbar + card + footer alike, exactly
+    // like the live's document-level runtime sheet (session 18).
+    <main
+      data-login-theme=""
+      className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4"
+    >
       <div className="w-full max-w-md">
         <div className="text-card-foreground relative overflow-hidden border-0 shadow-2xl bg-white/95 backdrop-blur-sm rounded-2xl">
           {/* Top accent bar */}

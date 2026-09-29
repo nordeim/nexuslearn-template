@@ -83,11 +83,11 @@ export function ContactForm() {
     <form className="space-y-6" onSubmit={handleSubmit}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
-          <label className={LABEL_CLASS} htmlFor="contact-name">
+          <label className={LABEL_CLASS} htmlFor="name">
             Full Name
           </label>
           <input
-            id="contact-name"
+            id="name"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -96,11 +96,11 @@ export function ContactForm() {
           />
         </div>
         <div>
-          <label className={LABEL_CLASS} htmlFor="contact-email">
+          <label className={LABEL_CLASS} htmlFor="email">
             Email
           </label>
           <input
-            id="contact-email"
+            id="email"
             type="email"
             required
             value={email}
@@ -130,16 +130,16 @@ export function ContactForm() {
       </div>
 
       <div>
-        <label className={LABEL_CLASS} htmlFor="contact-message">
+        <label className={LABEL_CLASS} htmlFor="message">
           Message
         </label>
         <textarea
-          id="contact-message"
+          id="message"
           required
           rows={5}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="How can we help you?"
+          placeholder="Tell us how we can help..."
           className={TEXTAREA_CLASS}
         />
       </div>
@@ -155,8 +155,19 @@ export function ContactForm() {
         disabled={status === "sending"}
         className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-9 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-semibold px-8 py-6 rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105"
       >
-        {status === "sending" ? "Sending…" : "Send Message"}
-        <Send className="ml-2 h-4 w-4" aria-hidden="true" />
+        {/* Reference pending state (session 18): while submitting the
+            button is disabled and its ENTIRE content is replaced by the
+            literal "Sending..." — THREE ASCII PERIODS (charCodes 46,46,46,
+            byte-verified on the live; NOT the U+2026 ellipsis glyph) with
+            NO Send icon. */}
+        {status === "sending" ? (
+          "Sending..."
+        ) : (
+          <>
+            Send Message
+            <Send className="ml-2 h-4 w-4" aria-hidden="true" />
+          </>
+        )}
       </button>
     </form>
   );

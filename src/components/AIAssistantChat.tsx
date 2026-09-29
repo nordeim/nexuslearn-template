@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Bot, Send, Sparkles, User } from "lucide-react";
+import { Bot, LoaderCircle, Send, Sparkles, User } from "lucide-react";
 
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -230,17 +230,18 @@ export function AIAssistantChat() {
                 </div>
               ))}
 
+              {/* Reference loading state (session 18): the live renders a
+                  spinning lucide-loader-circle + "Thinking..." text in a
+                  px-5 py-3 flex items-center gap-2 text-gray-400 bubble —
+                  byte-captured from the live's DOM during a real request
+                  (the transient state every settled-DOM audit missed). */}
               {loading && (
                 <div className="flex gap-3">
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 flex items-center justify-center shrink-0">
                     <Bot className="h-4 w-4 text-white" aria-hidden="true" />
                   </div>
-                  <div className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3">
-                    <div className="flex gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <span className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <span className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: "300ms" }} />
-                    </div>
+                  <div className="bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 flex items-center gap-2 text-gray-400">
+                    <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> Thinking...
                   </div>
                 </div>
               )}

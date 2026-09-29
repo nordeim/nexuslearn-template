@@ -59,8 +59,18 @@ export function NewsletterForm() {
         disabled={status === "loading"}
         className="inline-flex items-center justify-center gap-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-9 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-semibold px-8 py-6 rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-purple-500/40 hover:scale-105 whitespace-nowrap"
       >
-        Subscribe
-        <Send className="ml-2 h-4 w-4" aria-hidden="true" />
+        {/* Reference pending state (session 18): while the request is in
+            flight the button is disabled and its ENTIRE content is replaced
+            by the literal "..." — three ASCII periods (charCodes 46,46,46,
+            byte-verified on the live), no Subscribe label, no Send icon. */}
+        {status === "loading" ? (
+          "..."
+        ) : (
+          <>
+            Subscribe
+            <Send className="ml-2 h-4 w-4" aria-hidden="true" />
+          </>
+        )}
       </button>
     </form>
   );

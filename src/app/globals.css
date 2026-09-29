@@ -395,3 +395,48 @@ html[data-scroll-restore],
 html[data-scroll-restore] * {
   scroll-behavior: auto;
 }
+
+/* ---------------------------------------------------------------------------
+ * Session 18 — the /login zinc token theme (the per-route token surface).
+ *
+ * The Base44 runtime injects PER-PAGE token sheets: 10 of the 11 routes
+ * carry the shadcn NEUTRAL theme — exactly this app's :root values
+ * (#0a0a0a / #e5e5e5 / #737373 / #171717 / #f5f5f5, byte-verified) — but
+ * /login alone carries ZINC (--ring 240 10% 3.9% → the card buttons' focus
+ * rings render rgb(9,9,11) instead of rgb(10,10,10); the same 1-3 sRGB-unit
+ * drift family as the ADR-005 palette pin). The only visibly rendering
+ * consumer today is --ring (through focus-visible:ring-ring — every login
+ * button); the login inputs are unaffected (their slate-400 cascade pin
+ * sets --tw-ring-color directly, session 13), and all login TEXT carries
+ * explicit slate classes (verified byte-identical). The rest of the block
+ * is pinned for future-proofing — any new token consumer on /login matches
+ * the live's sheet automatically.
+ *
+ * body:has() scopes the block to the login page's <main data-login-theme>
+ * marker: body-level custom properties inherit into the navbar, the card
+ * and the footer alike — the same document-level reach as the live's
+ * runtime <style> sheet. The media wrapper keeps the dark-scheme :root
+ * block untouched (dark mode was never a parity surface).
+ * ------------------------------------------------------------------------- */
+@media (prefers-color-scheme: light) {
+  body:has(main[data-login-theme]) {
+    --background: #ffffff;
+    --foreground: #09090b; /* hsl(240 10% 3.9%) — zinc-950 */
+    --card: #ffffff;
+    --card-foreground: #09090b;
+    --popover: #ffffff;
+    --popover-foreground: #09090b;
+    --primary: #18181b; /* hsl(240 5.9% 10%) — zinc-900 */
+    --primary-foreground: #fafafa; /* hsl(0 0% 98%) */
+    --secondary: #f4f4f5; /* hsl(240 4.8% 95.9%) — zinc-100 */
+    --secondary-foreground: #18181b;
+    --muted: #f4f4f5;
+    --muted-foreground: #71717a; /* hsl(240 3.8% 46.1%) — zinc-500 */
+    --accent: #f4f4f5;
+    --accent-foreground: #18181b;
+    --destructive: #ef4444; /* hsl(0 84.2% 60.2%) */
+    --border: #e4e4e7; /* hsl(240 5.9% 90%) — zinc-200 */
+    --input: #e4e4e7;
+    --ring: #09090b; /* hsl(240 10% 3.9%) — zinc-950 */
+  }
+}

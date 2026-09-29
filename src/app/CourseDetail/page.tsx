@@ -162,7 +162,11 @@ export default async function CourseDetailPage({
                 <div className="flex items-center gap-3 mt-6">
                   <img
                     src={course.instructorAvatar}
-                    alt={course.instructorName}
+                    // Reference markup (session 18): the live ships alt=""
+                    // (decorative) — the instructor name renders in the
+                    // adjacent paragraph, so screen readers announce it
+                    // once. alt={instructorName} made them read it twice.
+                    alt=""
                     className="w-10 h-10 rounded-full object-cover"
                   />
                   <div>
