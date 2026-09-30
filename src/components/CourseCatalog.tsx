@@ -206,9 +206,15 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
                 Clear Filters
               </button>
             )}
-            <p className={hasActiveFilters ? "text-sm text-gray-500" : "ml-auto text-sm text-gray-500"}>
+            {/* Session 20: the live renders the count on a SPAN — the flex
+                filter row blockifies it (computed display block, ml-auto
+                effective), so the layout is identical to the old <p>, but
+                Chrome's innerText gives <p> elements DOUBLE line breaks,
+                which added blank lines the live's main.innerText does not
+                carry (the element-tag surface — invisible to class diffs). */}
+            <span className={hasActiveFilters ? "text-sm text-gray-500" : "ml-auto text-sm text-gray-500"}>
               {filtered.length} course{filtered.length === 1 ? "" : "s"}
-            </p>
+            </span>
           </div>
 
           <div className="mt-10 pb-24">

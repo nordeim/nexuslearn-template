@@ -247,15 +247,15 @@ export function AIAssistantChat() {
               )}
             </div>
 
-            {/* Composer — reference: auto-growing textarea + self-end gradient send */}
+            {/* Composer — reference: auto-growing textarea + self-end gradient send.
+                Session 20: the live wraps the composer in a DIV (no form
+                element anywhere in its /AIAssistant main — Enter-to-send
+                runs through a runtime keydown listener). The textarea's own
+                onKeyDown already drove Enter (it preventDefault()s, so the
+                old form's onSubmit was dead code); the button now carries
+                the onClick directly and NO type attribute (the live's form). */}
             <div className="p-4 border-t border-gray-100">
-              <form
-                className="flex gap-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  send(input);
-                }}
-              >
+              <div className="flex gap-3">
                 <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -271,14 +271,14 @@ export function AIAssistantChat() {
                   className="flex w-full border bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm flex-1 resize-none rounded-xl border-gray-200 focus:border-purple-500 min-h-[48px] max-h-32"
                 />
                 <button
-                  type="submit"
                   disabled={!input.trim() || loading}
                   aria-label="Send message"
+                  onClick={() => send(input)}
                   className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-9 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white rounded-xl px-5 shadow-lg shadow-purple-500/20 transition-all duration-300 hover:scale-105 self-end"
                 >
                   <Send className="h-5 w-5" aria-hidden="true" />
                 </button>
-              </form>
+              </div>
             </div>
           </div>
           </div>

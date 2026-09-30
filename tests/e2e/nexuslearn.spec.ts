@@ -198,7 +198,9 @@ test.describe("courses catalog", () => {
     const titles = page.locator("main a[href*='CourseDetail'] h3");
     const count = await titles.count();
     expect(count).toBeGreaterThanOrEqual(2);
-    const counter = page.locator("p.text-sm", { hasText: /course/ }).first();
+    // Session 20: the count element is a SPAN (the live's tag — was <p>;
+    // tag-agnostic locator so the pin survives tag-level parity changes).
+    const counter = page.locator("main").getByText(/^\d+ courses?/);
     await expect(counter).toContainText(/\d/);
   });
 
@@ -2917,5 +2919,59 @@ test.describe("session-18 parity: the deliberate-better failure states (referenc
     await btn.click();
     await expect(btn).toBeEnabled();
     await expect(btn).toHaveText(/Subscribe/);
+  });
+});
+
+test.describe("session-20 parity: the element-tag drift surface (span vs p; div vs form)", () => {
+  // Two tag-level drifts found by the session-20 fresh-eyes sweeps (the
+  // line-by-line innerText comparison + the tag-of-shared-class map). Both
+  // are INVISIBLE to class-set diffs (identical class strings), to height
+  // sweeps (the flex row blockifies p and span alike) and to screenshots —
+  // the session-18 element-tag blind-spot family, probed one level deeper.
+  test("the /Courses course count renders on a SPAN (the live's tag) with consecutive innerText lines", async ({ page }) => {
+    await page.goto("/Courses");
+    // The live: <span class="ml-auto text-sm text-gray-500">9 courses</span>
+    // (blockified by the flex filter row — computed display block, ml-auto
+    // effective). The clone had rendered a <p> with identical classes: the
+    // same layout, but Chrome's innerText gives <p> DOUBLE line breaks, so
+    // the clone's main.innerText carried blank lines the live does not have.
+    const count = page.locator("main").getByText(/^\d+ courses?$/);
+    await expect(count).toHaveText("9 courses");
+    expect(await count.evaluate((el) => el.tagName)).toBe("SPAN");
+    await expect(count).toHaveClass("ml-auto text-sm text-gray-500");
+    // The filtered state keeps the live's span form (no ml-auto — the Clear
+    // Filters button carries it).
+    await page.getByLabel("Search courses").fill("python");
+    await expect(count).toHaveText("3 courses");
+    await expect(count).toHaveClass("text-sm text-gray-500");
+    expect(await count.evaluate((el) => el.tagName)).toBe("SPAN");
+    // innerText: the sort trigger text and the count sit on CONSECUTIVE
+    // lines (no blank line between — the <p> form rendered "Newest\n\n9
+    // courses", the live's span form renders "Newest\n9 courses").
+    await page.getByLabel("Search courses").fill("");
+    const text = await page.locator("main").innerText();
+    expect(text).toContain("Newest\n9 courses");
+    expect(text).not.toContain("Newest\n\n9 courses");
+  });
+
+  test("the /AIAssistant composer is a DIV wrapper (no form element, no button type) — the live's tags", async ({ page }) => {
+    await page.goto("/AIAssistant");
+    // The live: <div class="flex gap-3"> holding the textarea + send button
+    // (Enter-to-send via a runtime keydown listener; ZERO form elements in
+    // the live's /AIAssistant main — verified with a real Enter keypress
+    // firing the integration request). The clone had rendered a
+    // <form class="flex gap-3" onSubmit> — the same classes, and the
+    // textarea's own onKeyDown already drove Enter (preventDefault), so the
+    // form was pure structural drift. The send button carried type="submit"
+    // where the live's button has NO type attribute.
+    await expect(page.locator("main form")).toHaveCount(0);
+    const composer = page.locator("main textarea").locator("..");
+    expect(await composer.evaluate((el) => el.tagName)).toBe("DIV");
+    await expect(composer).toHaveClass("flex gap-3");
+    const btn = composer.locator("button");
+    expect(await btn.getAttribute("type")).toBeNull();
+    // The behavioral parity (Enter-to-send) is pinned by the existing
+    // session-18 specs (the Thinking... bubble + the aborted-route error
+    // bubble) — both drive the textarea's Enter key directly.
   });
 });
