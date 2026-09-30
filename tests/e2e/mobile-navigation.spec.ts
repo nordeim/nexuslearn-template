@@ -176,3 +176,58 @@ test.describe("session-10 parity: /Home mobile trigger is the hero string", () =
     await expect(cta).toHaveCSS("margin-top", "0px");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Session 22 — parity: the invisible-focus guard (the keyboard Tab-order
+// surface). The collapsed panel (grid-rows 0fr + overflow-hidden + opacity-0)
+// keeps its links MOUNTED — the live unmounts its closed panel instead. The
+// session-22 empirical probe verified Chrome's Tab order SKIPS the collapsed
+// panel's links on BOTH sites (trigger → first body focusable), and that the
+// open panel's links ARE tabbable. This pin guards that property: a future
+// change that lets Tab land on an invisible panel link (the classic
+// invisible-focus WCAG 2.4.3 bug) fails here.
+// Reference: docs/remediation-plan-session22.md (finding 4).
+// ---------------------------------------------------------------------------
+
+test.describe("session-22 parity: the collapsed panel is not keyboard-tabbable", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+  });
+
+  test("Tab from the trigger SKIPS the collapsed panel links (no invisible focus)", async ({ page }) => {
+    const trigger = page.getByRole("button", { name: "Toggle navigation menu" });
+    await expect(trigger).toHaveAttribute("aria-expanded", "false"); // panel closed
+
+    // Focus the trigger, then walk one Tab step. On the landing at 375px the
+    // next focusable after the trigger is the hero's first body link — NOT
+    // any collapsed panel member ("Home" is the panel's first link).
+    await trigger.focus();
+    await page.keyboard.press("Tab");
+    const focused = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || el === document.body) return "body";
+      const inPanel = !!el.closest("nav div.md\\:hidden.bg-white");
+      return `${el.tagName}|${(el.innerText || "").trim().slice(0, 24)}|inPanel=${inPanel}`;
+    });
+    expect(focused).not.toContain("inPanel=true");
+    // The empirically-verified next stop on BOTH sites: the hero CTA link.
+    expect(focused).toBe("A|Browse Courses|inPanel=false");
+  });
+
+  test("with the panel OPEN, Tab from the trigger reaches the first panel link", async ({ page }) => {
+    const trigger = page.getByRole("button", { name: "Toggle navigation menu" });
+    await trigger.tap();
+    await expect(page.locator("nav div.md\\:hidden.bg-white")).toHaveCSS("height", "405px");
+
+    await trigger.focus();
+    await page.keyboard.press("Tab");
+    const focused = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || el === document.body) return "body";
+      const inPanel = !!el.closest("nav div.md\\:hidden.bg-white");
+      return `${el.tagName}|${(el.innerText || "").trim().slice(0, 24)}|inPanel=${inPanel}`;
+    });
+    // The open panel's links are reachable — the visible state tabs normally.
+    expect(focused).toBe("A|Home|inPanel=true");
+  });
+});

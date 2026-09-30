@@ -3049,3 +3049,107 @@ test.describe("session-21 parity: the console-hygiene + a11y-exposure surface", 
     expect(await announcer.getAttribute("role")).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Session 22 — parity: the interaction-modality + persistence surfaces (the
+// keyboard Tab-order inventory, the accessible-name sweep, the storage +
+// network inventories, the media-emulation sweep, the text-scaling surface).
+// See docs/remediation-plan-session22.md.
+// ---------------------------------------------------------------------------
+
+test.describe("session-22 parity: the form-control accessible-name hardening", () => {
+  // The accessible-name sweep (probe 1f): the live names its form controls by
+  // PLACEHOLDER (the /Courses search: "Search courses, topics, or
+  // instructors…") and by VALUE (the filter selects: "All Categories" / "All
+  // Levels" / "Newest" — a name that MUTATES with the filter state). The
+  // clone pins STABLE aria-labels instead — the WCAG-robust form (placeholder
+  // names vanish on input; value names change with state), the same
+  // deliberate-better family as the mobile-trigger ARIA + footer-social
+  // aria-labels. The newsletter input's aria-label mirrors its placeholder
+  // exactly (the names match); the send button's "Send message" is the
+  // documented icon-only family. Pinned so no future session "fixes" the
+  // stable names into the live's fragile naming.
+
+  test("the /Courses filter controls carry the stable aria-labels (search + 3 selects)", async ({ page }) => {
+    await page.goto("/Courses");
+    const search = page.locator('main input[placeholder^="Search courses"]');
+    await expect(search).toHaveCount(1);
+    expect(await search.getAttribute("aria-label")).toBe("Search courses");
+    // The shadcn select triggers render as combobox buttons over the native
+    // select semantics — assert the three aria-labeled triggers.
+    for (const label of ["Filter by category", "Filter by level", "Sort courses"]) {
+      const trigger = page.locator(`main button[aria-label="${label}"]`);
+      await expect(trigger).toHaveCount(1);
+      await expect(trigger).toBeVisible();
+    }
+  });
+
+  test("the AI composer controls carry the stable aria-labels (textarea + icon-only send)", async ({ page }) => {
+    await page.goto("/AIAssistant");
+    const textarea = page.locator('main textarea[placeholder="Ask a question..."]');
+    await expect(textarea).toHaveCount(1);
+    expect(await textarea.getAttribute("aria-label")).toBe("Ask a question");
+    const send = page.locator('main button[aria-label="Send message"]');
+    await expect(send).toHaveCount(1);
+    await expect(send).toBeVisible();
+  });
+
+  test("the newsletter input carries the aria-label mirroring its placeholder", async ({ page }) => {
+    await page.goto("/");
+    const input = page.locator('input[placeholder="Enter your email"]');
+    await expect(input).toHaveCount(1);
+    expect(await input.getAttribute("aria-label")).toBe("Enter your email");
+  });
+});
+
+test.describe("session-22 parity: the storage surface (the no-storage guard)", () => {
+  // The storage inventory (probe 2): the clone emits ZERO localStorage and
+  // ZERO sessionStorage entries on every route — the session lives
+  // exclusively in the HttpOnly nexus_session cookie (invisible to
+  // document.cookie by design). The live persists 8 base44 platform keys +
+  // mixpanel session keys — platform infra, accepted-by-nature. This pin is
+  // the privacy-cleanliness guard: if a future change starts persisting
+  // client-side storage, the failure forces documentation.
+  test("zero localStorage and sessionStorage entries on every audited route", async ({ page }) => {
+    const routes = ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"];
+    for (const route of routes) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(300);
+      const counts = await page.evaluate(() => ({
+        ls: window.localStorage.length,
+        ss: window.sessionStorage.length,
+      }));
+      expect(counts.ls, `${route}: localStorage keys`).toBe(0);
+      expect(counts.ss, `${route}: sessionStorage keys`).toBe(0);
+    }
+  });
+});
+
+test.describe("session-22 parity: the media-emulation stability surface", () => {
+  // The media-emulation sweep (probe 4): under prefers-reduced-motion,
+  // prefers-color-scheme: dark AND print, NEITHER the live nor this app
+  // changes any probed computed style — both are fixed-light, print-unstyled
+  // and motion-unadapted (verified live-vs-clone byte-identically). This pin
+  // freezes that parity contract: a future dark mode or reduced-motion pass
+  // would be a deliberate beyond-reference decision that must pass through
+  // documentation. One cosmetic variance documented alongside: the live's
+  // animation-duration slot reads 0.5s with animation-name "none" (its
+  // platform CSS default) vs 0s here — no animation runs on either site.
+  test("dark-scheme emulation leaves the light palette untouched", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("/");
+    const bg = await page.locator("body").evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(bg).toBe("rgb(255, 255, 255)");
+    const heroText = await page.locator("h1").evaluate((el) => getComputedStyle(el).color);
+    expect(heroText).toBe("rgb(255, 255, 255)"); // white text on the dark hero stays
+    await page.emulateMedia({ colorScheme: "light" });
+  });
+
+  test("reduced-motion emulation leaves the transition durations untouched (the live's no-adaptation contract)", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    const nav = await page.locator("nav").evaluate((el) => getComputedStyle(el).transitionDuration);
+    expect(nav).toBe("0.5s");
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+  });
+});
