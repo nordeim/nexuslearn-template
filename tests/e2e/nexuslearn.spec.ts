@@ -2975,3 +2975,77 @@ test.describe("session-20 parity: the element-tag drift surface (span vs p; div 
     // bubble) — both drive the textarea's Enter key directly.
   });
 });
+
+test.describe("session-21 parity: the console-hygiene + a11y-exposure surface", () => {
+  // The session-21 fresh-eyes probes: (1) the CONSOLE-error surface — the
+  // /Pricing FAQ icons carried kebab-case SVG props (stroke-width etc.),
+  // logging three React "Invalid DOM property" errors on every dev-server
+  // /Pricing load (production React strips the warning, so the SOURCE-level
+  // guard lives in tests/svg-props.test.ts; this block pins the RENDERED
+  // attributes instead); (2) the A11Y-TREE snapshot — lucide-react 0.525
+  // adds aria-hidden="true" to every icon while the live ships its icons
+  // EXPOSED as nameless img nodes (screen-reader noise, 405× per
+  // CourseDetail page — the clone's form is the deliberate WCAG-correct
+  // hardening, same family as the mobile-trigger ARIA); (3) the SVG
+  // class-histogram diff proves the icon inventory is IDENTICAL — the
+  // attribute is the sole svg difference. The <next-route-announcer>
+  // element is Next.js framework infrastructure (the - alert a11y node the
+  // Base44 live lacks) — pinned here so it is never misread as drift.
+
+  test("the /Pricing FAQ icons render the reference SVG attributes (through the camelCase props)", async ({ page }) => {
+    await page.goto("/Pricing");
+    // The inlined lucide circle-help glyph: React renders strokeWidth={2}
+    // as stroke-width="2" — byte-identical to the live's DOM (verified via
+    // the svg class-histogram sweep: 28 svgs on /Pricing, identical on both
+    // sites). The camelCase PROP form keeps the dev console clean (the
+    // session-21 console surface finding).
+    const faqIcon = page.locator("main svg.lucide-circle-help").first();
+    await expect(faqIcon).toBeVisible();
+    expect(await faqIcon.getAttribute("stroke-width")).toBe("2");
+    expect(await faqIcon.getAttribute("stroke-linecap")).toBe("round");
+    expect(await faqIcon.getAttribute("stroke-linejoin")).toBe("round");
+    expect(await faqIcon.getAttribute("fill")).toBe("none");
+    expect(await faqIcon.getAttribute("stroke")).toBe("currentColor");
+    expect(await faqIcon.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  test("every decorative svg is hidden from the accessibility tree (self or wrapper aria-hidden)", async ({ page }) => {
+    // The deliberate lucide-react hardening: nameless decorative icons are
+    // aria-hidden on the clone (the live exposes them — 0/405 hidden on its
+    // CourseDetail vs 405/405 here). Two legitimate forms exist: the icon
+    // itself carries aria-hidden="true" (lucide-react default + hand-inlined
+    // icons), OR an ancestor wrapper does (the landing hero's flowing-lines
+    // svg sits inside div[aria-hidden]). Sweep the audited route set.
+    const routes = ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"];
+    for (const route of routes) {
+      await page.goto(route);
+      const exposed = await page.locator("main svg, nav svg, footer svg").evaluateAll(
+        (svgs) =>
+          svgs
+            .filter((s) => {
+              let el: Element | null = s;
+              while (el && el !== document.body) {
+                if (el.getAttribute("aria-hidden") === "true") return false;
+                el = el.parentElement;
+              }
+              return true;
+            })
+            .map((s) => (s.getAttribute("class") || "").slice(0, 60))
+      );
+      expect(exposed, `${route}: svgs exposed to the a11y tree`).toEqual([]);
+    }
+  });
+
+  test("the Next.js route announcer exists (the framework's screen-reader navigation element)", async ({ page }) => {
+    await page.goto("/");
+    // <next-route-announcer> is Next.js App Router infrastructure (it
+    // announces route changes to screen readers and surfaces as the - alert
+    // a11y node the Base44 live lacks). Framework-provided, invisible and
+    // empty until navigation — NOT app markup. The login-error specs already
+    // exclude it ([role=alert]:not(#__next-route-announcer__)); this pin
+    // documents its existence so a future audit never reads it as drift.
+    const announcer = page.locator("next-route-announcer");
+    await expect(announcer).toHaveCount(1);
+    expect(await announcer.getAttribute("role")).toBeNull();
+  });
+});

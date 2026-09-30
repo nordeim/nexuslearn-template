@@ -206,9 +206,9 @@ export default function PricingPage() {
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                         className="lucide lucide-circle-help h-5 w-5 text-purple-500"
                         aria-hidden="true"
                       >
