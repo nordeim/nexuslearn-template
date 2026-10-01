@@ -3240,3 +3240,127 @@ test.describe("session-23 parity: the axe-core WCAG surface", () => {
     expect(results.violations).toEqual([]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Session 24 — the CSP nonce hardening (the session-23 documented future
+// work). Neither the live nor the clone shipped a Content-Security-Policy
+// (probed on both) — the baseline security headers (session 23) protect the
+// transport/framing layers but nothing constrains SCRIPT execution. The
+// nonce pattern: the proxy generates a per-request nonce, exposes it on the
+// request headers (Next.js auto-nonces its bootstrap scripts from it), and
+// ships the policy with script-src 'nonce-X' 'strict-dynamic' — per-request
+// nonces are the only script trust root. The companion fix:
+// `export const dynamic = "force-dynamic"` in the root layout — static-
+// prerendered pages bake nonce-less HTML at build time and their scripts
+// BLOCK under strict-dynamic (the spike-verified unhydrated /login failure).
+// Reference: docs/remediation-plan-session24.md (finding 3).
+// ---------------------------------------------------------------------------
+
+test.describe("session-24 parity: the CSP nonce hardening", () => {
+  test("every HTML response ships a nonce-based CSP with strict-dynamic", async ({ request }) => {
+    for (const route of ["/", "/login"]) {
+      const res = await request.get(route);
+      expect(res.status(), `${route}: status`).toBe(200);
+      const csp = res.headers()["content-security-policy"];
+      expect(csp, `${route}: content-security-policy header`).toContain("script-src 'self' 'nonce-");
+      expect(csp, `${route}: strict-dynamic`).toContain("'strict-dynamic'");
+      // The conservative directive set (the plan's policy).
+      expect(csp, `${route}: object-src`).toContain("object-src 'none'");
+      expect(csp, `${route}: frame-ancestors`).toContain("frame-ancestors 'self'");
+      expect(csp, `${route}: img-src`).toContain("img-src 'self'");
+    }
+  });
+
+  test("the nonce is per-request (two requests never share a nonce)", async ({ request }) => {
+    const first = await request.get("/");
+    const second = await request.get("/");
+    const csp1 = first.headers()["content-security-policy"] ?? "";
+    const csp2 = second.headers()["content-security-policy"] ?? "";
+    const nonce1 = csp1.match(/'nonce-([^']+)'/)?.[1];
+    const nonce2 = csp2.match(/'nonce-([^']+)'/)?.[1];
+    expect(nonce1, "the first response carries a nonce").toBeTruthy();
+    expect(nonce2, "the second response carries a nonce").toBeTruthy();
+    expect(nonce1 === nonce2, "per-request nonces must differ (anti-replay)").toBe(false);
+  });
+
+  test("every rendered bootstrap script carries the nonce (hydration survives the policy)", async ({ page }) => {
+    for (const route of ["/", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(300);
+      const info = await page.evaluate(() => {
+        const scripts = [...document.querySelectorAll("script")];
+        return {
+          total: scripts.length,
+          nonced: scripts.filter((s) => s.nonce || s.getAttribute("nonce")).length,
+        };
+      });
+      expect(info.total, `${route}: scripts present`).toBeGreaterThan(0);
+      expect(info.nonced, `${route}: every script carries the nonce`).toBe(info.total);
+      // Zero CSP violations in the console → nothing blocked.
+      const violations: string[] = [];
+      page.on("console", (msg) => {
+        if (msg.type() === "error" && msg.text().includes("Content-Security-Policy")) violations.push(msg.text());
+      });
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      expect(violations, `${route}: no CSP violations`).toEqual([]);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session 24 — the URL-canonicalization surface (the response-status probe
+// family — never status-level probed before). The live's SPA platform
+// returns HTTP 200 for EVERY path (the trailing-slash variant renders
+// directly; unknown routes + /login case variants render the in-app 404 view
+// with 200). The clone ships the canonical forms: a 308 redirect to the
+// canonical URL for trailing slashes and REAL 404 statuses — the
+// SEO-correct deliberate-better family (same precedent as the session-17
+// canonical titles), pinned here so a future audit cannot "fix" them toward
+// the live's 200-for-everything posture.
+// Reference: docs/remediation-plan-session24.md (finding 2).
+// ---------------------------------------------------------------------------
+
+test.describe("session-24 parity: the URL-canonicalization surface", () => {
+  test("trailing-slash routes 308-redirect to the canonical URL (the live renders them 200)", async ({ request }) => {
+    const res = await request.get("/Courses/", { maxRedirects: 0 });
+    expect(res.status(), "the slash variant redirects").toBe(308);
+    expect(res.headers().location, "the redirect targets the canonical form").toBe("/Courses");
+  });
+
+  test("unknown routes return a real 404 status (the live returns 200 + the in-app 404 view)", async ({ request }) => {
+    const res = await request.get("/__nonexistent_page__");
+    expect(res.status(), "unknown paths are a real 404").toBe(404);
+  });
+
+  test("/login case variants 404 (the session-17 exact-match rule, at the status level)", async ({ request }) => {
+    const res = await request.get("/Login");
+    expect(res.status(), "/Login is not a route").toBe(404);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session 24 — the static-asset cache surface (the performance probe's
+// config guard). The session-24 web-vitals probe documented the clone's
+// loading profile: the /_next/static chunks ship
+// `Cache-Control: public, max-age=31536000, immutable` (content-hashed,
+// safe to cache forever — the Next.js default). This pin guards it against
+// future config regressions (a custom headers() override would silently
+// strip it and re-download the JS payload on every visit).
+// Reference: docs/remediation-plan-session24.md (finding 1).
+// ---------------------------------------------------------------------------
+
+test.describe("session-24 parity: the static-asset cache surface", () => {
+  test("/_next/static chunks ship the immutable content-hash cache", async ({ request }) => {
+    // Discover a real chunk URL from the rendered page HTML.
+    const page = await request.get("/");
+    const html = await page.text();
+    const chunk = html.match(/\/_next\/static\/[^"']+\.js/)?.[0];
+    expect(chunk, "a static chunk is referenced in the HTML").toBeTruthy();
+    const res = await request.get(chunk as string);
+    expect(res.status(), "the chunk loads").toBe(200);
+    const cache = res.headers()["cache-control"] ?? "";
+    expect(cache, "immutable, one-year cache (content-hashed)").toContain("max-age=31536000");
+    expect(cache, "the immutable marker").toContain("immutable");
+  });
+});

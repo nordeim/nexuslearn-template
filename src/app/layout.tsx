@@ -74,6 +74,22 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+/**
+ * Per-request rendering on EVERY route (session 24 — the CSP nonce
+ * companion). The proxy (src/proxy.ts) generates a per-request CSP nonce
+ * that Next.js bakes into its bootstrap scripts — but only on responses
+ * RENDERED per-request. Static-prerendered pages bake their HTML at build
+ * time where no nonce exists: under the strict-dynamic policy their scripts
+ * BLOCK and the pages render unhydrated (the login form falls back to a
+ * native GET submit → `/login?` — the gotcha-32 failure symptom,
+ * spike-verified before shipping). The root-layout segment config forces
+ * dynamic rendering for every route below it, including /_not-found, so the
+ * nonce reaches every script. The measured cost is negligible (the
+ * already-dynamic routes render at 5–61ms TTFB; the perf profile is
+ * documented in docs/remediation-plan-session24.md finding 1).
+ */
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{
