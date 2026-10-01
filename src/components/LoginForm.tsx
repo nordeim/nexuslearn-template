@@ -128,7 +128,11 @@ export function LoginForm() {
     e.preventDefault();
     setError("");
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      // The live's exact error text (session-28 finding 3b): it enforces the
+      // 8-char minimum in JS with an in-DOM error message — no minlength
+      // attribute (which would swap the UX to the browser's native tooltip
+      // and block the submit event entirely).
+      setError("Password must be at least 8 characters long");
       return;
     }
     if (password !== confirmPassword) {
@@ -475,7 +479,6 @@ export function LoginForm() {
                     className={COMPACT_INPUT_CLS}
                     placeholder="Min. 8 characters"
                     required
-                    minLength={8}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />

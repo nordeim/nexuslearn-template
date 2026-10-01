@@ -3667,3 +3667,198 @@ test.describe("session-27 parity: the cache-revalidation + range surface", () =>
     expect(range.headers()["content-range"] ?? "", "the chunk Content-Range header").toMatch(/^bytes 0-49\/\d+$/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Session 28 — the image attribute/loading surface (the LOADING dimension of
+// the rendered-image contract — never swept: the session-21 href/src VALUE
+// sweep pinned the src side, but the loading-family attributes are invisible
+// to every innerText/class/height diff, the session-18 attribute lesson on
+// its fourth appearance). The live ships ZERO loading-family attributes —
+// 0/36 images carry loading/decoding/fetchpriority; every image is EAGER
+// (the browser default). The clone had shipped loading="lazy" on 33/36
+// images (CourseCard cover + avatar, testimonial avatar) — undocumented
+// drift, never a documented deliberate decision, and unlike the session-26
+// autocomplete hardening (invisible metadata) it changes the FETCH BEHAVIOR
+// itself: the live fetches every image at page load, the lazy clone
+// deferred below-fold images until scroll. Fixed toward the live this
+// session; the specs pin the eager contract + the inventory (incl. the
+// Advanced Python cover: the live's own seed URL photo-1515879218367-
+// 8466d910auj7 is a MALFORMED Unsplash id — the 12-char suffix carries the
+// non-hex chars u+j — and 404s on every page of the live; the clone ships
+// the working photo-1526379095098-d400fd0bf935, the deliberate-better
+// session-25 asset-re-host family: replicate the app's INTENT, not its data
+// typos).
+// Reference: docs/remediation-plan-session28.md (findings 1–2).
+// ---------------------------------------------------------------------------
+
+test.describe("session-28 parity: the image loading/attribute surface", () => {
+  test("the eager-loading contract: no rendered img carries loading/decoding/fetchpriority (the live ships none)", async ({ page }) => {
+    // Routes that render images on both sites: / + /Home (16), /Courses (18),
+    // /CourseDetail (2), /About (1). /Home renders the landing directly.
+    for (const route of ["/", "/Courses", "/CourseDetail?id=seed-8", "/About"]) {
+      await page.goto(route);
+      await page.waitForTimeout(500);
+      const offenders = await page.evaluate(() =>
+        Array.from(document.querySelectorAll("img"))
+          .filter((img) => img.getAttribute("loading") || img.getAttribute("decoding") || img.getAttribute("fetchpriority"))
+          .map((img) => ({ src: img.getAttribute("src"), loading: img.getAttribute("loading") }))
+      );
+      expect(offenders, `${route}: every img is eager (no loading/decoding/fetchpriority) — the live's 0/36 contract`).toEqual([]);
+    }
+  });
+
+  test("the image inventory: non-empty alts on /Courses + the Advanced Python working cover (the live's own URL 404s)", async ({ page }) => {
+    await page.goto("/Courses");
+    await page.waitForTimeout(500);
+    const catalog = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("img")).map((img) => ({
+        src: img.getAttribute("src"),
+        alt: img.getAttribute("alt"),
+      }))
+    );
+    // 9 covers + 9 instructor avatars, every one with a non-empty alt.
+    expect(catalog.length, "the /Courses image count").toBe(18);
+    for (const img of catalog) {
+      expect(img.alt, `alt for ${img.src}`).toBeTruthy();
+    }
+    // The Advanced Python cover keeps the WORKING image (deliberate-better:
+    // the live's own photo-1515879218367-8466d910auj7 is malformed and 404s).
+    const pyCover = catalog.find((img) => img.alt === "Advanced Python Programming");
+    expect(pyCover?.src, "the Advanced Python cover stays the working image").toBe(
+      "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=600&q=80"
+    );
+
+    // The detail page: the hero cover + the decorative alt="" instructor
+    // avatar (the session-18 pinned contract).
+    await page.goto("/CourseDetail?id=seed-8");
+    await page.waitForTimeout(500);
+    const detail = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("main img")).map((img) => ({
+        src: img.getAttribute("src"),
+        alt: img.getAttribute("alt"),
+      }))
+    );
+    const hero = detail.find((img) => img.alt === "Advanced Python Programming");
+    expect(hero?.src, "the detail-page hero matches the catalog cover").toBe(
+      "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=600&q=80"
+    );
+    expect(detail.some((img) => img.alt === ""), "the instructor avatar stays decorative alt=\"\"").toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session 28 — the form-validation constraint surface (the CONSTRAINT
+// dimension of the form contract: type/required/maxLength/minLength/pattern/
+// min/max/step — the native validation semantics). The session-26 sweep
+// pinned the METADATA family (autocomplete/inputMode); the constraint family
+// was never swept. Verified IDENTICAL on every route of both sites — the
+// specs below pin that contract: a future "hardening" pass adding
+// constraints would be beyond-reference drift, and a removal would break
+// parity; both are invisible to every text/class diff.
+// Reference: docs/remediation-plan-session28.md (finding 3).
+// ---------------------------------------------------------------------------
+
+test.describe("session-28 parity: the form-validation constraint surface", () => {
+  test("the constrained forms: /login + /Contact carry the live's exact constraint set", async ({ page }) => {
+    await page.goto("/login");
+    const email = page.locator("#email");
+    expect(await email.getAttribute("type")).toBe("email");
+    expect(await email.getAttribute("required")).toBe("");
+    const password = page.locator("#password");
+    expect(await password.getAttribute("type")).toBe("password");
+    expect(await password.getAttribute("required")).toBe("");
+
+    await page.goto("/Contact");
+    const name = page.locator("#name");
+    expect(await name.getAttribute("required")).toBe("");
+    expect(await name.getAttribute("type"), "the name input carries no type attr (the live's bare form)").toBeNull();
+    const contactEmail = page.locator("#email");
+    expect(await contactEmail.getAttribute("type")).toBe("email");
+    expect(await contactEmail.getAttribute("required")).toBe("");
+    const message = page.locator("#message");
+    expect(await message.getAttribute("required")).toBe("");
+
+    // No length/pattern/range constraints anywhere on either form.
+    for (const route of ["/login", "/Contact"]) {
+      await page.goto(route);
+      const constrained = await page.evaluate(() =>
+        Array.from(document.querySelectorAll("input, textarea, select"))
+          .filter((el) =>
+            ["maxlength", "minlength", "pattern", "min", "max", "step"].some((a) => el.getAttribute(a) !== null)
+          )
+          .map((el) => el.id || el.getAttribute("placeholder"))
+      );
+      expect(constrained, `${route}: no maxLength/minLength/pattern/min/max/step (the live's contract)`).toEqual([]);
+    }
+  });
+
+  test("the bare forms: /Courses search + /AIAssistant composer carry no constraint attributes; /BecomeInstructor renders no controls", async ({ page }) => {
+    await page.goto("/Courses");
+    const search = page.locator('input[placeholder*="Search courses"]');
+    expect(await search.getAttribute("required")).toBeNull();
+    expect(await search.getAttribute("type"), "the search input is type-less (the session-18 pin, constraint axis)").toBeNull();
+
+    await page.goto("/AIAssistant");
+    const composer = page.locator("textarea").first();
+    expect(await composer.getAttribute("required")).toBeNull();
+    expect(await composer.getAttribute("maxlength")).toBeNull();
+
+    await page.goto("/BecomeInstructor");
+    const controls = await page.evaluate(() => document.querySelectorAll("input, textarea, select").length);
+    expect(controls, "/BecomeInstructor is a CTA page — zero form controls (the live's contract)").toBe(0);
+  });
+});
+
+test.describe("session-28 parity: the login client-view constraint surface (signup + reset views)", () => {
+  // Finding 3b (found during the screenshot-capture verification pass): the
+  // clone's signup password input had shipped minLength={8} since session 5 —
+  // undocumented drift never caught because every constraint sweep read the
+  // DEFAULT signin view only (the signup/reset views are CLIENT-side state
+  // switches — their inputs do not exist in the DOM until the view flips).
+  // The live enforces the 8-char minimum in JS with an IN-DOM error message
+  // ("Password must be at least 8 characters long") and ships NO minlength
+  // attribute anywhere; the attribute swapped the clone's UX to the browser's
+  // NATIVE validation tooltip (which blocks the submit event — the JS error
+  // path was dead code). Fixed toward the live this session.
+  test("the signup view carries the live's exact constraint set — no minlength; the short-password error renders in-DOM with the live's text", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Need an account? Sign up" }).click();
+    await page.waitForTimeout(300);
+
+    const email = page.locator("#email");
+    expect(await email.getAttribute("type")).toBe("email");
+    expect(await email.getAttribute("required")).toBe("");
+    expect(await email.getAttribute("minlength"), "the signup email carries no minlength").toBeNull();
+
+    const password = page.locator("#password");
+    expect(await password.getAttribute("type")).toBe("password");
+    expect(await password.getAttribute("required")).toBe("");
+    expect(await password.getAttribute("minlength"), "the signup password carries NO minlength (the live's contract — the JS error owns the UX)").toBeNull();
+
+    const confirm = page.locator("#confirmPassword");
+    expect(await confirm.getAttribute("type")).toBe("password");
+    expect(await confirm.getAttribute("required")).toBe("");
+    expect(await confirm.getAttribute("minlength")).toBeNull();
+
+    // The short-password path: the in-DOM error with the live's exact text
+    // (with the minlength attribute the native tooltip blocked the submit —
+    // this assertion is the regression guard for that dead-code class).
+    await email.fill(`shortpw-${Date.now()}@example.com`);
+    await password.fill("short");
+    await confirm.fill("short");
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expect(page.getByText("Password must be at least 8 characters long")).toBeVisible();
+  });
+
+  test("the reset view carries the live's constraint set (email type+required, nothing else)", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Forgot password?" }).click();
+    await page.waitForTimeout(300);
+    const email = page.locator("#email");
+    expect(await email.getAttribute("type")).toBe("email");
+    expect(await email.getAttribute("required")).toBe("");
+    for (const attr of ["minlength", "maxlength", "pattern"]) {
+      expect(await email.getAttribute(attr), `the reset email carries no ${attr}`).toBeNull();
+    }
+  });
+});

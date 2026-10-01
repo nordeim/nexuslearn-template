@@ -581,11 +581,12 @@ export default async function LandingPage() {
                       (U+0022) — not typographic quotes. */}
                   <p className="text-gray-600 leading-relaxed mb-6">"{t.quote}"</p>
                   <div className="flex items-center gap-3">
+                    {/* Eager like the live (session-28 finding 1) — the live
+                        ships no loading-family attributes on any img. */}
                     <img
                       src={t.avatar}
                       alt={t.name}
                       className="w-11 h-11 rounded-full object-cover"
-                      loading="lazy"
                     />
                     <div>
                       <p className="font-semibold text-gray-900 text-sm">{t.name}</p>

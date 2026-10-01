@@ -140,3 +140,16 @@ layer that genuinely cannot move into the app.
 `/api/health` is 34 B raw, 54 B gzipped — Node's middleware has no
 minimum-size threshold; disabling compression app-wide to avoid it would
 cost far more on real payloads (the landing HTML is 242 KB → 28 KB gzipped).
+
+**The protocol tier (session 28)**: the same proxy-layer family extends to
+the HTTP protocol itself — the reference platform speaks **HTTP/2 AND
+HTTP/3** (its Cloudflare edge terminates both), while the standalone Node
+server speaks **HTTP/1.1 only** (Node's standalone server does not carry
+ALPN/QUIC termination, and h2c upgrade attempts are refused). Like brotli
+and public/-static compression, this capability cannot move into the app;
+the same reverse proxy that adds the compression tier adds the protocol
+tier in one move (Caddy and Nginx both negotiate h2 + h3 with modern
+clients out of the box; Cloudflare terminates h3 at its edge). Verified by
+direct probe: `curl --http2` against the reference answers `2`, `--http3`
+answers `3`; against the standalone server every request negotiates
+`1.1`.

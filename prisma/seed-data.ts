@@ -182,6 +182,11 @@ export const COURSES: SeedCourse[] = [
     lessonsCount: 178,
     instructorName: "Dr. Sarah Mitchell",
     instructorAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80",
+    // Deliberate-better variance (session-28 finding 2): the live's own seed
+    // points at photo-1515879218367-8466d910auj7 — a malformed Unsplash id
+    // (non-hex chars u+j in the suffix) that 404s and renders BROKEN on
+    // every page of the live. We ship the working image instead; pinned by
+    // tests/seed-data.test.ts + the session-28 e2e inventory spec.
     image: "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=600&q=80",
     price: 54.99,
     originalPrice: 139.99,

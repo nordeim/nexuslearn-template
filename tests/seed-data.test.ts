@@ -74,6 +74,21 @@ describe("seed imagery parity (session-4 audit)", () => {
     );
   });
 
+  it("keeps the WORKING Advanced Python cover (the live's own URL is malformed and 404s)", () => {
+    // Session-28 finding 2: the live's seed-8 "Advanced Python Programming"
+    // points at photo-1515879218367-8466d910auj7 — a malformed Unsplash id
+    // (the 12-char suffix carries the non-hex chars u+j) that 404s and
+    // renders BROKEN on every page of the live (naturalWidth 0 on /,
+    // /Courses and its own CourseDetail). The clone ships the working
+    // photo-1526379095098-d400fd0bf935 — the deliberate-better variance
+    // (the session-25 asset-re-host family: replicate the app's INTENT, not
+    // its data typos). This pin guards the working URL against seed drift.
+    const py = COURSES.find((c) => c.title === "Advanced Python Programming");
+    expect(py?.image).toBe(
+      "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=600&q=80"
+    );
+  });
+
   it("maps avatars per instructor exactly like the reference app", () => {
     const AVATARS: Record<string, string> = {
       "David Wright": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80",

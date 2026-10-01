@@ -35,11 +35,15 @@ export function CourseCard({ course }: { course: CourseCardData }) {
       <div className="group relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-500 hover:-translate-y-2">
         <div className="relative overflow-hidden aspect-video">
           { }
+          {/* No loading/decoding/fetchpriority — the live ships plain EAGER
+              imgs everywhere (session-28 finding 1: 0/36 loading-family
+              attributes on the live; the lazy attrs were undocumented drift
+              and changed the fetch behavior itself). Pinned by the
+              session-28 e2e block + tests/img-attributes.test.ts. */}
           <img
             src={course.image}
             alt={course.title}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-            loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           {/* Reference badge (session 7): a plain div — class string copied
@@ -76,11 +80,11 @@ export function CourseCard({ course }: { course: CourseCardData }) {
           <div className="flex items-center justify-between pt-4 border-t border-gray-50">
             <div className="flex items-center gap-2">
               { }
+              {/* Eager like the live (session-28) — no loading attribute. */}
               <img
                 src={course.instructorAvatar}
                 alt={course.instructorName}
                 className="w-7 h-7 rounded-full object-cover"
-                loading="lazy"
               />
               <span className="text-sm text-gray-500">{course.instructorName}</span>
             </div>
