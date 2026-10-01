@@ -1,0 +1,16 @@
+Session 27 — the compression + validator/Range response contract
+(captured on BOTH servers: the remediated dev :3000 and the standalone
+ production build :3100; the live's platform = gzip+br on everything,
+ LM-only validators on its SPA-fallback statics — the documented gap)
+
+===== dev :3000 =====
+/                enc[gzip=gzip br=-] etag=NO lm=NO 304=- range=200 vary-AE=yes
+/api/health      enc[gzip=- br=-] etag=NO lm=NO 304=- range=200 vary-AE=no
+/logo.png        enc[gzip=- br=-] etag=yes lm=yes 304=304 range=206 vary-AE=no
+/manifest.json   enc[gzip=- br=-] etag=yes lm=yes 304=304 range=206 vary-AE=yes
+
+===== standalone :3100 =====
+/                enc[gzip=gzip br=-] etag=NO lm=NO 304=- range=200 vary-AE=yes
+/api/health      enc[gzip=gzip br=-] etag=NO lm=NO 304=- range=200 vary-AE=yes
+/logo.png        enc[gzip=- br=-] etag=yes lm=yes 304=304 range=206 vary-AE=no
+/manifest.json   enc[gzip=- br=-] etag=yes lm=yes 304=304 range=206 vary-AE=yes

@@ -98,7 +98,7 @@ bun run build
 ```bash
 curl -s https://your-host/api/health     # {"ok":true,"service":"nexuslearn"}
 bun run lint && bun run typecheck && bun run test
-bun run build && bun run test:e2e        # 25-spec Playwright suite (local)
+bun run build && bun run test:e2e        # 266-spec Playwright suite (local)
 ```
 
 ## 7. Common production issues
@@ -108,3 +108,35 @@ bun run build && bun run test:e2e        # 25-spec Playwright suite (local)
 | `Error code 14: Unable to open the database file` | Server started from a directory with no `prisma/schema.prisma` anchor and no absolute `DATABASE_URL` | Start via `bun run start`, or set an absolute `file:` URL (§4) |
 | Logins loop back to the landing page unauthenticated | `AUTH_SECRET` changed between restarts | Keep the secret stable across restarts |
 | Data written to an unexpected `custom.db` | A stale `DATABASE_URL` export in the shell overrides the repo `.env` | Unset it, or pin `DATABASE_URL` per command (§4.1) |
+
+## 8. Compression & caching posture (session 27)
+
+The app carries its own response-efficiency tiers; one layer needs a proxy.
+
+**What the app ships itself** (all pinned by the session-27 e2e specs —
+`tests/e2e/nexuslearn.spec.ts`, "the compression/content-encoding surface" +
+"the cache-revalidation + range surface"):
+
+| Tier | Contract |
+|------|----------|
+| Dynamic pages + API JSON | gzip when negotiated (`compress: true` is pinned explicitly in `next.config.ts`), always `Vary: Accept-Encoding`-guarded; identity when asked |
+| `/_next/static` chunks (content-hashed JS/CSS) | gzip + `Cache-Control: public, max-age=31536000, immutable` (the session-24 pin) + the full validator contract (weak `ETag` + `Last-Modified`, 304 on both revalidators, 206 partial responses) |
+| `public/` statics (`/logo.png`, `/manifest.json`) | served identity (Node's static handler never compresses — `/logo.png` is a PNG payload deflate cannot shrink anyway; `/manifest.json` is 610 B) + the same full validator/304/206 contract |
+| Dynamic HTML pages | deliberately NO validators (`no-store` — the per-request CSP nonce makes nonced HTML uncacheable by design; do not "fix") |
+
+**What needs the proxy layer**: **brotli** and **public/-static compression**.
+The reference app's platform (Cloudflare edge) compresses every compressible
+response with gzip AND brotli; Node's built-in compression middleware is
+gzip/deflate-only and never touches static-file responses, so a standalone
+server cannot carry those two tiers in-app (unlike the baseline security
+headers of session 23, which the app ships itself because headers are
+app-controllable). For parity, front the standalone server with a
+compression-capable reverse proxy — e.g. Caddy (`encode zstd br gzip`),
+Nginx (`gzip_brotli`/`brotli on` + `gzip_static`), or Cloudflare. This is
+the same reasoning chain as the session-23 header work, applied to the one
+layer that genuinely cannot move into the app.
+
+**Known quirk** (harmless, documented): gzip on tiny responses grows them —
+`/api/health` is 34 B raw, 54 B gzipped — Node's middleware has no
+minimum-size threshold; disabling compression app-wide to avoid it would
+cost far more on real payloads (the landing HTML is 242 KB → 28 KB gzipped).

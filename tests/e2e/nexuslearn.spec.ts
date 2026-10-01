@@ -3533,3 +3533,137 @@ test.describe("session-26 parity: the form-control metadata surface", () => {
     expect(await message.getAttribute("autocomplete")).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Session 27 — the compression/content-encoding surface (the ENCODING
+// dimension of the response contract — never probed by the sessions-23–26
+// response audits, which read status/headers/bodies but never the
+// Accept-Encoding handshake). The live's platform (Cloudflare edge)
+// compresses every compressible response with gzip AND brotli; the app's
+// standalone server ships a correct gzip tier — dynamic pages, API JSON and
+// the /_next/static chunks, each paired with `Vary: Accept-Encoding` when
+// compressed — while brotli and public/-static compression are proxy-layer
+// capabilities a standalone Node server cannot carry (documented in
+// docs/DEPLOYMENT.md §8, NOT "fixed" in-app: a route-handler rewrite for
+// the statics would strip the validator contract pinned below).
+// Reference: docs/remediation-plan-session27.md (finding 1).
+// ---------------------------------------------------------------------------
+
+test.describe("session-27 parity: the compression/content-encoding surface", () => {
+  test("the dynamic gzip tier: pages + API negotiate gzip with the Vary guard", async ({ request }) => {
+    // Compressed responses MUST carry `Vary: Accept-Encoding` (without it a
+    // shared cache can serve the gzipped variant to an identity-only client).
+    for (const path of ["/", "/api/health"]) {
+      const gz = await request.get(path, { headers: { "Accept-Encoding": "gzip" } });
+      expect(gz.status(), `${path} loads`).toBe(200);
+      expect(gz.headers()["content-encoding"] ?? "", `${path} gzips when negotiated`).toContain("gzip");
+      const vary = gz.headers()["vary"] ?? "";
+      expect(vary, `${path} guards the compressed variant with Vary`).toContain("Accept-Encoding");
+
+      const identity = await request.get(path, { headers: { "Accept-Encoding": "identity" } });
+      expect(identity.status(), `${path} identity loads`).toBe(200);
+      expect(identity.headers()["content-encoding"] ?? undefined, `${path} stays identity when asked`).toBeUndefined();
+    }
+  });
+
+  test("the static tiers: public/ statics serve identity, /_next/static chunks negotiate gzip", async ({ request }) => {
+    // The public/ statics are served by Node's static handler, which does
+    // not compress — the CURRENT app contract, pinned here (the platform
+    // gap is a proxy-layer concern; /logo.png is a PNG payload deflate
+    // cannot shrink anyway, and /manifest.json is 610 B).
+    for (const path of ["/logo.png", "/manifest.json"]) {
+      const res = await request.get(path, { headers: { "Accept-Encoding": "gzip" } });
+      expect(res.status(), `${path} loads`).toBe(200);
+      expect(res.headers()["content-encoding"] ?? undefined, `${path} serves identity (the Node static-handler tier)`).toBeUndefined();
+    }
+
+    // The /_next/static chunk layer (content-hashed JS/CSS) DOES negotiate
+    // gzip — the same tier the session-24 immutable-cache pin protects.
+    const page = await request.get("/");
+    const html = await page.text();
+    const chunk = html.match(/\/_next\/static\/[^"']+\.js/)?.[0];
+    expect(chunk, "a static chunk is referenced in the HTML").toBeTruthy();
+    const chunkRes = await request.get(chunk as string, { headers: { "Accept-Encoding": "gzip" } });
+    expect(chunkRes.status(), "the chunk loads").toBe(200);
+    expect(chunkRes.headers()["content-encoding"] ?? "", "the chunk gzips when negotiated").toContain("gzip");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session 27 — the cache-revalidation + range surface (the VALIDATOR
+// dimension of the response contract): the ETag/Last-Modified/304 handshake
+// and the Range/206 partial responses, never probed before this session.
+// The app's static tiers ship the full production-grade contract (weak ETag
+// + Last-Modified, 304 on both revalidators, Accept-Ranges + correct 206
+// bodies); the dynamic pages correctly carry NO validators (the unavoidable
+// companion of the per-request CSP nonce — a nonced page can never be
+// cache-shared). All pinned so a future headers() override or "performance
+// fix" cannot silently strip either side.
+// Reference: docs/remediation-plan-session27.md (finding 2).
+// ---------------------------------------------------------------------------
+
+test.describe("session-27 parity: the cache-revalidation + range surface", () => {
+  test("the public/-static validator contract: ETag + Last-Modified + 304 revalidation + 206 partials", async ({ request }) => {
+    const first = await request.get("/logo.png");
+    expect(first.status(), "the asset loads").toBe(200);
+    const etag = first.headers()["etag"];
+    const lastModified = first.headers()["last-modified"];
+    expect(etag, "the asset carries an ETag").toBeTruthy();
+    expect(lastModified, "the asset carries a Last-Modified").toBeTruthy();
+
+    // 304 on If-None-Match (replaying the validator the server just sent).
+    const etagReval = await request.get("/logo.png", { headers: { "If-None-Match": etag! } });
+    expect(etagReval.status(), "If-None-Match revalidation answers 304").toBe(304);
+
+    // 304 on If-Modified-Since.
+    const lmReval = await request.get("/logo.png", { headers: { "If-Modified-Since": lastModified! } });
+    expect(lmReval.status(), "If-Modified-Since revalidation answers 304").toBe(304);
+
+    // 206 partial response with the correct Content-Range + body length.
+    const range = await request.get("/logo.png", { headers: { Range: "bytes=0-99" } });
+    expect(range.status(), "a Range request answers 206").toBe(206);
+    expect(range.headers()["content-range"] ?? "", "the Content-Range header").toMatch(/^bytes 0-99\/\d+$/);
+    expect((await range.body()).length, "the partial body carries exactly 100 bytes").toBe(100);
+    expect(range.headers()["accept-ranges"] ?? "", "the asset advertises Accept-Ranges").toBe("bytes");
+
+    // Spot-check the second public static for the same contract shape.
+    const manifest = await request.get("/manifest.json");
+    const manifestEtag = manifest.headers()["etag"];
+    expect(manifestEtag, "the manifest carries an ETag").toBeTruthy();
+    const manifestReval = await request.get("/manifest.json", { headers: { "If-None-Match": manifestEtag! } });
+    expect(manifestReval.status(), "the manifest revalidates with 304").toBe(304);
+  });
+
+  test("the dynamic-page no-validator contract: no ETag, no-store (the CSP-nonce companion)", async ({ request }) => {
+    // Nonced pages can never be cache-shared — every response embeds a
+    // per-request nonce, so the pages ship no validators and no-store.
+    // Pinned so a future "performance fix" cannot cache nonced HTML.
+    for (const path of ["/", "/Courses"]) {
+      const res = await request.get(path);
+      expect(res.status(), `${path} loads`).toBe(200);
+      expect(res.headers()["etag"] ?? undefined, `${path} carries no ETag`).toBeUndefined();
+      expect(res.headers()["last-modified"] ?? undefined, `${path} carries no Last-Modified`).toBeUndefined();
+      expect(res.headers()["cache-control"] ?? "", `${path} is uncacheable`).toContain("no-store");
+    }
+  });
+
+  test("the /_next/static chunk validator contract: ETag + 304 + 206 (the session-24 cache pin completed)", async ({ request }) => {
+    // The session-24 pin guards the immutable cache-control; this completes
+    // it with the revalidation + partial-response axes on the same tier.
+    const page = await request.get("/");
+    const html = await page.text();
+    const chunk = html.match(/\/_next\/static\/[^"']+\.js/)?.[0];
+    expect(chunk, "a static chunk is referenced in the HTML").toBeTruthy();
+
+    const first = await request.get(chunk as string);
+    const etag = first.headers()["etag"];
+    expect(etag, "the chunk carries an ETag").toBeTruthy();
+
+    const reval = await request.get(chunk as string, { headers: { "If-None-Match": etag! } });
+    expect(reval.status(), "the chunk revalidates with 304").toBe(304);
+
+    const range = await request.get(chunk as string, { headers: { Range: "bytes=0-49" } });
+    expect(range.status(), "a chunk Range request answers 206").toBe(206);
+    expect(range.headers()["content-range"] ?? "", "the chunk Content-Range header").toMatch(/^bytes 0-49\/\d+$/);
+  });
+});
