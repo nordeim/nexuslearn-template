@@ -3430,3 +3430,106 @@ test.describe("session-25 parity: the crawler/SEO-file surface", () => {
     expect(manifest.headers()["content-type"]).toContain("application/json");
   });
 });
+
+test.describe("session-26 parity: the HTTP verb matrix surface", () => {
+  test("page routes reject non-GET/HEAD verbs with 405 + Allow (the live's platform semantics)", async ({ request }) => {
+    // The live's platform layer 405s EVERY non-GET verb on every page path;
+    // the clone's App Router pages accepted any method (POST / rendered the
+    // full page HTML with 200; OPTIONS returned 400). The proxy method guard
+    // (session 26) restores the GET/HEAD-only page contract.
+    for (const path of ["/", "/Courses", "/login"]) {
+      for (const method of ["POST", "PUT", "DELETE", "OPTIONS"] as const) {
+        const res = await request.fetch(path, { method });
+        expect(res.status(), `${method} ${path} -> 405`).toBe(405);
+        expect(res.headers()["allow"], `${method} ${path} Allow header`).toBe("GET, HEAD");
+        const body = (await res.json()) as { error?: string };
+        expect(body.error).toBe("Method not allowed");
+      }
+    }
+    // GET and HEAD still serve the pages (the guard must not break serving).
+    expect((await request.get("/")).status()).toBe(200);
+    expect((await request.fetch("/", { method: "HEAD" })).status()).toBe(200);
+  });
+
+  test("the static-asset + unknown-path + API verb contracts", async ({ request }) => {
+    // The static-asset class: POST on public files was a 500 (the static
+    // handler's crash class) — now the guarded 405 like the live.
+    for (const path of ["/logo.png", "/manifest.json"]) {
+      const res = await request.fetch(path, { method: "POST" });
+      expect(res.status(), `POST ${path} -> 405 (was 500)`).toBe(405);
+    }
+    // Unknown paths: the METHOD beats path resolution (the live 405s POST on
+    // unknown paths; GET keeps the session-24 real-404 pin).
+    expect((await request.fetch("/nonexistent-page-xyz", { method: "POST" })).status()).toBe(405);
+    expect((await request.get("/nonexistent-page-xyz")).status()).toBe(404);
+    // The API routes keep their handler-owned verb semantics (the clone's
+    // first-party contract): wrong-verb 405 + the framework's 204 OPTIONS.
+    expect((await request.get("/api/auth/login")).status()).toBe(405);
+    expect((await request.fetch("/api/health", { method: "OPTIONS" })).status()).toBe(204);
+  });
+});
+
+test.describe("session-26 parity: the form-control metadata surface", () => {
+  test("the login card's password-manager contract (autocomplete/inputMode hardening)", async ({ page }) => {
+    // The live ships NO autocomplete/inputMode anywhere (bare inputs); the
+    // clone's login card carries the password-manager hardening — signin
+    // (email + current-password), verify (one-time-code + numeric inputmode)
+    // and signup (email + new-password on both password fields, completed
+    // this session). Deliberate-better, session-22 aria-label family —
+    // never to be "fixed" toward the live's bare inputs.
+    await page.goto("/login");
+
+    // Signin view.
+    await expect(page.locator("#email")).toHaveAttribute("autocomplete", "email");
+    await expect(page.locator("#password")).toHaveAttribute("autocomplete", "current-password");
+
+    // Signup view (Need an account? Sign up).
+    await page.getByRole("button", { name: /sign up/i }).click();
+    await expect(page.locator("#email")).toHaveAttribute("autocomplete", "email");
+    await expect(page.locator("#password")).toHaveAttribute("autocomplete", "new-password");
+    await expect(page.locator("#confirmPassword")).toHaveAttribute("autocomplete", "new-password");
+
+    // Verify view (code inputs): numeric inputmode + one-time-code on the
+    // first field, off on the rest (the signup form must be filled first —
+    // the required fields block an empty submit).
+    await page.goto("/login");
+    await page.getByRole("button", { name: /sign up/i }).click();
+    await page.fill("#email", `meta-${Date.now()}@example.com`);
+    await page.fill("#password", "SuperSecret99!");
+    await page.fill("#confirmPassword", "SuperSecret99!");
+    await page.getByRole("button", { name: "Create account" }).click();
+    const codeInputs = page.locator('input[inputmode="numeric"]');
+    await expect(codeInputs.first()).toHaveAttribute("inputmode", "numeric");
+    await expect(codeInputs.first()).toHaveAttribute("autocomplete", "one-time-code");
+    await expect(codeInputs.nth(1)).toHaveAttribute("autocomplete", "off");
+  });
+
+  test("GUARD: every other form stays reference-faithful bare (no autocomplete/inputMode)", async ({ page }) => {
+    // The hardening's SCOPE is the login card only: the newsletter input,
+    // the Courses search input, the AI composer textarea and the Contact
+    // inputs carry NO autocomplete/inputMode attributes — byte-faithful to
+    // the live's bare controls on every one of those forms.
+    await page.goto("/");
+    const newsletter = page.locator('input[type="email"]').first();
+    expect(await newsletter.getAttribute("autocomplete")).toBeNull();
+    expect(await newsletter.getAttribute("inputmode")).toBeNull();
+
+    await page.goto("/Courses");
+    const search = page.locator('input[placeholder*="Search"]').first();
+    expect(await search.getAttribute("autocomplete")).toBeNull();
+    expect(await search.getAttribute("inputmode")).toBeNull();
+
+    await page.goto("/AIAssistant");
+    const composer = page.locator("textarea").first();
+    expect(await composer.getAttribute("autocomplete")).toBeNull();
+    expect(await composer.getAttribute("inputmode")).toBeNull();
+
+    await page.goto("/Contact");
+    const name = page.locator("#name");
+    expect(await name.getAttribute("autocomplete")).toBeNull();
+    const email = page.locator("#email");
+    expect(await email.getAttribute("autocomplete")).toBeNull();
+    const message = page.locator("#message");
+    expect(await message.getAttribute("autocomplete")).toBeNull();
+  });
+});

@@ -1,0 +1,26 @@
+Session 26 — the HTTP verb matrix surface (the remediated codebase)
+(the live's platform 405s every non-GET/HEAD verb on every non-API path;
+ the proxy method guard restores the contract: pages/statics/unknown -> 405 + Allow: GET, HEAD)
+
+== dev server (:3000) ==
+/                          POST=405  PUT=405  DELETE=405  OPTIONS=405  HEAD=200  GET=200
+/Courses                   POST=405  PUT=405  DELETE=405  OPTIONS=405  HEAD=200  GET=200
+/login                     POST=405  PUT=405  DELETE=405  OPTIONS=405  HEAD=200  GET=200
+/logo.png                  POST=405  PUT=405  DELETE=405  OPTIONS=405  HEAD=200  GET=200
+/manifest.json             POST=405  PUT=405  DELETE=405  OPTIONS=405  HEAD=200  GET=200
+/nonexistent-page-xyz      POST=405  PUT=405  DELETE=405  OPTIONS=405  HEAD=404  GET=404
+/robots.txt                POST=405  PUT=405  DELETE=405  OPTIONS=204  HEAD=200  GET=200
+/sitemap.xml               POST=405  PUT=405  DELETE=405  OPTIONS=204  HEAD=200  GET=200
+
+== standalone production build (:3100) ==
+/                          POST=405  PUT=405  DELETE=405  OPTIONS=405  HEAD=200  GET=200
+/Courses                   POST=405  PUT=405  DELETE=405  OPTIONS=405  HEAD=200  GET=200
+/login                     POST=405  PUT=405  DELETE=405  OPTIONS=405  HEAD=200  GET=200
+/logo.png                  POST=405  PUT=405  DELETE=405  OPTIONS=405  HEAD=200  GET=200
+/manifest.json             POST=405  PUT=405  DELETE=405  OPTIONS=405  HEAD=200  GET=200
+/nonexistent-page-xyz      POST=405  PUT=405  DELETE=405  OPTIONS=405  HEAD=404  GET=404
+/robots.txt                POST=405  PUT=405  DELETE=405  OPTIONS=405  HEAD=200  GET=200
+/sitemap.xml               POST=405  PUT=405  DELETE=405  OPTIONS=405  HEAD=200  GET=200
+
+API verb contract (handler-owned, unchanged): GET /api/auth/login=405  OPTIONS /api/health=204
+405 response shape: allow: GET, HEAD + {"error":"Method not allowed"} (application/json)

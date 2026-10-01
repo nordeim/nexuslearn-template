@@ -453,6 +453,7 @@ export function LoginForm() {
                   <input
                     type="email"
                     id="email"
+                    autoComplete="email"
                     className={COMPACT_INPUT_CLS}
                     placeholder="you@example.com"
                     required
@@ -470,6 +471,7 @@ export function LoginForm() {
                   <input
                     type="password"
                     id="password"
+                    autoComplete="new-password"
                     className={COMPACT_INPUT_CLS}
                     placeholder="Min. 8 characters"
                     required
@@ -488,6 +490,7 @@ export function LoginForm() {
                   <input
                     type="password"
                     id="confirmPassword"
+                    autoComplete="new-password"
                     className={COMPACT_INPUT_CLS}
                     placeholder="Re-enter password"
                     required

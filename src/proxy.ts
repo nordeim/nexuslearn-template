@@ -106,8 +106,48 @@ function cspHeaderValue(nonce: string): string {
   return directives.join("; ");
 }
 
+/**
+ * The HTTP verb guard (session 26).
+ *
+ * The live's platform layer 405s EVERY non-GET/HEAD verb on every non-API
+ * path (POST/PUT/DELETE/OPTIONS on pages, unknown paths and static public
+ * files all return 405 — its uvicorn platform checks the method before path
+ * resolution). Next.js App Router pages accept ANY method by default: POST
+ * / rendered the full page HTML with 200, OPTIONS returned 400, and the
+ * static file handler answered POST /logo.png with a 500 (its own crash
+ * class). Pages are GET/HEAD-only resources — the guard restores that
+ * contract: non-GET/HEAD on any path outside /api/ returns 405 with
+ * `Allow: GET, HEAD` (the first-party {error} JSON body — the live's
+ * {"error_type": "HTTPException"} body is its platform's artifact, the same
+ * keep-our-own-forms family as the session-24 canonicalization pins).
+ *
+ * Scope decisions:
+ *  - /api/* is excluded: route handlers own their verb semantics (405
+ *    wrong-verb, 204 auto-OPTIONS preflight — the first-party API contract).
+ *  - _next/* is excluded (the matcher already skips it): no parity axis
+ *    (the live has no _next), and the dev server's internal routes stay
+ *    untouched.
+ *  - The guard runs BEFORE the canonical-rewrite logic: method beats path
+ *    resolution (the live 405s POST on unknown paths that would 404 on GET).
+ *  - GET/HEAD pass through untouched — including HEAD (Next auto-HEADs the
+ *    GET handler and strips the body; the live 200s HEAD the same way).
+ */
+const ALLOWED_METHODS = new Set(["GET", "HEAD"]);
+
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // The verb guard (session 26) — non-GET/HEAD outside /api/ never reaches
+  // the renderer.
+  if (!ALLOWED_METHODS.has(req.method)) {
+    if (!pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "Method not allowed" },
+        { status: 405, headers: { Allow: "GET, HEAD" } }
+      );
+    }
+    // API verbs fall through to the route handlers' own semantics.
+  }
 
   // The per-request CSP nonce (session 24).
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
@@ -140,11 +180,15 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Skip API routes, Next internals and the static public files — the
+  // Skip API routes, Next internals and the crawler route handlers — the
   // rewrite only ever fires on the nine content routes anyway, and a CSP
   // only protects DOCUMENT contexts (API/asset responses carry no scripts).
   // Keeping the middleware out of the hot asset path avoids the overhead.
+  // favicon.ico / logo.png / manifest.json ARE included (session 26): the
+  // verb guard must cover the static public files (POST on them was the
+  // static handler's 500 — the live 405s); a GET just passes through with
+  // the CSP header attached (inert on a non-document response).
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|logo.png|manifest.json|robots.txt|sitemap.xml).*)",
+    "/((?!api|_next/static|_next/image|robots.txt|sitemap.xml).*)",
   ],
 };
