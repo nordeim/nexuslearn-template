@@ -3364,3 +3364,69 @@ test.describe("session-24 parity: the static-asset cache surface", () => {
     expect(cache, "the immutable marker").toContain("immutable");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Session 25 — the crawler/SEO-file surface. The head-metadata surface
+// (sessions 4/5) pinned the <head> TAGS; this block pins the FILE BODIES
+// crawlers fetch. The session-25 probe compared robots.txt, sitemap.xml and
+// manifest.json byte-for-byte against the live: the manifest's `scope`
+// field was MISSING (the live's ninth field) — now added in the relative
+// portable form ("/", the same deliberate-better family as the relative
+// start_url). The serialization deltas that remain (robots field casing,
+// sitemap indentation + the "1" vs "1.0" priority serialization, the
+// landing-loc trailing slash) are the Next.js builder's canonical output
+// vs the live platform generator's artifact-grade forms — semantically
+// identical to every spec-compliant parser, pinned so a future audit
+// cannot "fix" them toward the live.
+// Reference: docs/remediation-plan-session25.md (finding 3).
+// ---------------------------------------------------------------------------
+
+test.describe("session-25 parity: the crawler/SEO-file surface", () => {
+  test("manifest.json carries the complete reference field set incl. scope (relative portable forms)", async ({ request }) => {
+    const res = await request.get("/manifest.json");
+    expect(res.status()).toBe(200);
+    const manifest = (await res.json()) as Record<string, unknown>;
+    // The live's nine fields, all present.
+    for (const field of [
+      "name",
+      "short_name",
+      "description",
+      "icons",
+      "start_url",
+      "display",
+      "theme_color",
+      "background_color",
+      "scope",
+    ]) {
+      expect(manifest[field], `manifest.${field} present`).toBeDefined();
+    }
+    // The scope + start_url portable relative forms (the live's are
+    // origin-absolute — the clone's relative forms work on any origin).
+    expect(manifest.start_url).toBe("/");
+    expect(manifest.scope).toBe("/");
+  });
+
+  test("the crawler files serve their canonical content types with the pinned bodies", async ({ request }) => {
+    // robots.txt — text/plain, allow-everything, sitemap-linked.
+    const robots = await request.get("/robots.txt");
+    expect(robots.status()).toBe(200);
+    expect(robots.headers()["content-type"]).toContain("text/plain");
+    const robotsBody = await robots.text();
+    expect(robotsBody).toMatch(/user-agent: \*/i);
+    expect(robotsBody).toMatch(/allow: \//i);
+    expect(robotsBody).toMatch(/sitemap: .+\/sitemap\.xml/i);
+
+    // sitemap.xml — application/xml, the 9 canonical routes.
+    const sitemap = await request.get("/sitemap.xml");
+    expect(sitemap.status()).toBe(200);
+    expect(sitemap.headers()["content-type"]).toContain("application/xml");
+    const sitemapBody = await sitemap.text();
+    expect(sitemapBody.match(/<url>/g)?.length).toBe(9);
+    expect(sitemapBody.match(/<changefreq>weekly<\/changefreq>/g)?.length).toBe(9);
+
+    // manifest.json — application/json (the linked PWA identity).
+    const manifest = await request.get("/manifest.json");
+    expect(manifest.status()).toBe(200);
+    expect(manifest.headers()["content-type"]).toContain("application/json");
+  });
+});

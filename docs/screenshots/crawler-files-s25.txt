@@ -1,0 +1,9 @@
+Session 25 — the crawler/SEO-file surface (dev server :3000)
+
+GET /robots.txt -> 200 text/plain
+  robots body: "User-Agent: *\nAllow: /\n\nSitemap: http://localhost:3000/sitemap.xml\n"
+GET /sitemap.xml -> 200 application/xml
+  sitemap <url> count: 9 | all weekly: true
+GET /manifest.json -> 200 application/json; charset=UTF-8
+  manifest fields (9): name, short_name, description, icons, start_url, display, theme_color, background_color, scope
+  start_url: / | scope: / (the session-25 addition)
