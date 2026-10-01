@@ -3153,3 +3153,90 @@ test.describe("session-22 parity: the media-emulation stability surface", () => 
     await page.emulateMedia({ reducedMotion: "no-preference" });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Session 23 — the security-headers hardening (the HTTP response surface).
+// The live's platform layer (Cloudflare + Caddy) ships the baseline security
+// headers on every response: strict-transport-security, referrer-policy
+// strict-origin-when-cross-origin and x-content-type-options nosniff. A bare
+// Next.js app ships none of them — a production-grade standalone template
+// should carry the baseline IN the app so it holds wherever the standalone
+// server runs without a hardening proxy (the documented deliberate-better
+// family: same precedent as the ARIA/scroll-lock/Escape hardening).
+// Reference: docs/remediation-plan-session23.md (finding 1).
+// ---------------------------------------------------------------------------
+
+test.describe("session-23 parity: the security-headers hardening", () => {
+  test("every response ships the baseline security headers", async ({ request }) => {
+    const res = await request.get("/");
+    expect(res.status()).toBe(200);
+    const headers = res.headers();
+    // MIME-sniffing guard (the live's platform value).
+    expect(headers["x-content-type-options"], "x-content-type-options").toBe("nosniff");
+    // Referrer policy (the live's platform value).
+    expect(headers["referrer-policy"], "referrer-policy").toBe("strict-origin-when-cross-origin");
+    // Anti-clickjacking: the app never frames itself.
+    expect(headers["x-frame-options"], "x-frame-options").toBe("SAMEORIGIN");
+    // HSTS (the live's platform value; inert over plain HTTP — active behind TLS).
+    expect(headers["strict-transport-security"], "strict-transport-security").toContain("max-age=31536000");
+    // Capability deny-list: the app uses no camera/mic/geo.
+    expect(headers["permissions-policy"], "permissions-policy").toContain("camera=()");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session 23 — the axe-core WCAG surface (the sixth a11y probe family).
+// The full live-vs-clone axe scan (docs/remediation-plan-session23.md
+// finding 2) established: (a) color-contrast + heading-order violations are
+// the REFERENCE'S OWN DESIGN (identical node counts on every route — the
+// gray lesson-row icons, the line-through price, the reference heading
+// structure; the reference design is the parity contract); (b) the live
+// fires link-name (its 4 footer social links) + button-name (its icon-only
+// AI send button) — ZERO here, because of the aria-label hardening family
+// (sessions 21-22) that the live lacks. These pins freeze that contract:
+// the accessible-name guard (0 link-name + 0 button-name), the
+// reference-design rule-set contract (no NEW axe rules beyond the two
+// reference design rules) and the fully-clean /login scan.
+// ---------------------------------------------------------------------------
+
+test.describe("session-23 parity: the axe-core WCAG surface", () => {
+  // The audited route set (the 9 non-CourseDetail routes; CourseDetail's
+  // color-contrast count scales with the per-course curriculum and is
+  // documented rather than count-pinned).
+  const AXE_ROUTES = ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/Dashboard", "/login"];
+  // The reference's own design rules — everything else is a regression.
+  const REFERENCE_DESIGN_RULES = new Set(["color-contrast", "heading-order"]);
+
+  test("zero link-name and button-name violations on every audited route (the aria-label hardening the live lacks)", async ({ page }) => {
+    const { AxeBuilder } = await import("@axe-core/playwright");
+    for (const route of AXE_ROUTES) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(400);
+      const results = await new AxeBuilder({ page }).analyze();
+      const linkName = results.violations.filter((v) => v.id === "link-name");
+      const buttonName = results.violations.filter((v) => v.id === "button-name");
+      expect(linkName, `${route}: link-name violations (the live fires 4 — its footer social links)`).toHaveLength(0);
+      expect(buttonName, `${route}: button-name violations (the live fires 1 — its icon-only AI send)`).toHaveLength(0);
+    }
+  });
+
+  test("the violation rule set stays within the reference-design rules (no new a11y regressions)", async ({ page }) => {
+    const { AxeBuilder } = await import("@axe-core/playwright");
+    for (const route of AXE_ROUTES) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(400);
+      const results = await new AxeBuilder({ page }).analyze();
+      const ruleIds = [...new Set(results.violations.map((v) => v.id))];
+      const newRules = ruleIds.filter((id) => !REFERENCE_DESIGN_RULES.has(id));
+      expect(newRules, `${route}: rules beyond the reference-design set {color-contrast, heading-order}`).toEqual([]);
+    }
+  });
+
+  test("/login scans fully clean (zero violations — no reveal targets, no gray-on-gray utilities)", async ({ page }) => {
+    const { AxeBuilder } = await import("@axe-core/playwright");
+    await page.goto("/login", { waitUntil: "networkidle" });
+    await page.waitForTimeout(400);
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+});
