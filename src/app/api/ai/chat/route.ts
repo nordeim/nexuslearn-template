@@ -1,15 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import ZAI from "z-ai-web-dev-sdk";
 
+import { RATE_LIMITS, checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rate-limit";
+import { bodyTooLarge, FIELD_LIMITS } from "@/lib/request-guard";
+
 /**
  * POST /api/ai/chat — NexusLearn AI Study Assistant.
  * Server-only z-ai-web-dev-sdk chat completion (never imported client-side).
  */
 export async function POST(req: NextRequest) {
   try {
+    // session-31: the per-IP throttle first (the cheap rejection — an LLM
+    // call is the most expensive request in the app).
+    const verdict = checkRateLimit("ai-chat", clientIp(req), RATE_LIMITS["ai-chat"]);
+    if (!verdict.ok) return rateLimitResponse(verdict);
+
+    // session-31: the body-size pre-check (before any parse).
+    if (bodyTooLarge(Number(req.headers.get("content-length") ?? 0))) {
+      return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+    }
+
     const { messages } = await req.json();
     if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: "messages array is required" }, { status: 400 });
+    }
+    // session-31: the turn cap (the client sends the last 12 turns; 100 is
+    // defense-in-depth against a synthetic array).
+    if (messages.length > FIELD_LIMITS.chatTurns) {
+      return NextResponse.json({ error: "messages array is too long" }, { status: 400 });
     }
 
     // Keep the last 12 turns to bound token usage

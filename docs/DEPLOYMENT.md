@@ -153,3 +153,32 @@ clients out of the box; Cloudflare terminates h3 at its edge). Verified by
 direct probe: `curl --http2` against the reference answers `2`, `--http3`
 answers `3`; against the standalone server every request negotiates
 `1.1`.
+
+## 9. Rate limiting posture (session 31)
+
+The six public POST routes (`/api/auth/login`, `/api/auth/signup`,
+`/api/auth/forgot-password`, `/api/contact`, `/api/newsletter`,
+`/api/ai/chat`) carry an **in-memory fixed-window per-IP throttle**
+(`src/lib/rate-limit.ts` — login 30/min, signup + forgot-password 10,
+newsletter + contact 15, ai-chat 30; 429 + `Retry-After` + the house
+`{ error }` body). Two deployment notes:
+
+- **The bucket store is per-process.** Run ONE server instance per
+  deployment (the standalone `server.js` is single-process anyway) — or
+  move the `buckets` map to shared memory (Redis, a sidecar) if you ever
+  scale horizontally, otherwise each instance keeps its own window and the
+  effective limit multiplies by the instance count.
+- **The client IP comes from the proxy headers.** `clientIp()` reads
+  `x-forwarded-for`'s first value, then `x-real-ip`, then falls back to the
+  `local` sentinel. Behind no reverse proxy every client shares that one
+  bucket — front the server with Caddy/Nginx/Cloudflare (already
+  recommended for §8's compression/protocol posture) and let the proxy set
+  the header. A spoofed `x-forwarded-for` can still rotate the key, which
+  is why the store's map sweep bounds tracked keys at 5,000 (expired
+  entries drop first); a determined attacker behind a botnet defeats any
+  per-IP scheme — that is the WAF/edge layer's job.
+
+The thresholds are code constants sized ≥ 4× the e2e suite's measured
+per-bucket load; tune them in `src/lib/rate-limit.ts` (the `RATE_LIMITS`
+table is unit-pinned — update `tests/rate-limit.test.ts` in the same
+commit).

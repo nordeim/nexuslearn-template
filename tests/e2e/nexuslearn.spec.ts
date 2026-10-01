@@ -4254,3 +4254,151 @@ test.describe("session-30 parity: the router-scroll modality surface (the data-s
     expect(settled).toBeLessThanOrEqual(5);
   });
 });
+
+// session-31 — the request-size + rate-limit pass: TWO fresh-eyes probe
+// families —
+// (1) the REQUEST-SIZE / PAYLOAD-DEPTH surface: the public writing routes
+//     accepted and PERSISTED unbounded strings (a 1MB newsletter email
+//     returned 200 + the row; a 2MB contact message likewise; a 1MB signup
+//     email created a User whose derived NAME was also 1MB). The fix: the
+//     shared request guard — a 1MB Content-Length pre-check (413) + the
+//     field caps (400) on every public POST route.
+// (2) the RATE-LIMITING / ABUSE-THROTTLE surface: neither site throttles
+//     (12-request bursts ×4 sequences produced zero 429s anywhere) — but the
+//     live is protected by its PLATFORM wall (external POSTs to
+//     newsletter/contact/ai 405; login demands "Security verification"),
+//     while the clone's first-party API was wide open. The fix: the
+//     deliberate-better in-memory per-IP throttle (429 + Retry-After).
+//
+// Spec order matters: the BURST spec is deliberately the suite's LAST
+// API-touching spec — it poisons the newsletter bucket for the remainder
+// of its 60s window, and nothing after it POSTs newsletter (the leak spec
+// re-run is GET-only). Every full-suite run boots a fresh server process
+// (a fresh bucket map), so runs are independent.
+async function s31CountUsersWithEmailPrefix(prefix: string): Promise<number> {
+  // The spec-side Prisma read (the session-30 s30ForeignLessonId pattern):
+  // the only faithful source for the non-persistence assertion.
+  const { PrismaClient } = await import("@prisma/client");
+  const path = await import("node:path");
+  const db = new PrismaClient({
+    datasourceUrl: `file:${path.resolve(process.cwd(), "db", "e2e.db")}`,
+  });
+  try {
+    return await db.user.count({ where: { email: { startsWith: prefix } } });
+  } finally {
+    await db.$disconnect();
+  }
+}
+
+test.describe("session-31 parity: the request-size guard surface", () => {
+  test("newsletter rejects an oversized email with 400 (the field cap)", async ({ request }) => {
+    // A 300KB email: over the 254-char RFC max but UNDER the 1MB body cap —
+    // this pins the FIELD layer specifically.
+    const res = await request.post("/api/newsletter", {
+      data: { email: "x".repeat(300 * 1024) + "@example.com" },
+    });
+    expect(res.status(), "the field cap rejects before any persistence").toBe(400);
+    const body = (await res.json()) as { error?: string };
+    expect(body.error).toBeTruthy();
+  });
+
+  test("contact rejects an oversized message with 400; the normal message still succeeds", async ({ request }) => {
+    const res = await request.post("/api/contact", {
+      data: {
+        name: "S31 E2E",
+        email: "s31-e2e@example.com",
+        subject: "s31",
+        message: "m".repeat(300 * 1024),
+      },
+    });
+    expect(res.status(), "the field cap rejects the 300KB message").toBe(400);
+    expect(((await res.json()) as { error?: string }).error).toBeTruthy();
+
+    // The happy path holds: a small valid contact POST still succeeds.
+    const ok = await request.post("/api/contact", {
+      data: {
+        name: "S31 E2E",
+        email: "s31-e2e@example.com",
+        subject: "s31",
+        message: "session-31 happy-path probe — safe to delete.",
+      },
+    });
+    expect(ok.status(), "the caps are invisible to the normal UX").toBe(200);
+  });
+
+  test("signup rejects an oversized email with 400 and creates NOTHING", async ({ request }) => {
+    const prefix = "s31-oversized-signup-";
+    const before = await s31CountUsersWithEmailPrefix(prefix);
+    const res = await request.post("/api/auth/signup", {
+      data: { email: prefix + "x".repeat(300 * 1024) + "@example.com", password: "password123" },
+    });
+    expect(res.status(), "the field cap rejects before the user lookup").toBe(400);
+    expect(((await res.json()) as { error?: string }).error).toBeTruthy();
+    const after = await s31CountUsersWithEmailPrefix(prefix);
+    expect(after, "no user row was persisted by the rejected signup").toBe(before);
+  });
+
+  test("login rejects an oversized email with 400 (the field cap beats the 401)", async ({ request }) => {
+    const res = await request.post("/api/auth/login", {
+      data: { email: "x".repeat(300 * 1024) + "@example.com", password: "wrong" },
+    });
+    // RED state: this returned 401 (the lookup ran with the megabyte string).
+    expect(res.status(), "the field cap rejects before the user lookup").toBe(400);
+    expect(((await res.json()) as { error?: string }).error).toBeTruthy();
+  });
+
+  test("newsletter rejects an over-1MB body with 413 (the Content-Length pre-check)", async ({ request }) => {
+    // A 1.5MB email: the body itself exceeds the 1MB cap — this pins the
+    // BODY layer (the pre-parse rejection).
+    const res = await request.post("/api/newsletter", {
+      data: { email: "y".repeat(1536 * 1024) + "@example.com" },
+    });
+    expect(res.status(), "the body pre-check rejects with 413").toBe(413);
+    expect(((await res.json()) as { error?: string }).error).toBeTruthy();
+  });
+
+  test("ai/chat rejects a >100-turn messages array with 400 (the turn cap)", async ({ request }) => {
+    const messages = Array.from({ length: 101 }, (_, i) => ({ role: "user", content: `turn ${i}` }));
+    const res = await request.post("/api/ai/chat", { data: { messages } });
+    expect(res.status(), "the turn cap rejects before the SDK call").toBe(400);
+    expect(((await res.json()) as { error?: string }).error).toBeTruthy();
+  });
+});
+
+test.describe("session-31 parity: the per-IP throttle surface", () => {
+  test("a valid newsletter subscribe stays under the throttle (the happy path holds)", async ({ request }) => {
+    const res = await request.post("/api/newsletter", {
+      data: { email: "s31-happy-path@example.com" },
+    });
+    expect(res.status(), "the throttle is invisible to the normal UX").toBe(200);
+    expect(((await res.json()) as { ok?: boolean }).ok).toBe(true);
+  });
+
+  test("a rapid burst on the newsletter route trips 429 + Retry-After", async ({ request }) => {
+    // 20 rapid requests with INVALID emails: every pre-throttle response is
+    // a deterministic 400 (zero persistence), and the throttle ceiling is
+    // 15/min — the tail MUST trip. The exact trip point is NOT asserted
+    // (earlier in-window requests from other specs shift it).
+    const statuses: number[] = [];
+    let throttled: Awaited<ReturnType<typeof request.post>> | null = null;
+    for (let i = 0; i < 20; i++) {
+      const res = await request.post("/api/newsletter", {
+        data: { email: `not-an-email-${i}` },
+      });
+      statuses.push(res.status());
+      if (res.status() === 429) throttled = res;
+    }
+    for (const s of statuses) {
+      expect([400, 429], `every burst response is 400 or 429 (got ${s})`).toContain(s);
+    }
+    expect(statuses.filter((s) => s === 429).length, "the burst trips the throttle").toBeGreaterThan(0);
+    expect(throttled, "at least one throttled response captured").toBeTruthy();
+
+    // The 429 contract: Retry-After (seconds) + the house { error } body.
+    const retryAfter = Number(throttled!.headers()["retry-after"]);
+    expect(Number.isFinite(retryAfter) && retryAfter >= 1, "Retry-After is a positive second count").toBe(true);
+    const body = (await throttled!.json()) as { error?: string };
+    expect(typeof body.error).toBe("string");
+    expect(body.error!.length).toBeGreaterThan(0);
+  });
+});

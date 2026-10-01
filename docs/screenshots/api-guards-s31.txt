@@ -1,0 +1,16 @@
+session-31 request-size guard proof (the dev server, post-fix)
+newsletter 300KB email  (field cap): 400 {"error":"Email is too long"}
+newsletter 1.5MB email  (body cap)  : 413 {"error":"Request body too large"}
+contact   2MB message   (body cap)  : 413 {"error":"Request body too large"}
+login     300KB email   (field cap)  : 400 {"error":"Email is too long"}
+signup    300KB email   (field cap)  : 400 {"error":"Email is too long"}
+ai/chat   101 turns     (turn cap)   : 400 {"error":"messages array is too long"}
+newsletter valid email (happy path) : 200 {"ok":true}
+login     valid creds   (happy path) : 200 {"user":{"id":"cmuq4nya301gwoizw25gymcf6","email":"sepnetflix2023@outlook.com","name":"sep
+(pre-fix baseline: newsletter/contact/signup all returned 200 and PERSISTED the megabyte rows;
+login returned 401 — the lookup ran with the megabyte string)
+
+session-31 per-IP throttle proof (the dev server, post-fix)
+20 rapid invalid-email newsletter POSTs: 8 x 429, 12 x 400
+the 429 Retry-After header: 60s; body: {"error":"Too many requests. Please try again shortly."}
+(pre-fix baseline: 20 x 400, zero 429s — no throttle existed)
