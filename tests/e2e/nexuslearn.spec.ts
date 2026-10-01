@@ -2488,8 +2488,12 @@ test.describe("session-16 parity: back/forward scroll restoration", () => {
     await page.waitForTimeout(1000);
     await page.click('nav a[href="/Courses"]');
     await page.waitForURL((u) => u.pathname === "/Courses");
-    // The reset itself animates under the universal smooth rule — wait out the
-    // glide (~600ms for 2000px) before asserting the landing position.
+    // Session-30 note: the reset now SNAPS (the data-scroll-behavior
+    // contract wraps the router's own scrolls in scroll-behavior: auto — see
+    // the session-30 router-scroll specs for the tight timing pin). Before
+    // session 30 it animated under the universal smooth rule (~600ms glide
+    // for 2000px); the generous wait below stays as a settle for both
+    // eras, and the landing-position assertion is unchanged.
     await page.waitForTimeout(2000);
     const scrollY = await page.evaluate(() => Math.round(window.scrollY));
     expect(scrollY).toBeLessThanOrEqual(5);
@@ -4098,5 +4102,155 @@ test.describe("session-29 parity: the resource-hints surface", () => {
     ).toBeGreaterThanOrEqual(10);
     expect(courses.images).toBeLessThanOrEqual(16);
     expect(courses.hints).toBe(0);
+  });
+});
+
+// session-30 integrity + router-scroll pass: TWO fresh-eyes probe families —
+// (1) the REQUEST-PAYLOAD INTEGRITY surface: /api/enrollments/progress
+//     validates the enrollment's ownership but never the LESSON's membership
+//     in the enrollment's course — a signed-in user could submit a lessonId
+//     from a DIFFERENT course and the route upserted a cross-course
+//     LessonProgress row (verified live: seed-2's first lesson marked on a
+//     seed-1 enrollment returned 200 + completedLessons: 1). The fix: the
+//     membership guard before the upsert (400 + the house { error } shape).
+// (2) the ROUTER-SCROLL MODALITY surface: the root <html> carried no
+//     data-scroll-behavior attribute, so the App Router's programmatic
+//     scrolls (the nav reset-to-top, the popstate restore) ran UNSUPPRESSED
+//     under the session-13 universal * { scroll-behavior: smooth } pin —
+//     every in-app navigation reset GLIDED (~600ms for 2000px; the session-16
+//     spec had to "wait out the glide"), and the dev console carried the
+//     Next.js warning on the first client-side transition. The fix: the
+//     Next.js-documented contract — <html data-scroll-behavior="smooth"> —
+//     the wrapper in layout-router.js then suppresses smooth for the router's
+//     OWN scroll operations only (user-facing smooth scrolls keep the
+//     session-13 parity pin).
+async function s30ForeignLessonId(courseId: string): Promise<string> {
+  // The seed's lesson ids are Prisma cuids — the only faithful source is the
+  // isolated e2e database itself (db/e2e.db, deterministic absolute path).
+  const { PrismaClient } = await import("@prisma/client");
+  const path = await import("node:path");
+  const db = new PrismaClient({
+    datasourceUrl: `file:${path.resolve(process.cwd(), "db", "e2e.db")}`,
+  });
+  try {
+    const lesson = await db.lesson.findFirst({ where: { courseId }, select: { id: true } });
+    if (!lesson) throw new Error(`no lessons seeded for ${courseId}`);
+    return lesson.id;
+  } finally {
+    await db.$disconnect();
+  }
+}
+
+async function s30SignIn(page: import("@playwright/test").Page): Promise<void> {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill("sepnetflix2023@outlook.com");
+  await page.getByLabel("Password").fill("$Abcd1234");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL("/");
+}
+
+test.describe("session-30 integrity: the enrollment-progress lesson-membership surface", () => {
+  test("the progress endpoint rejects a lessonId from a different course (cross-course integrity)", async ({ page }) => {
+    await s30SignIn(page);
+
+    // Enroll in seed-1 (Web Development) through the real API.
+    const enrollRes = await page.request.post("/api/enrollments", {
+      data: { courseId: "seed-1" },
+    });
+    expect(enrollRes.status()).toBe(200);
+    const { enrollment } = await enrollRes.json();
+    expect(enrollment.courseId).toBe("seed-1");
+
+    // A REAL lesson id — but from seed-2 (Data Science), a different course.
+    const foreignLessonId = await s30ForeignLessonId("seed-2");
+    expect(foreignLessonId).toBeTruthy();
+
+    // The membership guard: 400 + the house { error } shape.
+    const res = await page.request.post("/api/enrollments/progress", {
+      data: { enrollmentId: enrollment.id, lessonId: foreignLessonId },
+    });
+    expect(res.status()).toBe(400);
+    const body = await res.json();
+    expect(typeof body.error).toBe("string");
+    expect(body.error.length).toBeGreaterThan(0);
+
+    // And NOTHING persisted: the enrollment still carries zero progress.
+    const listRes = await page.request.get("/api/enrollments");
+    expect(listRes.status()).toBe(200);
+    const { enrollments } = await listRes.json();
+    const mine = enrollments.find(
+      (e: { id: string; courseId: string; progress: number }) => e.id === enrollment.id
+    );
+    expect(mine, "the seed-1 enrollment is still there").toBeTruthy();
+    expect(mine.progress, "the foreign lesson left no progress behind").toBe(0);
+  });
+
+  test("the progress endpoint rejects a nonexistent lessonId the same way (both rejection paths)", async ({ page }) => {
+    await s30SignIn(page);
+    const enrollRes = await page.request.post("/api/enrollments", {
+      data: { courseId: "seed-3" },
+    });
+    expect(enrollRes.status()).toBe(200);
+    const { enrollment } = await enrollRes.json();
+
+    const res = await page.request.post("/api/enrollments/progress", {
+      data: { enrollmentId: enrollment.id, lessonId: "lesson-that-does-not-exist" },
+    });
+    expect(res.status()).toBe(400);
+    expect((await res.json()).error).toBeTruthy();
+  });
+
+  test("a REAL lesson of the enrollment's course still marks progress (the happy path holds)", async ({ page }) => {
+    await s30SignIn(page);
+    const enrollRes = await page.request.post("/api/enrollments", {
+      data: { courseId: "seed-5" },
+    });
+    expect(enrollRes.status()).toBe(200);
+    const { enrollment } = await enrollRes.json();
+
+    const ownLessonId = await s30ForeignLessonId("seed-5");
+    const res = await page.request.post("/api/enrollments/progress", {
+      data: { enrollmentId: enrollment.id, lessonId: ownLessonId },
+    });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.completedLessons).toBe(1);
+    expect(body.enrollment.progress).toBeGreaterThan(0);
+  });
+});
+
+test.describe("session-30 parity: the router-scroll modality surface (the data-scroll-behavior contract)", () => {
+  test("the root <html> carries the Next.js data-scroll-behavior contract", async ({ page }) => {
+    for (const route of ["/", "/Courses"]) {
+      await page.goto(route);
+      await expect(page.locator("html")).toHaveAttribute("data-scroll-behavior", "smooth", { timeout: 5000 });
+    }
+  });
+
+  test("in-app navigation resets to the top INSTANTLY (the router's own scrolls snap, not glide)", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => window.scrollTo(0, 2000));
+    await page.waitForTimeout(1000);
+
+    await page.click('nav a[href="/Courses"]');
+    await page.waitForURL((u) => u.pathname === "/Courses");
+    // Poll for the landing: the browser's smooth-scroll animation for a
+    // 2000px glide needs ~500-700ms (it CANNOT land within 250ms), while the
+    // attribute-wrapped router scroll lands at the navigation commit (~0ms).
+    const landedWithinMs = await page.evaluate(async () => {
+      const start = performance.now();
+      while (performance.now() - start < 250) {
+        if (Math.round(window.scrollY) <= 5) return performance.now() - start;
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      return -1;
+    });
+    expect(landedWithinMs, "the reset-to-top must land within 250ms of the URL flip (the unsuppressed glide takes 500ms+)").toBeGreaterThanOrEqual(0);
+
+    // …and it settles at exactly the top.
+    await page.waitForTimeout(500);
+    const settled = await page.evaluate(() => Math.round(window.scrollY));
+    expect(settled).toBeLessThanOrEqual(5);
   });
 });

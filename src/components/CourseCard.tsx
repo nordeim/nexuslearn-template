@@ -46,7 +46,6 @@ export function CourseCard({
     <Link href={`/CourseDetail?id=${course.id}`}>
       <div className="group relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-500 hover:-translate-y-2">
         <div className="relative overflow-hidden aspect-video">
-          { }
           {/* No loading/decoding/fetchpriority — the live ships plain EAGER
               imgs everywhere (session-28 finding 1: 0/36 loading-family
               attributes on the live; the lazy attrs were undocumented drift
@@ -96,7 +95,6 @@ export function CourseCard({
           </div>
           <div className="flex items-center justify-between pt-4 border-t border-gray-50">
             <div className="flex items-center gap-2">
-              { }
               {/* Eager like the live (session-28) — no loading attribute. */}
               <img
                 src={course.instructorAvatar}

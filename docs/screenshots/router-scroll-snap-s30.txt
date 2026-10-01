@@ -1,0 +1,9 @@
+session-30 router-scroll proof (the dev server, post-fix)
+html[data-scroll-behavior] = smooth
+console scroll-behavior warnings after the client-side login transition: 0
+nav reset-to-top landing times from scrollY 2000 (3 rounds): 0ms, 0ms, 0ms
+(pre-fix baseline: the reset GLIDED — ~600ms+ for 2000px; the landing poll window of 250-400ms always failed)
+
+session-30 integrity proof (the production standalone, from the e2e gate):
+POST /api/enrollments/progress with a foreign-course lessonId -> 400 + {error} + zero progress persisted
+POST with a nonexistent lessonId -> 400; a REAL own-course lesson -> 200 + progress > 0

@@ -90,13 +90,30 @@ export const viewport: Viewport = {
  */
 export const dynamic = "force-dynamic";
 
+/**
+ * Session 30 — the router-scroll modality contract: `data-scroll-behavior="smooth"`
+ * on <html> is the Next.js-documented declaration (see
+ * next/dist/shared/lib/router/utils/disable-smooth-scroll.js) that makes the
+ * App Router wrap its OWN scroll operations (the nav reset-to-top, the
+ * popstate restore) in a temporary `scroll-behavior: auto` — the wrapper
+ * only engages when `html.dataset.scrollBehavior === "smooth"`. Without it
+ * the router's scrolls run unsuppressed under the session-13 universal
+ * `* { scroll-behavior: smooth }` parity pin: every in-app navigation reset
+ * GLIDED (~600ms for 2000px) and the dev console carried the framework's
+ * "Detected `scroll-behavior: smooth`…" warning on the first client-side
+ * transition. User-facing smooth scrolls (anchor clicks, the Radix Select
+ * viewport, scroll-into-view) keep the session-13 pin — the attribute scopes
+ * the suppression to the router's programmatic scrolls only.
+ * ScrollRestoreNormalizer stays (the popstate window is now double-covered;
+ * harmless defense in depth).
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body className="font-sans antialiased">
         {/* Session 16: instant popstate scroll restoration (the reference's
             browser-native snap) — see src/components/ScrollRestoreNormalizer.tsx */}

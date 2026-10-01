@@ -27,6 +27,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Enrollment not found" }, { status: 404 });
     }
 
+    // Lesson-membership guard (session 30): the lesson must belong to the
+    // enrollment's OWN course. Without it a foreign-course lessonId (or any
+    // lesson-shaped id from another enrollment) upserted a cross-course
+    // LessonProgress row — inflating the progress percentage (foreign
+    // completions divided by the own course's total) and persisting data the
+    // dashboard checklist never even renders. The lessons are already loaded
+    // (the progress denominator), so the guard costs no extra query.
+    if (!enrollment.course.lessons.some((lesson) => lesson.id === lessonId)) {
+      return NextResponse.json({ error: "Lesson not found in this course" }, { status: 400 });
+    }
+
     await db.lessonProgress.upsert({
       where: { enrollmentId_lessonId: { enrollmentId, lessonId } },
       update: { completed: true, completedAt: new Date() },

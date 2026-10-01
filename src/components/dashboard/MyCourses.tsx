@@ -87,7 +87,6 @@ function CourseProgressCard({ enrollment }: { enrollment: EnrollmentView }) {
   return (
     <div className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:shadow-purple-500/5 transition-all duration-300">
       <div className="relative aspect-video overflow-hidden">
-        { }
         <img
           src={enrollment.course.image}
           alt={enrollment.course.title}
