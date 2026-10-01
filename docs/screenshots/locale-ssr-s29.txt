@@ -1,0 +1,12 @@
+SESSION-29 LOCALE SSR PROOF — the Accept-Language-derived count formats (the remediated dev server)
+==========================================================================================
+GET /  Accept-Language: de-DE,de;q=0.9   -> HTML contains 12.450 (German):  true
+GET /  Accept-Language: de-DE,de;q=0.9   -> HTML contains 12,450 (en-US remnant): false
+GET /  Accept-Language: fr-FR,fr;q=0.9   -> HTML contains 12\u202f450 (French narrow-space): true
+GET /  (no Accept-Language)              -> HTML contains 12,450 (en-US default):  true
+GET /Courses Accept-Language: de-DE      -> HTML contains 12.450 (the catalog SSR pass): true
+GET /Courses Accept-Language: de-DE      -> HTML contains 12,450 (mismatch remnant): false
+
+The pre-fix tree rendered 12,450 on every SSR surface regardless of the header
+(and the /Courses catalog's SSR pass disagreed with its own hydration render
+under every non-en-US visitor — React threw "Hydration failed").

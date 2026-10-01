@@ -3862,3 +3862,241 @@ test.describe("session-28 parity: the login client-view constraint surface (sign
     }
   });
 });
+
+// ─── session-29 parity: the SSR locale / number-formatting surface ─────────
+// Finding 1 (docs/remediation-plan-session29.md): the student counts are the
+// site's ONLY locale-sensitive rendering (prices use toFixed(2) and ratings
+// toFixed(1) — locale-invariant, verified identical under de-DE on both
+// sites). The live (a CSR SPA) formats every count with the BROWSER locale:
+// de-DE renders 12.450, fr-FR renders 12\u202f450 on every surface. The
+// clone's SSR must derive the visitor's locale from the Accept-Language
+// request header — the only locale signal that exists at render time — on
+// ALL THREE count surfaces: the landing featured grid + CourseDetail (RSC
+// output) and the /Courses catalog's SSR pass (the catalog is a client
+// boundary — if its SSR output disagreed with the browser's hydration
+// render, React throws "Hydration failed" and regenerates the tree).
+
+test.describe("session-29 parity: the SSR locale surface (de-DE)", () => {
+  test.use({ locale: "de-DE" });
+
+  test("the student counts follow the visitor's Accept-Language — German separators on the landing + CourseDetail + the /Courses catalog, with a clean console", async ({ page }) => {
+    const problems: string[] = [];
+    page.on("console", (m) => {
+      if (m.type() === "error" || m.type() === "warning") problems.push(`console.${m.type()}: ${m.text()}`);
+    });
+    page.on("pageerror", (e) => problems.push(`pageerror: ${String(e)}`));
+
+    // (a) the landing featured grid — the six featured counts in the German form
+    await page.goto("/");
+    await page.waitForTimeout(600);
+    const landingCounts = await page.evaluate(() => {
+      const out: string[] = [];
+      for (const svg of document.querySelectorAll('main svg[class*="lucide-users"]')) {
+        const t = svg.parentElement?.innerText?.trim();
+        if (t) out.push(t);
+      }
+      return out;
+    });
+    expect(
+      landingCounts,
+      "the featured grid renders the visitor-locale separators (the live's CSR behavior — de-DE thousands dots)"
+    ).toEqual(["12.450", "4.210", "8.320", "5.430", "3.890", "6.750"]);
+
+    // (b) CourseDetail — the hero students row
+    await page.goto("/CourseDetail?id=seed-1");
+    await page.waitForTimeout(600);
+    const detailText = await page.locator("main").innerText();
+    expect(detailText, "the CourseDetail students row renders the German form").toContain("12.450 students");
+
+    // (c) the /Courses catalog — the client boundary whose SSR pass must
+    // agree with the browser: the settled DOM carries the German form
+    await page.goto("/Courses");
+    await page.waitForTimeout(1000);
+    const firstCardCount = await page.evaluate(() => {
+      for (const svg of document.querySelectorAll('main svg[class*="lucide-users"]')) {
+        return svg.parentElement?.innerText?.trim() ?? null;
+      }
+      return null;
+    });
+    expect(firstCardCount, "the catalog's first card (WebDev, 12450 students) renders the German form").toBe("12.450");
+
+    // (d) the console stays clean under a non-en-US visitor — the pre-fix
+    // tree threw "Hydration failed" on /Courses (the server had rendered
+    // 12,450 where the de-DE browser computed 12.450)
+    expect(problems, "no hydration mismatch and no console noise under de-DE").toEqual([]);
+  });
+});
+
+test.describe("session-29 parity: the SSR locale surface (fr-FR)", () => {
+  test.use({ locale: "fr-FR" });
+
+  test("the landing renders the French narrow-space group separators", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForTimeout(600);
+    const landingCounts = await page.evaluate(() => {
+      const out: string[] = [];
+      for (const svg of document.querySelectorAll('main svg[class*="lucide-users"]')) {
+        const t = svg.parentElement?.innerText?.trim();
+        if (t) out.push(t);
+      }
+      return out;
+    });
+    expect(
+      landingCounts,
+      "fr-FR groups digits with U+202F (narrow no-break space) — the same separator Bun, Node and Chromium's Intl all produce for fr-FR"
+    ).toEqual(["12\u202f450", "4\u202f210", "8\u202f320", "5\u202f430", "3\u202f890", "6\u202f750"]);
+  });
+});
+
+test.describe("session-29 parity: the SSR locale surface (default context)", () => {
+  test("the default context keeps the deterministic en-US format on every count surface", async ({ page }) => {
+    // Playwright's default context sends NO Accept-Language header (the
+    // parser's en-US fallback) with the en-US browser locale — both sides
+    // of every existing expectation stay byte-identical.
+    await page.goto("/");
+    await page.waitForTimeout(600);
+    const landingCounts = await page.evaluate(() => {
+      const out: string[] = [];
+      for (const svg of document.querySelectorAll('main svg[class*="lucide-users"]')) {
+        const t = svg.parentElement?.innerText?.trim();
+        if (t) out.push(t);
+      }
+      return out;
+    });
+    expect(landingCounts).toEqual(["12,450", "4,210", "8,320", "5,430", "3,890", "6,750"]);
+
+    await page.goto("/CourseDetail?id=seed-1");
+    await page.waitForTimeout(600);
+    expect(await page.locator("main").innerText()).toContain("12,450 students");
+
+    await page.goto("/Courses");
+    await page.waitForTimeout(1000);
+    const firstCardCount = await page.evaluate(() => {
+      for (const svg of document.querySelectorAll('main svg[class*="lucide-users"]')) {
+        return svg.parentElement?.innerText?.trim() ?? null;
+      }
+      return null;
+    });
+    expect(firstCardCount).toBe("12,450");
+  });
+});
+
+// ─── session-29 parity: the print surface (the frozen-adaptation family) ───
+// Finding 2: the reference ships NO print adaptation — zero @media print
+// blocks and zero media attributes across every sheet of every route, and
+// emulated print media changes nothing on either site (verified against the
+// live). The session-22 media-emulation family's print member: the contract
+// is FROZEN — a future print stylesheet is beyond-reference drift requiring
+// the documentation gate.
+
+test.describe("session-29 parity: the print surface (frozen adaptation)", () => {
+  test("zero @media print blocks + zero media attributes, and print emulation leaves the layout untouched", async ({ page }) => {
+    for (const route of ["/", "/login"]) {
+      await page.goto(route);
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        let printBlocks = 0;
+        let mediaAttrs = 0;
+        let inaccessible = 0;
+        for (const sheet of document.styleSheets) {
+          try {
+            const walk = (rules: CSSRuleList) => {
+              for (const rule of Array.from(rules)) {
+                const cond = rule as unknown as { media?: { mediaText?: string } };
+                if (cond.media && /\bprint\b/.test(cond.media.mediaText ?? "")) printBlocks++;
+                const group = rule as unknown as { cssRules?: CSSRuleList };
+                if (group.cssRules) walk(group.cssRules);
+              }
+            };
+            walk(sheet.cssRules);
+          } catch {
+            inaccessible++;
+          }
+        }
+        mediaAttrs = document.querySelectorAll("link[media], style[media]").length;
+        return { printBlocks, mediaAttrs, inaccessible };
+      });
+      expect(census.printBlocks, `${route}: no @media print block anywhere`).toBe(0);
+      expect(census.mediaAttrs, `${route}: no media= attribute on any link/style element`).toBe(0);
+      expect(census.inaccessible, `${route}: every sheet of the standalone is same-origin readable`).toBe(0);
+
+      // Rounded to integer px: toggling the emulated media re-snaps
+      // getBoundingClientRect with sub-pixel float dust (144 vs
+      // 143.99998…) — the documented session-22/25 rounding family; the
+      // frozen-layout contract is exact at pixel granularity.
+      const before = await page.evaluate(() => ({
+        h: Math.round(document.documentElement.scrollHeight),
+        hero: Math.round(document.querySelector("h1")?.getBoundingClientRect().height ?? 0),
+      }));
+      await page.emulateMedia({ media: "print" });
+      await page.waitForTimeout(200);
+      const after = await page.evaluate(() => ({
+        h: Math.round(document.documentElement.scrollHeight),
+        hero: Math.round(document.querySelector("h1")?.getBoundingClientRect().height ?? 0),
+      }));
+      expect(after, `${route}: print emulation moves nothing (the frozen-adaptation contract)`).toEqual(before);
+      await page.emulateMedia({ media: null });
+    }
+  });
+});
+
+// ─── session-29 parity: the resource-hints / first-load surface ────────────
+// Finding 3: the live's CSR platform ships ZERO image preloads (it cannot
+// preload data-dependent images in HTML); the clone's React 19 SSR hoists a
+// <link rel="preload" as="image"> per unique rendered img src — the
+// deliberate-better SSR family (the session-24 faster-FCP/LCP record). The
+// guarded contract: every image preload href is EXACTLY a rendered img src
+// (no double-fetch, no unknown asset) and neither site ships preconnect/
+// dns-prefetch hints. The /Courses catalog's settled census is the racy
+// 10..16 range (the SSR subset at 10; the client Float backfill completing
+// the unique-img set at 16).
+
+test.describe("session-29 parity: the resource-hints surface", () => {
+  test("every image preload is an exact rendered img src (the no-double-fetch contract)", async ({ page }) => {
+    for (const route of ["/", "/Courses"]) {
+      await page.goto(route);
+      await page.waitForTimeout(800);
+      const { unmatched, total } = await page.evaluate(() => {
+        const imgSrcs = new Set(
+          Array.from(document.querySelectorAll("img")).map((i) => i.getAttribute("src"))
+        );
+        const preloads = Array.from(
+          document.querySelectorAll('link[rel="preload"][as="image"]')
+        ).map((l) => l.getAttribute("href"));
+        return {
+          unmatched: preloads.filter((h) => !imgSrcs.has(h)),
+          total: preloads.length,
+        };
+      });
+      expect(total, `${route}: the React 19 SSR image preloads exist`).toBeGreaterThan(0);
+      expect(
+        unmatched,
+        `${route}: every image preload href matches a rendered img src exactly — no double-fetch, no unknown asset`
+      ).toEqual([]);
+    }
+  });
+
+  test("the image-preload census: the landing's deterministic 12 + the /Courses settled 10..16 range + zero preconnect/dns-prefetch", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForTimeout(800);
+    const landing = await page.evaluate(() => ({
+      images: document.querySelectorAll('link[rel="preload"][as="image"]').length,
+      hints: document.querySelectorAll('link[rel="preconnect"], link[rel="dns-prefetch"]').length,
+    }));
+    expect(landing.images, "the landing's census is deterministic: one preload per unique img (12)").toBe(12);
+    expect(landing.hints, "neither site ships preconnect/dns-prefetch hints").toBe(0);
+
+    await page.goto("/Courses");
+    await page.waitForTimeout(800);
+    const courses = await page.evaluate(() => ({
+      images: document.querySelectorAll('link[rel="preload"][as="image"]').length,
+      hints: document.querySelectorAll('link[rel="preconnect"], link[rel="dns-prefetch"]').length,
+    }));
+    expect(
+      courses.images,
+      "the catalog's settled census is the racy range: the SSR subset (10) or the client-completed unique-img set (16)"
+    ).toBeGreaterThanOrEqual(10);
+    expect(courses.images).toBeLessThanOrEqual(16);
+    expect(courses.hints).toBe(0);
+  });
+});

@@ -26,7 +26,17 @@ const CATEGORY_SLUGS: Record<string, string> = {
 
 type Course = CourseCardData;
 
-export function CourseCatalog({ courses }: { courses: Course[] }) {
+export function CourseCatalog({
+  courses,
+  locale,
+}: {
+  courses: Course[];
+  /** The visitor locale for the count rows (session 29): passed by the
+   *  server page from the Accept-Language header so the catalog's SSR pass
+   *  and the browser's hydration render format the counts identically (a
+   *  mismatch throws "Hydration failed"); forwarded to every CourseCard. */
+  locale?: string;
+}) {
   const params = useSearchParams();
   const initialCategory = params.get("category");
 
@@ -227,7 +237,7 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {filtered.map((course) => (
                   <div key={course.id} data-reveal="a" style={{ opacity: 0, transform: "translateY(20px)" }}>
-                    <CourseCard course={course} />
+                    <CourseCard course={course} locale={locale} />
                   </div>
                 ))}
               </div>

@@ -1,0 +1,27 @@
+SESSION-29 RESOURCE-HINTS CENSUS — the preload dimension of the document head
+==========================================================================================
+Finding 3 (docs/remediation-plan-session29.md): the live's CSR platform cannot
+preload data-dependent images in HTML (zero image preloads on every route);
+the clone's React 19 SSR hoists one preload per unique rendered img src — the
+deliberate-better SSR family (the session-24 faster-FCP/LCP record). The
+guarded contract: every as=image preload href is EXACTLY a rendered img src
+(no double-fetch, no unknown asset) — pinned by the session-29 e2e block.
+
+=== LIVE (CSR SPA — the platform ships ZERO image preloads) ===
+  /: {"icon":1,"manifest":1,"stylesheet":1,"canonical":1} | imgPreloads=0 uniqueImgs=12 unmatched=0
+  /Courses: {"icon":1,"manifest":1,"stylesheet":1,"canonical":1} | imgPreloads=0 uniqueImgs=16 unmatched=0
+  /CourseDetail?id=seed-1: {"icon":1,"manifest":1,"stylesheet":1,"canonical":1} | imgPreloads=0 uniqueImgs=0 unmatched=0
+  /About: {"icon":1,"manifest":1,"stylesheet":1,"canonical":1} | imgPreloads=0 uniqueImgs=1 unmatched=0
+  /login: {"icon":1,"apple-touch-icon":1,"manifest":1,"modulepreload":62,"stylesheet":1,"canonical":1} | imgPreloads=0 uniqueImgs=1 unmatched=0
+
+=== CLONE DEV SERVER (React 19 SSR hoists a preload per unique rendered img src) ===
+  /: {"preload:image":12,"stylesheet":1,"preload:script":1,"manifest":1,"canonical":1,"icon":1} | imgPreloads=12 uniqueImgs=12 unmatched=0
+  /Courses: {"preload:image":16,"stylesheet":1,"preload:script":1,"manifest":1,"canonical":1,"icon":1} | imgPreloads=16 uniqueImgs=16 unmatched=0
+  /CourseDetail?id=seed-1: {"preload:image":2,"stylesheet":1,"preload:script":1,"manifest":1,"canonical":1,"icon":1} | imgPreloads=2 uniqueImgs=2 unmatched=0
+  /About: {"preload:image":1,"stylesheet":1,"preload:script":1,"manifest":1,"canonical":1,"icon":1} | imgPreloads=1 uniqueImgs=1 unmatched=0
+  /login: {"stylesheet":1,"preload:script":1,"manifest":1,"canonical":1,"icon":1} | imgPreloads=0 uniqueImgs=1 unmatched=0
+
+The /Courses settled census is the racy 10..16 range (the SSR subset at 10;
+the client Float backfill completing the unique-img set at 16); the landing's
+12 is deterministic. The live's /login modulepreload block (62) is the
+documented Base44 login-kit platform variance.

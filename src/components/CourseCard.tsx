@@ -29,7 +29,19 @@ const LEVEL_BADGE: Record<string, string> = {
 };
 
 /** Exact structural clone of the live course card (classes copied verbatim). */
-export function CourseCard({ course }: { course: CourseCardData }) {
+export function CourseCard({
+  course,
+  locale,
+}: {
+  course: CourseCardData;
+  /** The visitor locale for the count row (session 29): the SSR call sites
+   *  (the landing featured grid + the /Courses catalog's SSR pass) pass the
+   *  Accept-Language-derived tag so the server output matches the live's
+   *  browser-locale rendering AND the client hydration render; omitting it
+   *  keeps the bare browser-default behavior (toLocaleString with no
+   *  argument — the reference's client-side rendering). */
+  locale?: string;
+}) {
   return (
     <Link href={`/CourseDetail?id=${course.id}`}>
       <div className="group relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-500 hover:-translate-y-2">
@@ -70,7 +82,12 @@ export function CourseCard({ course }: { course: CourseCardData }) {
             </span>
             <span className="flex items-center gap-1">
               <Users className="h-3.5 w-3.5" aria-hidden="true" />
-              {course.students.toLocaleString()}
+              {/* Explicit locale argument on every tier (session 29): an
+                  undefined argument is the bare default-locale call, a
+                  resolved tag makes SSR + hydration agree with the live's
+                  browser-locale output. Guarded by
+                  tests/locale-format-source.test.ts. */}
+              {course.students.toLocaleString(locale)}
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" aria-hidden="true" />

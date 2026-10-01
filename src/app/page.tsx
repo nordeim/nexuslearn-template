@@ -29,6 +29,8 @@ import { CourseCard } from "@/components/CourseCard";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { RevealController } from "@/components/reveal/RevealController";
 import { db } from "@/lib/db";
+import { pickLocale } from "@/lib/number-format";
+import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -161,6 +163,11 @@ const PRICING = [
 ];
 
 export default async function LandingPage() {
+  // The visitor locale for the SSR count row (session 29): the live renders
+  // every count with the browser locale; the server's only proxy for it is
+  // the Accept-Language request header.
+  const headerList = await headers();
+  const locale = pickLocale(headerList.get("accept-language"));
   const courses = await db.course.findMany({
     where: { featured: true },
     orderBy: { sortOrder: "asc" },
@@ -367,7 +374,7 @@ export default async function LandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {courses.map((course) => (
                 <div key={course.id} data-reveal="b" style={{ opacity: 0, transform: "translateY(20px)" }}>
-                  <CourseCard course={course} />
+                  <CourseCard course={course} locale={locale} />
                 </div>
               ))}
             </div>

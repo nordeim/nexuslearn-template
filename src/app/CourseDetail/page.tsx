@@ -19,6 +19,8 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { parseTags } from "@/lib/course-tags";
 import { routeMetadata } from "@/lib/metadata";
+import { pickLocale } from "@/lib/number-format";
+import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +62,12 @@ export default async function CourseDetailPage({
   searchParams: IdSearchParams;
 }) {
   const id = firstId(await searchParams);
+
+  // The visitor locale for the SSR students row (session 29): the live
+  // renders the count with the browser locale; the server's only proxy for
+  // it is the Accept-Language request header.
+  const headerList = await headers();
+  const locale = pickLocale(headerList.get("accept-language"));
 
   const course = id
     ? await db.course.findUnique({
@@ -146,7 +154,11 @@ export default async function CourseDetailPage({
                   </span>
                   <span className="flex items-center gap-2">
                     <Users className="h-5 w-5" aria-hidden="true" />
-                    {course.students.toLocaleString()} students
+                    {/* Explicit locale argument (session 29): the
+                        Accept-Language-derived tag keeps the SSR output in
+                        the visitor's format — guarded by
+                        tests/locale-format-source.test.ts. */}
+                    {course.students.toLocaleString(locale)} students
                   </span>
                   <span className="flex items-center gap-2">
                     <Clock className="h-5 w-5" aria-hidden="true" />
