@@ -18,7 +18,7 @@ import { RevealController } from "@/components/reveal/RevealController";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { parseTags } from "@/lib/course-tags";
-import { routeMetadata } from "@/lib/metadata";
+import { pageMetadata } from "@/lib/page-metadata";
 import { pickLocale } from "@/lib/number-format";
 import { headers } from "next/headers";
 
@@ -35,17 +35,17 @@ function firstId(params: { id?: string | string[] }): string | undefined {
   return Array.isArray(params.id) ? params.id[0] : params.id;
 }
 
-// The reference canonical + og:url include the query string
-// (origin + /CourseDetail?id=<id>) — session 6 mirrors both via the helper.
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: IdSearchParams;
-}): Promise<Metadata> {
-  const id = firstId(await searchParams);
-  return routeMetadata({
+// Session 39: the canonical carries the PROCESSED raw query (the live's
+// contract — every kept param rides, alpha-sorted: ?id=<real>&extra=2 ->
+// ?extra=2&id=<real>; ?id=x&id=<real> keeps BOTH, matching the live's dupe
+// behavior). The searchParams-based id-canonical is GONE — the raw search
+// (the proxy-injected x-nexus-raw-search header, read by pageMetadata)
+// carries the id naturally. The RENDERING's searchParams logic (firstId —
+// the s17 repeated-param pin) is untouched.
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({
     title: "Course Detail",
-    canonical: id ? `/CourseDetail?id=${id}` : "/CourseDetail",
+    canonical: "/CourseDetail",
   });
 }
 

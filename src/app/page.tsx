@@ -32,7 +32,9 @@ import { db } from "@/lib/db";
 import { pickLocale } from "@/lib/number-format";
 import { headers } from "next/headers";
 
-import { routeMetadata } from "@/lib/metadata";
+import type { Metadata } from "next";
+
+import { pageMetadata } from "@/lib/page-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +43,9 @@ export const dynamic = "force-dynamic";
 // inherited the layout default; the layout default is now the DERIVED 404
 // family (the raw-path contract), so the no-title renders pin the absolute
 // form through routeMetadata.
-export const metadata = routeMetadata({ canonical: "/" });
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({ canonical: "/" });
+}
 
 const CATEGORIES = [
   { name: "Business", slug: "business", icon: Briefcase },

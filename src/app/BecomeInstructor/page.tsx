@@ -13,12 +13,16 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { RevealController } from "@/components/reveal/RevealController";
 
-import { routeMetadata } from "@/lib/metadata";
+import type { Metadata } from "next";
 
-export const metadata = routeMetadata({
-  title: "Become Instructor",
-  canonical: "/BecomeInstructor",
-});
+import { pageMetadata } from "@/lib/page-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({
+    title: "Become Instructor",
+    canonical: "/BecomeInstructor",
+  });
+}
 
 const STEPS = [
   { num: "01", title: "Apply", text: "Submit your application with your expertise and course idea." },

@@ -1,4 +1,6 @@
-import { routeMetadata } from "@/lib/metadata";
+import type { Metadata } from "next";
+
+import { pageMetadata } from "@/lib/page-metadata";
 
 // The reference app's footer logo links to /Home — the landing page renders
 // there directly (no redirect, matching the original behavior).
@@ -9,6 +11,8 @@ export const dynamic = "force-dynamic";
 // default is now the DERIVED 404 family. The live's /Home head: plain
 // "NexusLearn" title + the ROOT canonical (probed — the footer-link route
 // carries the landing's canonical).
-export const metadata = routeMetadata({ canonical: "/" });
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({ canonical: "/" });
+}
 
 export { default } from "../page";

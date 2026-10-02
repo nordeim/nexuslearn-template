@@ -62,8 +62,14 @@ describe("404-metadata wiring source pins (session 38)", () => {
   });
 
   it("the landing + /Home carry EXPLICIT metadata (no layout-default dependence)", () => {
-    expect(LANDING).toMatch(/export const metadata = routeMetadata\(\{[^}]*canonical: "\/"/);
-    expect(HOME).toMatch(/export const metadata = routeMetadata\(\{[^}]*canonical: "\/"/);
+    // Session 39 (the deliberate contract change): the export became the
+    // async generateMetadata delegating to pageMetadata — still explicit,
+    // still the root canonical, now query-aware (the live's /Home?x=1 ->
+    // ...?x=1 root+query contract).
+    expect(LANDING).toMatch(/export async function generateMetadata/);
+    expect(LANDING).toMatch(/pageMetadata\(\s*\{\s*canonical: "\/"\s*\}/);
+    expect(HOME).toMatch(/export async function generateMetadata/);
+    expect(HOME).toMatch(/pageMetadata\(\s*\{\s*canonical: "\/"\s*\}/);
   });
 });
 

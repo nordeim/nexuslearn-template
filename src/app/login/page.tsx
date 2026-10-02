@@ -1,11 +1,13 @@
 import { LoginForm } from "@/components/LoginForm";
-import { routeMetadata } from "@/lib/metadata";
+import type { Metadata } from "next";
+
+import { pageMetadata } from "@/lib/page-metadata";
 
 // Reference behavior: /login ships the plain "NexusLearn" title (no segment)
 // with the /login canonical + mirrored og:url (session 6).
-export const metadata = routeMetadata({
-  canonical: "/login",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({ canonical: "/login" });
+}
 
 // The reference login card is an in-place 5-view state machine (sign-in,
 // reset, reset-sent, signup, verify) that owns the WHOLE card interior:

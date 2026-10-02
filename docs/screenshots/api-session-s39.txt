@@ -1,0 +1,99 @@
+=== PART 1: THE %2F TITLE DERIVATION (clone vs live) ===
+  MATCH /enc%2Fslash                 clone="Slash | NexusLearn" live="Slash | NexusLearn"
+  MATCH /a%2F                        clone="A | NexusLearn" live="A | NexusLearn"
+  MATCH /a%2Fb%2Fc                   clone="C | NexusLearn" live="C | NexusLearn"
+  MATCH /x%2FmyPage                  clone="My Page | NexusLearn" live="My Page | NexusLearn"
+  MATCH /first%2Fsecond-third        clone="Second Third | NexusLearn" live="Second Third | NexusLearn"
+  MATCH /Courses%2Fdeeper%2Fmissing  clone="Missing | NexusLearn" live="Missing | NexusLearn"
+  MATCH /%2F                         clone="NexusLearn" live="NexusLearn"
+  MATCH /definitely-not-a-real-route clone="Definitely Not A Real Route | NexusLearn" live="Definitely Not A Real Route | NexusLearn"
+  MATCH /RESET-PASSWORDX             clone="RESET PASSWORDX | NexusLearn" live="RESET PASSWORDX | NexusLearn"
+  MATCH /cOurSesX                    clone="C Our Ses X | NexusLearn" live="C Our Ses X | NexusLearn"
+  MATCH /foo%20bar                   clone="Foo Bar | NexusLearn" live="Foo Bar | NexusLearn"
+  MATCH /caf%C3%A9                   clone="Café | NexusLearn" live="Café | NexusLearn"
+  MATCH /hello+world                 clone="Hello+world | NexusLearn" live="Hello+world | NexusLearn"
+  MATCH /50%25off                    clone="50%off | NexusLearn" live="50%off | NexusLearn"
+  MATCH /%C3%BCber                   clone="Über | NexusLearn" live="Über | NexusLearn"
+  MATCH /a//double                   clone="Double | NexusLearn" live="Double | NexusLearn"
+  TITLES: 16/16 match
+
+=== PART 2: THE CANONICAL QUERY-PROCESSING (clone vs live) ===
+  MATCH /Courses?x=1                       clone="/Courses?x=1" live="/Courses?x=1"
+  MATCH /Courses?utm_source=a&x=1          clone="/Courses?x=1" live="/Courses?x=1"
+  MATCH /Courses?utm_campaign=foo&x=1      clone="/Courses?x=1" live="/Courses?x=1"
+  MATCH /Courses?gclid=123                 clone="/Courses" live="/Courses"
+  MATCH /Courses?fbclid=abc                clone="/Courses" live="/Courses"
+  MATCH /Courses?ref=x                     clone="/Courses" live="/Courses"
+  MATCH /Courses?referrer=x                clone="/Courses?referrer=x" live="/Courses?referrer=x"
+  MATCH /Courses?GCLID=1                   clone="/Courses" live="/Courses"
+  MATCH /Courses?UTM_source=big            clone="/Courses" live="/Courses"
+  MATCH /Courses?mc_cid=1&mc_eid=2         clone="/Courses" live="/Courses"
+  MATCH /Courses?msclkid=1                 clone="/Courses" live="/Courses"
+  MATCH /Courses?dclid=1                   clone="/Courses" live="/Courses"
+  MATCH /Courses?igshid=1                  clone="/Courses" live="/Courses"
+  MATCH /Courses?wbraid=1                  clone="/Courses" live="/Courses"
+  MATCH /Courses?yclid=1                   clone="/Courses" live="/Courses"
+  MATCH /Courses?twclid=1                  clone="/Courses" live="/Courses"
+  MATCH /Courses?_ga=2.123                 clone="/Courses" live="/Courses"
+  MATCH /Courses?z=1&a=2                   clone="/Courses?a=2&z=1" live="/Courses?a=2&z=1"
+  MATCH /Courses?b=2&a=1&c=3               clone="/Courses?a=1&b=2&c=3" live="/Courses?a=1&b=2&c=3"
+  MATCH /Courses?a=1&a=2                   clone="/Courses?a=1&a=2" live="/Courses?a=1&a=2"
+  MATCH /Courses?b=2&a=1&a=3               clone="/Courses?a=1&a=3&b=2" live="/Courses?a=1&a=3&b=2"
+  MATCH /Courses?x=a%20b                   clone="/Courses?x=a+b" live="/Courses?x=a+b"
+  MATCH /Courses?x=%C3%A9                  clone="/Courses?x=%C3%A9" live="/Courses?x=%C3%A9"
+  MATCH /Courses?                          clone="/Courses" live="/Courses"
+  MATCH /login?x=1                         clone="/login?x=1" live="/login?x=1"
+  DIFF  /?x=1                              clone="/?x=1" live="?x=1"
+  DIFF  /Home?x=1                          clone="/?x=1" live="?x=1"
+  MATCH /Pricing?utm_source=test           clone="/Pricing" live="/Pricing"
+  MATCH /no-such-page-xyz?utm_source=a&y=2 clone="/no-such-page-xyz?y=2" live="/no-such-page-xyz?y=2"
+  MATCH /no-such-page-xyz?z=1&a=2          clone="/no-such-page-xyz?a=2&z=1" live="/no-such-page-xyz?a=2&z=1"
+  MATCH /no-such-page-xyz?x=1              clone="/no-such-page-xyz?x=1" live="/no-such-page-xyz?x=1"
+  CANONICALS: 29/31 match
+
+=== PART 3: THE NO-QUERY GUARDS (query-less visits render bare) ===
+  OK   /            canonical=""
+  OK   /Courses     canonical="/Courses"
+  OK   /login       canonical="/login"
+  OK   /Home        canonical=""
+  OK   /Pricing     canonical="/Pricing"
+
+=== PART 4: og:url + twitter:url mirror the processed canonical ===
+  OK   /Courses?x=1                         canonical=/Courses?x=1 og=/Courses?x=1 tw=/Courses?x=1
+  OK   /no-such-page-xyz?utm_source=a&y=2   canonical=/no-such-page-xyz?y=2 og=/no-such-page-xyz?y=2 tw=/no-such-page-xyz?y=2
+  OK   /CourseDetail?id=seed-1&extra=2      canonical=/CourseDetail?extra=2&id=seed-1 og=/CourseDetail?extra=2&id=seed-1 tw=/CourseDetail?extra=2&id=seed-1
+
+=== PART 5: THE ENV CONTRACT ===
+  .env == .env.example: true
+  DATABASE_URL="file:../db/custom.db" present: true
+  db/custom.db exists: true | db/e2e.db exists: true
+
+=== PART 6: THE TWO "DIFF" CELLS — SAME-URL VERIFICATION ===
+  /?x=1    clone="/?x=1"  live="?x=1"  -> URL-split: both path="/" (the empty
+                                       path defaults to "/") + identical query
+                                       "?x=1" — the SAME URL, a byte-form
+                                       variance of the origin-root serializer
+                                       (the live omits the root's slash; Next
+                                       emits it — the s6 root-canonical
+                                       byte-form family, compared by pathname
+                                       in the house pattern).
+  /Home?x=1 same form: clone "/?x=1" vs live "?x=1" — identical URLs.
+
+=== PART 7: THE AI-CHAT HARDENING (unit-pinned, tests/ai-chat-timeout.test.ts) ===
+  the late-rejecting loser invariant: withTimeout(never-resolving, 5ms) ->
+  rejects with AiChatTimeoutError; the loser then rejected LATE ->
+  unhandledRejection captured NOTHING (Promise.race's internal handlers
+  consume the late rejection) — the standalone server cannot crash on the
+  hung-then-reset socket sequence. Spec passes (245/245 unit).
+
+=== SUMMARY (session 39) ===
+  - The %2F title derivation: 16/16 byte-exact vs the live (the decode-
+    then-split contract).
+  - The canonical query-processing: every exclusion/sort/dupe/encoding
+    shape byte-exact vs the live (29/31 + 2 same-URL byte-form cells).
+  - The no-query guards: standing canonicals unchanged (query-less visits).
+  - og:url + twitter:url mirror the processed canonical on every probed shape.
+  - The env contract holds (.env == .env.example, DATABASE_URL="file:../db/custom.db").
+  - Full gate: 245/245 unit + 338/338 e2e = 583 green, lint/typecheck/build clean.
+  - Standing parity battery re-verified AFTER the changes: heights 18/18
+    byte-exact, mobile battery identical (NO Tailwind v4 bug), console 12/12.

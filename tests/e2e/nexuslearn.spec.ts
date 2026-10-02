@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 // Public marketing surface — runs logged-out with an empty storageState so
 // the auth-protected surface is never exercised here.
@@ -2556,12 +2556,19 @@ test.describe("session-17 parity: duplicate query params (first value wins)", ()
     expect(await page.textContent("body")).not.toContain("This page couldn’t load");
   });
 
-  test("the canonical/og:url of a duplicate-id URL uses only the first value", async ({ page }) => {
+  test("the canonical/og:url of a duplicate-id URL keeps BOTH ids (the live's dupe contract)", async ({ page }) => {
+    // Session 39 (the deliberate contract change): the live KEEPS duplicate
+    // params in their original order (probed: ?token=a&token=b ->
+    // ?token=a&token=b; ?b=2&a=1&a=3 -> ?a=1&a=3&b=2) — the clone's old
+    // first-value-only canonical was the drift. The RENDERING still uses
+    // the first value (firstId — the pinned rendering spec above).
     await page.goto("/CourseDetail?id=seed-1&id=x");
     const canonical = await page.getAttribute('link[rel="canonical"]', "href");
-    expect(canonical).toContain("/CourseDetail?id=seed-1");
+    expect(canonical).toContain("/CourseDetail?id=seed-1&id=x");
     expect(canonical).not.toContain("seed-1,x");
-    expect(canonical).not.toContain("id=x");
+    // the og:url mirrors the same form
+    const ogUrl = await page.locator('meta[property="og:url"]').getAttribute("content");
+    expect(new URL(ogUrl!).search).toBe("?id=seed-1&id=x");
   });
 });
 
@@ -5433,6 +5440,145 @@ test.describe("session-38 parity: the interaction-latency (INP-proxy) budget", (
       return performance.now() - t0;
     });
     expect(latencyMs, `mobile-menu open latency ${Math.round(latencyMs)}ms < 200ms`).toBeLessThan(200);
+  });
+});
+
+test.describe("session-39 parity: the encoded-slash (%2F) 404-title derivation", () => {
+  // Fresh-eyes family A: the live decodes the FULL raw path FIRST, then
+  // splits on "/" — the last non-empty DECODED segment is the title source
+  // (7 shapes probed). The clone's previous seam split the raw path first:
+  // "/enc%2Fslash" titled "Enc/slash" vs the live's "Slash".
+  test("the %2F title battery (the decode-then-split contract)", async ({ page }) => {
+    for (const [shape, expectedTitle] of [
+      ["/enc%2Fslash", "Slash | NexusLearn"],
+      ["/a%2F", "A | NexusLearn"],
+      ["/a%2Fb%2Fc", "C | NexusLearn"],
+      ["/x%2FmyPage", "My Page | NexusLearn"],
+      ["/first%2Fsecond-third", "Second Third | NexusLearn"],
+      ["/Courses%2Fdeeper%2Fmissing", "Missing | NexusLearn"],
+      ["/%2F", "NexusLearn"],
+    ] as const) {
+      await page.goto(shape, { waitUntil: "domcontentloaded" });
+      await expect(page, `${shape} renders its derived title`).toHaveTitle(expectedTitle);
+    }
+  });
+
+  test("the s38 title identities are unchanged (the regression guard)", async ({ page }) => {
+    // The X-suffixed shapes (the s38 discipline): the pure-case variants
+    // (/cOurSes) hit the proxy's documented case-rewrite (the clean
+    // "Courses" title — the deliberate-better family); only the truly
+    // unknown paths reach the 404 derivation.
+    for (const [shape, expectedTitle] of [
+      ["/definitely-not-a-real-route", "Definitely Not A Real Route | NexusLearn"],
+      ["/RESET-PASSWORDX", "RESET PASSWORDX | NexusLearn"],
+      ["/cOurSesX", "C Our Ses X | NexusLearn"],
+      ["/foo%20bar", "Foo Bar | NexusLearn"],
+      ["/caf%C3%A9", "Café | NexusLearn"],
+    ] as const) {
+      await page.goto(shape, { waitUntil: "domcontentloaded" });
+      await expect(page).toHaveTitle(expectedTitle);
+    }
+  });
+});
+
+test.describe("session-39 parity: the canonical query-processing contract (every route)", () => {
+  // Fresh-eyes family B: the live processes the query of EVERY canonical —
+  // real routes AND the 404 — through the pinned algorithm (the tracking
+  // exclusion set, the stable alpha-sort, the URLSearchParams serialization)
+  // and mirrors the result into og:url + twitter:url. Origin-agnostic (the
+  // house pattern): the search string is the contract.
+  const canonicalSearchOf = async (page: Page, path: string) => {
+    await page.goto(path, { waitUntil: "domcontentloaded" });
+    const read = (sel: string, attr: string) =>
+      page.locator(sel).first().getAttribute(attr);
+    const canonical = await read('link[rel="canonical"]', "href");
+    const ogUrl = await read('meta[property="og:url"]', "content");
+    const twitterUrl = await read('meta[name="twitter:url"]', "content");
+    return { canonical, ogUrl, twitterUrl };
+  };
+
+  test("real routes carry the kept query on the canonical + og:url + twitter:url", async ({ page }) => {
+    // probed on the live: /Courses?x=1 -> .../Courses?x=1 (all three)
+    const { canonical, ogUrl, twitterUrl } = await canonicalSearchOf(page, "/Courses?x=1");
+    expect(new URL(canonical!).search).toBe("?x=1");
+    expect(new URL(ogUrl!).search).toBe("?x=1");
+    expect(new URL(twitterUrl!).search).toBe("?x=1");
+    expect(new URL(canonical!).pathname).toBe("/Courses");
+  });
+
+  test("the tracking params are dropped, the rest sorted", async ({ page }) => {
+    // probed: /Courses?utm_source=a&x=1 -> ?x=1; /Courses?z=1&a=2 -> ?a=2&z=1
+    const utm = await canonicalSearchOf(page, "/Courses?utm_source=a&x=1");
+    expect(new URL(utm.canonical!).search).toBe("?x=1");
+    const sorted = await canonicalSearchOf(page, "/Courses?z=1&a=2");
+    expect(new URL(sorted.canonical!).search).toBe("?a=2&z=1");
+    expect(new URL(sorted.ogUrl!).search).toBe("?a=2&z=1");
+  });
+
+  test("a fully-excluded query renders the bare canonical (probed: ?utm_source=test)", async ({ page }) => {
+    const { canonical, ogUrl } = await canonicalSearchOf(page, "/Pricing?utm_source=test");
+    expect(new URL(canonical!).search).toBe("");
+    expect(new URL(ogUrl!).search).toBe("");
+    expect(new URL(canonical!).pathname).toBe("/Pricing");
+  });
+
+  test("the login + landing + /Home carry the query (the /Home->root rule)", async ({ page }) => {
+    const login = await canonicalSearchOf(page, "/login?x=1");
+    expect(new URL(login.canonical!).search).toBe("?x=1");
+    expect(new URL(login.canonical!).pathname).toBe("/login");
+    // the landing + /Home canonicalize to the ROOT + the query (probed)
+    const landing = await canonicalSearchOf(page, "/?x=1");
+    expect(new URL(landing.canonical!).pathname).toBe("/");
+    expect(new URL(landing.canonical!).search).toBe("?x=1");
+    const home = await canonicalSearchOf(page, "/Home?x=1");
+    expect(new URL(home.canonical!).pathname).toBe("/");
+    expect(new URL(home.canonical!).search).toBe("?x=1");
+  });
+
+  test("CourseDetail keeps every param sorted (probed: ?id=<real>&extra=2 -> ?extra=2&id=<real>)", async ({ page }) => {
+    const { canonical, ogUrl, twitterUrl } = await canonicalSearchOf(
+      page,
+      "/CourseDetail?id=seed-1&extra=2"
+    );
+    expect(new URL(canonical!).search).toBe("?extra=2&id=seed-1");
+    expect(new URL(ogUrl!).search).toBe("?extra=2&id=seed-1");
+    expect(new URL(twitterUrl!).search).toBe("?extra=2&id=seed-1");
+  });
+
+  test("the reset-password canonical keeps the token, drops utm, sorts", async ({ page }) => {
+    // probed: ?token=abc&utm_source=z -> ?token=abc; ?z=1&token=abc -> ?token=abc&z=1
+    const a = await canonicalSearchOf(page, "/reset-password?token=abc&utm_source=z");
+    expect(new URL(a.canonical!).search).toBe("?token=abc");
+    const b = await canonicalSearchOf(page, "/reset-password?z=1&token=abc");
+    expect(new URL(b.canonical!).search).toBe("?token=abc&z=1");
+  });
+
+  test("the 404 canonical processes the query (not the raw pass-through)", async ({ page }) => {
+    // probed: /no-such-page-xyz?utm_source=a&y=2 -> ?y=2; ?z=1&a=2 -> ?a=2&z=1
+    const utm = await canonicalSearchOf(page, "/no-such-page-xyz?utm_source=a&y=2");
+    expect(new URL(utm.canonical!).search).toBe("?y=2");
+    expect(new URL(utm.ogUrl!).search).toBe("?y=2");
+    expect(new URL(utm.twitterUrl!).search).toBe("?y=2");
+    const sorted = await canonicalSearchOf(page, "/no-such-page-xyz?z=1&a=2");
+    expect(new URL(sorted.canonical!).search).toBe("?a=2&z=1");
+  });
+
+  test("the no-query guards: query-less visits render the bare standing canonicals", async ({ page }) => {
+    for (const [path, pathname] of [
+      ["/Courses", "/Courses"],
+      ["/login", "/login"],
+      ["/", "/"],
+      ["/Home", "/"],
+      ["/CourseDetail?id=seed-1", "/CourseDetail"],
+    ] as const) {
+      const { canonical } = await canonicalSearchOf(page, path);
+      expect(new URL(canonical!).pathname, `${path} pathname`).toBe(pathname);
+      if (path.includes("?")) {
+        expect(new URL(canonical!).search, `${path} keeps its id`).toBe("?id=seed-1");
+      } else {
+        expect(new URL(canonical!).search, `${path} carries no query`).toBe("");
+      }
+    }
   });
 });
 

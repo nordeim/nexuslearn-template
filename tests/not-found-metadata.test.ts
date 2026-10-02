@@ -98,6 +98,57 @@ describe("notFoundTitle — the derived 404 document title (session 38)", () => 
   });
 });
 
+describe("notFoundTitle — the encoded-slash (%2F) decode-order contract (session 39)", () => {
+  // The live decodes the FULL raw path FIRST, THEN splits on "/" — the last
+  // non-empty DECODED segment is the title source (7 shapes probed).
+  // The clone's previous seam split the raw path first, decoding only the
+  // last raw segment: "/enc%2Fslash" titled "Enc/slash" vs the live "Slash".
+  it("splits on the DECODED slash (the last decoded segment wins)", () => {
+    // probed: /enc%2Fslash -> "Slash | NexusLearn"
+    expect(notFoundTitle("/enc%2Fslash")).toBe("Slash | NexusLearn");
+    // probed: /a%2Fb%2Fc -> "C | NexusLearn"
+    expect(notFoundTitle("/a%2Fb%2Fc")).toBe("C | NexusLearn");
+    // probed: /Courses%2Fdeeper%2Fmissing -> "Missing | NexusLearn"
+    expect(notFoundTitle("/Courses%2Fdeeper%2Fmissing")).toBe(
+      "Missing | NexusLearn"
+    );
+  });
+
+  it("treats a trailing encoded slash as a real trailing slash", () => {
+    // probed: /a%2F -> "A | NexusLearn" (decode -> "/a/" -> last "a")
+    expect(notFoundTitle("/a%2F")).toBe("A | NexusLearn");
+    // probed: /enc%2F -> "Enc | NexusLearn"
+    expect(notFoundTitle("/enc%2F")).toBe("Enc | NexusLearn");
+  });
+
+  it("startCases the decoded segment's camel humps", () => {
+    // probed: /x%2FmyPage -> "My Page | NexusLearn"
+    expect(notFoundTitle("/x%2FmyPage")).toBe("My Page | NexusLearn");
+    // probed: /first%2Fsecond-third -> "Second Third | NexusLearn"
+    expect(notFoundTitle("/first%2Fsecond-third")).toBe(
+      "Second Third | NexusLearn"
+    );
+  });
+
+  it("an encoded-slash-only path renders the plain root title", () => {
+    // probed: /%2F -> decode "/" -> no non-empty segment -> plain
+    expect(notFoundTitle("/%2F")).toBe("NexusLearn");
+  });
+
+  it("the s38 shape identities are preserved (decode is a no-op on plain paths)", () => {
+    expect(notFoundTitle("/definitely-not-a-real-route")).toBe(
+      "Definitely Not A Real Route | NexusLearn"
+    );
+    expect(notFoundTitle("/foo%20bar")).toBe("Foo Bar | NexusLearn");
+    expect(notFoundTitle("/caf%C3%A9")).toBe("Café | NexusLearn");
+    expect(notFoundTitle("/hello+world")).toBe("Hello+world | NexusLearn");
+    expect(notFoundTitle("/50%25off")).toBe("50%off | NexusLearn");
+    expect(notFoundTitle("/a//double")).toBe("Double | NexusLearn");
+    expect(notFoundTitle("///")).toBe("NexusLearn");
+    expect(notFoundTitle("/%zz")).toBe("%zz | NexusLearn");
+  });
+});
+
 describe("notFoundCanonical — the derived 404 canonical (session 38)", () => {
   it("mirrors the raw path", () => {
     expect(notFoundCanonical("/definitely-not-a-real-route", "")).toBe(
@@ -120,5 +171,38 @@ describe("notFoundCanonical — the derived 404 canonical (session 38)", () => {
   it("normalizes the empty path to the root", () => {
     expect(notFoundCanonical("", "")).toBe("/");
     expect(notFoundCanonical("/", "")).toBe("/");
+  });
+});
+
+describe("notFoundCanonical — the processed query (session 39)", () => {
+  // The live PROCESSES the 404's query through the canonical algorithm
+  // (probed: ?utm_source=a&y=2 -> ?y=2; ?z=1&a=2 -> ?a=2&z=1) — the raw
+  // pass-through was the s38 shape that only coincided for single kept params.
+  it("drops the tracking params (probed on the 404)", () => {
+    expect(notFoundCanonical("/no-such-page-xyz", "?utm_source=a&y=2")).toBe(
+      "/no-such-page-xyz?y=2"
+    );
+    expect(notFoundCanonical("/no-such-page-xyz", "?gclid=1")).toBe(
+      "/no-such-page-xyz"
+    );
+  });
+
+  it("sorts the kept params (probed on the 404)", () => {
+    expect(notFoundCanonical("/no-such-page-xyz", "?z=1&a=2")).toBe(
+      "/no-such-page-xyz?a=2&z=1"
+    );
+  });
+
+  it("drops an empty or fully-excluded query to the bare path", () => {
+    expect(notFoundCanonical("/no-such-page-xyz", "?")).toBe("/no-such-page-xyz");
+    expect(notFoundCanonical("/no-such-page-xyz", "?utm_source=a")).toBe(
+      "/no-such-page-xyz"
+    );
+  });
+
+  it("preserves the s38 identity: a single kept param rides unchanged", () => {
+    expect(notFoundCanonical("/no-such-page-xyz", "?x=1")).toBe(
+      "/no-such-page-xyz?x=1"
+    );
   });
 });

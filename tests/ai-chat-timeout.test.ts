@@ -81,3 +81,36 @@ describe("ai-chat route source pin (session 38)", () => {
     expect(ROUTE).toMatch(/status: 502/);
   });
 });
+
+describe("withTimeout — the late-rejecting loser invariant (session 39)", () => {
+  // The losing promise keeps running when the bound wins (the SDK accepts
+  // no signal — documented). Its LATER rejection is consumed by
+  // Promise.race's internal handlers (race attaches handlers to every input
+  // at creation; settling an already-settled race is a no-op), so NO
+  // unhandledRejection fires. This is the empirical pin of that analysis:
+  // a hung-then-reset socket (the 60s bound fires, the socket dies at 90s
+  // and rejects) must never take down the standalone server process
+  // (Node >= 15 default: an unhandled rejection crashes).
+  it("a loser rejected AFTER the bound won raises NO unhandledRejection", async () => {
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => {
+      unhandled.push(reason);
+    };
+    process.on("unhandledRejection", onUnhandled);
+    try {
+      let rejectLoser!: (reason: Error) => void;
+      const loser = new Promise<never>((_, reject) => {
+        rejectLoser = reject;
+      });
+      const raced = withTimeout(loser, 5, "late loser test");
+      await expect(raced).rejects.toBeInstanceOf(AiChatTimeoutError);
+      // the loser rejects LATE (after the race already settled)
+      rejectLoser(new Error("the socket died at 90s"));
+      // give the microtask queue time to surface any unhandled rejection
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onUnhandled);
+    }
+  });
+});

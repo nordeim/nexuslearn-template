@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { processCanonicalQuery } from "./canonical-query";
+
 /**
  * Reference head parity — session 6: the live app mirrors the per-route
  * document title into `og:title` + `twitter:title` and the per-route canonical
@@ -18,6 +20,15 @@ import type { Metadata } from "next";
  * against the same base). `other` MERGES per-key across the layout→page
  * chain (the page's keys win) — both levels restate it, the restate-
  * everything pattern of og/twitter.
+ *
+ * Session 39 — the processed canonical query: the live carries the PROCESSED
+ * query on every real route's canonical/og:url/twitter:url (probed:
+ * /Courses?x=1 -> .../Courses?x=1; /Courses?utm_source=a&x=1 -> .../Courses?x=1;
+ * /CourseDetail?id=X&extra=2 -> .../CourseDetail?extra=2&id=X — the pinned
+ * algorithm in src/lib/canonical-query.ts). The optional `search` is the RAW
+ * search string (the proxy-injected x-nexus-raw-search header, read by
+ * src/lib/page-metadata.ts — the header-reading half lives there so this
+ * module stays free of next/headers and unit-importable).
  */
 
 export const REFERENCE_DESCRIPTION =
@@ -36,15 +47,22 @@ function twitterUrlFor(canonical: string): string {
 export function routeMetadata({
   title,
   canonical,
+  search = "",
 }: {
   /** Title segment (e.g. "Courses") — omitted on / and /login (reference behavior). */
   title?: string;
   /** Route canonical (path or path + query), mirrored into og:url. */
   canonical: string;
+  /** The RAW search string ("?x=1") — processed per the pinned algorithm. */
+  search?: string;
 }): Metadata {
   // The resolved document title: "Courses | NexusLearn" with a segment,
   // plain "NexusLearn" without (matches the root title template).
   const resolvedTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
+
+  // Session 39: the canonical carries the PROCESSED query (the live's
+  // contract — tracking params dropped, kept params alpha-sorted).
+  const canonicalWithQuery = `${canonical}${processCanonicalQuery(search)}`;
 
   return {
     // Session 38: the no-title branch pins the ABSOLUTE plain title. The
@@ -54,11 +72,11 @@ export function routeMetadata({
     // plain "NexusLearn" regardless of the layout default, so they carry
     // the absolute form instead of inheriting it.
     ...(title ? { title } : { title: { absolute: SITE_NAME } }),
-    alternates: { canonical },
+    alternates: { canonical: canonicalWithQuery },
     openGraph: {
       title: resolvedTitle,
       description: REFERENCE_DESCRIPTION,
-      url: canonical,
+      url: canonicalWithQuery,
       type: "website",
       siteName: SITE_NAME,
       images: [{ url: "/logo.png", width: 1200, height: 630, alt: SITE_NAME }],
@@ -71,6 +89,6 @@ export function routeMetadata({
     },
     // Session 38: the live's twitter:url (every route — the missing sixth
     // head dimension). Rendered verbatim by Next's `other` map.
-    other: { "twitter:url": twitterUrlFor(canonical) },
+    other: { "twitter:url": twitterUrlFor(canonicalWithQuery) },
   };
 }

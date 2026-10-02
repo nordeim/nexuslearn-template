@@ -7,14 +7,15 @@ import { db } from "@/lib/db";
 import { pickLocale } from "@/lib/number-format";
 import { headers } from "next/headers";
 
-import { routeMetadata } from "@/lib/metadata";
+import type { Metadata } from "next";
+
+import { pageMetadata } from "@/lib/page-metadata";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = routeMetadata({
-  title: "Courses",
-  canonical: "/Courses",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({ title: "Courses", canonical: "/Courses" });
+}
 
 export default async function CoursesPage() {
   // The visitor locale for the catalog's count rows (session 29): the

@@ -4,12 +4,13 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { RevealController } from "@/components/reveal/RevealController";
 
-import { routeMetadata } from "@/lib/metadata";
+import type { Metadata } from "next";
 
-export const metadata = routeMetadata({
-  title: "Pricing",
-  canonical: "/Pricing",
-});
+import { pageMetadata } from "@/lib/page-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({ title: "Pricing", canonical: "/Pricing" });
+}
 
 const PLANS = [
   {

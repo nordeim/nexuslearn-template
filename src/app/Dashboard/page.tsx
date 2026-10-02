@@ -6,14 +6,15 @@ import { Award, BookOpen, CirclePlay, TrendingUp } from "lucide-react";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
-import { routeMetadata } from "@/lib/metadata";
+import type { Metadata } from "next";
+
+import { pageMetadata } from "@/lib/page-metadata";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = routeMetadata({
-  title: "Dashboard",
-  canonical: "/Dashboard",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({ title: "Dashboard", canonical: "/Dashboard" });
+}
 
 export default async function DashboardPage() {
   // The reference app renders the dashboard for signed-out visitors too —

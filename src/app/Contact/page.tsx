@@ -5,12 +5,13 @@ import { Footer } from "@/components/Footer";
 import { ContactForm } from "@/components/ContactForm";
 import { RevealController } from "@/components/reveal/RevealController";
 
-import { routeMetadata } from "@/lib/metadata";
+import type { Metadata } from "next";
 
-export const metadata = routeMetadata({
-  title: "Contact",
-  canonical: "/Contact",
-});
+import { pageMetadata } from "@/lib/page-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({ title: "Contact", canonical: "/Contact" });
+}
 
 const INFO = [
   { icon: Mail, title: "Email", value: "hello@nexuslearn.com", href: "mailto:hello@nexuslearn.com" },

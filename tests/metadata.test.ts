@@ -62,3 +62,48 @@ describe("routeMetadata — per-route OG identity (session 6)", () => {
     expect(twitter.images).toEqual(["/logo.png"]);
   });
 });
+
+describe("routeMetadata — the processed canonical query (session 39)", () => {
+  // The live carries the PROCESSED query on every real route's canonical,
+  // og:url and twitter:url (probed: /Courses?x=1 -> .../Courses?x=1;
+  // /Courses?utm_source=a&x=1 -> .../Courses?x=1; /CourseDetail?id=X&extra=2
+  // -> .../CourseDetail?extra=2&id=X). The `search` param is the RAW search.
+  it("appends the processed query to the canonical + og:url + twitter:url", () => {
+    const m = routeMetadata({ title: "Courses", canonical: "/Courses", search: "?x=1" });
+    expect(m.alternates?.canonical).toBe("/Courses?x=1");
+    expect(m.openGraph?.url).toBe("/Courses?x=1");
+    expect(m.other?.["twitter:url"]).toBe("http://localhost:3000/Courses?x=1");
+  });
+
+  it("drops the tracking params and sorts the rest (the pinned algorithm)", () => {
+    const m = routeMetadata({
+      title: "Courses",
+      canonical: "/Courses",
+      search: "?utm_source=a&z=1&a=2",
+    });
+    expect(m.alternates?.canonical).toBe("/Courses?a=2&z=1");
+    expect(m.openGraph?.url).toBe("/Courses?a=2&z=1");
+  });
+
+  it("a fully-excluded or empty query renders the bare canonical (the standing identity)", () => {
+    expect(routeMetadata({ canonical: "/Courses", search: "?utm_source=test" }).alternates?.canonical).toBe("/Courses");
+    expect(routeMetadata({ canonical: "/Courses", search: "?" }).alternates?.canonical).toBe("/Courses");
+    expect(routeMetadata({ canonical: "/Courses", search: "" }).alternates?.canonical).toBe("/Courses");
+    expect(routeMetadata({ canonical: "/Courses" }).alternates?.canonical).toBe("/Courses");
+  });
+
+  it("the root canonical carries the query after the slash (probed: /?x=1 -> .../?x=1)", () => {
+    const m = routeMetadata({ canonical: "/", search: "?x=1" });
+    expect(m.alternates?.canonical).toBe("/?x=1");
+    expect(m.other?.["twitter:url"]).toBe("http://localhost:3000/?x=1");
+  });
+
+  it("keeps duplicate id params sorted (the live's dupe behavior)", () => {
+    const m = routeMetadata({
+      title: "Course Detail",
+      canonical: "/CourseDetail",
+      search: "?id=seed-1&extra=2",
+    });
+    expect(m.alternates?.canonical).toBe("/CourseDetail?extra=2&id=seed-1");
+  });
+});
