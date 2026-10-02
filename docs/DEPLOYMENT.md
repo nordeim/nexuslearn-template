@@ -233,6 +233,13 @@ user's CURRENT `sessionVersion`, and the user must still exist. Two
 operator levers, neither of which requires rotating the global
 `AUTH_SECRET`:
 
+The account owner can trigger the same lever for THEMSELVES —
+`POST /api/auth/revoke-sessions` (session 35; requires the session cookie):
+one indexed increment kills every outstanding token for the caller
+(including the presented one) and clears the cookie with the
+attribute-symmetric deletion form. The account survives; a fresh login
+re-mints at the bumped epoch.
+
 ```sql
 -- Revoke ONE user's every outstanding session (a leaked cookie, a
 -- suspicious account, an offboarding):
@@ -265,9 +272,15 @@ email:
 
 1. **Add a transport module** (e.g. `src/lib/mailer.ts` — nodemailer,
   Resend, SES; keep it server-only like the AI SDK import).
-2. **Persist the code** — add `verificationCode String?` +
+2. **Persist the code** — ~~add `verificationCode String?` +
   `codeExpiresAt DateTime?` to `User`; the signup route (both the create
-  and the unverified-resend branches) writes them instead of logging.
+  and the unverified-resend branches) writes them instead of logging.~~
+  **SHIPPED (session 35)**: both columns exist, the signup route persists
+  an HMAC-SHA256 hash of the code (keyed by `AUTH_SECRET` — never the raw
+  digits, so a DB leak does not expose live codes) + the 10-minute expiry,
+  and `src/lib/verification.ts` is the pure seam. The `AUTH_DELIVERY=smtp`
+  gate (step 5) is also shipped: setting it activates the real comparison
+  with zero code changes — only the transport module (step 1) remains.
 3. **Compare for real** — `POST /api/auth/verify` reads the stored code,
   checks the expiry window, and clears both fields on success (the
   `emailVerified: true` write stays as-is).

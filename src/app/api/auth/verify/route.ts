@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
-import { createSessionToken, SESSION_COOKIE, sessionCookieOptions, SessionSecretError } from "@/lib/auth";
+import { createSessionToken, SESSION_COOKIE, sessionCookieOptions, SessionSecretError, resolveSessionSecret } from "@/lib/auth";
 import { RATE_LIMITS, checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { bodyTooLarge, fieldTooLong, FIELD_LIMITS } from "@/lib/request-guard";
+import { codeComparisonEnabled, codeMatches, isCodeExpired } from "@/lib/verification";
 
 /**
  * POST /api/auth/verify — confirm the 6-digit signup code and sign in.
@@ -13,6 +14,14 @@ import { bodyTooLarge, fieldTooLong, FIELD_LIMITS } from "@/lib/request-guard";
  * real email + code comparison before production use). Verifying also sets
  * the session cookie, matching the reference flow which signs the user in
  * immediately after verification.
+ *
+ * Session 35 (the DEPLOYMENT §13 drill's first half): the code is now
+ * PERSISTED by signup (an HMAC-SHA256 hash + a 10-minute expiry), and this
+ * route compares for real when AUTH_DELIVERY=smtp (the env gate — the
+ * simulated any-code contract stays the dev/test default per the drill's
+ * step 5, so the e2e suite is unchanged until an operator wires real
+ * delivery). BOTH fields clear on every successful verify — either mode
+ * (the persistence housekeeping).
  *
  * Session 33: this is the SEVENTH public POST route — it mints the session
  * cookie, so it carries the full session-31 guard stack (the per-IP
@@ -54,7 +63,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid verification code" }, { status: 400 });
     }
 
-    await db.user.update({ where: { email }, data: { emailVerified: true } });
+    // session-35: the REAL code comparison — active only when the operator
+    // declared real delivery (AUTH_DELIVERY=smtp, the DEPLOYMENT §13 gate).
+    // The simulated default keeps the documented any-code contract (without
+    // a transport the legitimate user cannot receive the code either).
+    if (codeComparisonEnabled(process.env)) {
+      const secret = resolveSessionSecret(process.env);
+      const expired = isCodeExpired(user.codeExpiresAt);
+      if (expired || !codeMatches(user.verificationCode, code, secret)) {
+        return NextResponse.json({ error: "Invalid verification code" }, { status: 400 });
+      }
+    }
+
+    // session-35: BOTH fields clear on every successful verify (either
+    // mode — the persistence housekeeping; a consumed code is dead).
+    await db.user.update({
+      where: { email },
+      data: { emailVerified: true, verificationCode: null, codeExpiresAt: null },
+    });
 
     const res = NextResponse.json({
       user: { id: user.id, email: user.email, name: user.name },

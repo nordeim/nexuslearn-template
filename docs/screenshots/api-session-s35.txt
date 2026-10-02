@@ -1,0 +1,8 @@
+=== SESSION 35 PROOF MATRIX (the dev server :3000 + the smtp-mode standalone :3500) ===
+
+[1] signup 200=true; code hash persisted=true (len 64); expiry=2026-10-02T04:50:03.736Z (~10 min out); emailVerified=false
+[2] simulated mode: verify with WRONG code "000000" -> 200 (the documented any-code contract; the AUTH_DELIVERY gate is unset on :3000)
+[3] post-verify row: code hash cleared=true; expiry cleared=true; emailVerified=true
+[4] revoke: anon POST -> 401 (401); authed POST -> 200 (200, ok=true); old cookie /me -> user="null"; deletion cookie symmetric=true; fresh login -> 200; fresh /me -> user=PRESENT
+[5] smtp mode (AUTH_DELIVERY=smtp): verify with WRONG code "000000" -> 400 (body: {"error":"Invalid verification code"}) — the real comparison rejects it
+[6] smtp mode: verify with the REAL code 306251 (grepped from the server log) -> 200 — the real comparison accepts it

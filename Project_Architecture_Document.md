@@ -3,7 +3,7 @@
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
 **Companion Documents:** `README.md` (user-facing), `AGENTS.md` (agent gotchas), `CLAUDE.md` (workflow)
-**Last Updated:** 2026-10-02
+**Last Updated:** 2026-10-02 (session 35)
 **Audience:** Senior Engineers, Tech Leads, DevOps, and Onboarding Engineers
 **Rule:** Every architectural decision in this document traces to a specific rationale.
 Nothing is here "because it's popular."
@@ -64,6 +64,7 @@ Nothing is here "because it's popular."
 
 ---
 
+- `[S35]` Session 35 verification-code persistence + self-service-revocation + TTFB-budget pass (see `docs/remediation-plan-session35.md`): the standing re-audit GREEN on every surface (the full baseline gate 303/303; heights x9 routes x2 viewports byte-exact 18/18, innerText 18/18 identical, tag drift 0, the mobile battery identical — no Tailwind v4 bug — console 10/11 clean, the 11th the by-design 404) + THREE probe families (the session-68 suggested directions). (1) **The verification-code persistence surface** — the signup code was generated, logged, and DISCARDED while `/api/auth/verify` accepted ANY complete 6-digit code (the wrong-code probe verified the account: the badge was decorative). Fixed: `User.verificationCode` (an HMAC-SHA256 hash keyed by AUTH_SECRET — never the raw digits) + `codeExpiresAt` (10-minute TTL, fail-closed), the pure seam `src/lib/verification.ts`, the verify route comparing for real under the **AUTH_DELIVERY=smtp gate** (the DEPLOYMENT 13 drill's step 5 — the simulated any-code contract stays the dev/test default; proven end-to-end on a dedicated smtp-mode standalone: wrong code 400, real code 200), and BOTH fields clearing on every successful verify. (2) **The revoke-sessions lever** — the session-34 epoch made self-service: `POST /api/auth/revoke-sessions` (authed, deliberately unthrottled) bumps the caller's epoch + clears the cookie attribute-symmetrically; the account survives (fresh login re-mints). The UI affordance deliberately deferred (any Dashboard/login surface addition would break the byte-exact height parity; the route is the zero-visual-footprint form). (3) **The per-route TTFB budget spec** (the s34 bundle-budget precedent applied to server latency): median-of-3 raw-HTTP TTFB < 500ms per route on the e2e standalone (measured 7-31ms, 16-70x headroom). TDD: 13 new unit specs (the seam battery + the persistence/wiring source pins) + 4 new e2e pins. 433 tests green (126 unit + 307 e2e).
 - `[S34]` Session 34 revocation-epoch + bundle-budget + SMTP-drill pass (see `docs/remediation-plan-session34.md`): the standing re-audit GREEN on every surface (the full baseline gate 300/300; heights ×9 routes ×2 viewports byte-exact 18/18, innerText 18/18 identical, tag drift 0, the mobile battery identical — no Tailwind v4 bug — console 9/10) + THREE probe families. (1) **The session-revocation / deleted-user surface** (the session-33 suggested direction): `getSession()` verified the HMAC + the iat bounds but NEVER re-validated the user against the database — a DELETED user's token authenticated until its 7-day iat bound (the ghost-token probe: `/api/auth/me` kept serving the full user object after the row was gone; only the FK schema stopped ghost writes, with zero orphan rows). Fixed: the **per-user epoch** — `User.sessionVersion Int @default(0)` embedded in the signed payload at mint (`ver`, via `createSessionToken(user, sessionVersion)`) and re-compared on every `getSession()` read (ONE indexed `findUnique` in the adapter; the pure `session.ts` stays DB-free for the unit layer). Pre-34 tokens read `ver: 0` and stay valid — no forced re-login wave. The operator levers: `UPDATE User SET sessionVersion = sessionVersion + 1` kills that user's outstanding tokens WITHOUT rotating the global AUTH_SECRET; deleting the user kills them too. The session-32 e2e control had PINNED the ghost behavior (a nonexistent userId mint asserting 200) — updated to mint for the real seeded demo user. (2) **The per-route delivered-JS budget surface** (the s33 recorded baseline converted into a spec): measured 536–662 KB per route on the production standalone vs the live's 727 KB SPA monolith (max `/Courses` at 91%) — pinned by the budget spec so a heavy shared-chunk import trips RED. (3) **The SMTP-transport drill** (docs): the concrete swap-in drill for the simulated verify-code + reset deliveries now in DEPLOYMENT.md §12 (the §10 known issue referenced it). TDD: 7 new unit specs + 3 new e2e pins. Test pyramid 113 unit + 303 e2e (416 total).
 
 ## 1. System Overview & Decisions
@@ -256,7 +257,7 @@ nexuslearn-template/
 │       ├── session.ts          # pure crypto: HMAC token sign/verify, scrypt hash/verify
 │       ├── auth.ts             # cookies() adapter + re-exports (server-only)
 │       └── utils.ts            # cn()
-├── tests/                     # 20 unit files, 113 specs (Vitest) + 2 e2e files, 303 specs (Playwright)
+├── tests/                     # 22 unit files, 126 specs (Vitest) + 2 e2e files, 307 specs (Playwright)
 │   ├── *.test.ts              # unit: auth crypto, session lifetime, timing equalizer, secret enforcement, session revocation (the epoch battery), tags, eyebrow, metadata, seed shape, db-url, svg/img guards, locale, request guard, throttle, api-guard source pin, logout-cookie + dependency pins
 │   └── e2e/
 │       ├── global-setup.ts     # push + seed db/e2e.db, reset enrollments
@@ -508,6 +509,7 @@ Durations 300–700ms, `cubic-bezier(0.4, 0, 0.2, 1)`. Signature moves: nav stat
 | Rule | Enforcement |
 |---|---|
 | Session tokens are HMAC-signed and timing-safe compared | `session.ts` (`timingSafeEqual`); unit-tested |
+| Verification codes are stored as keyed hashes with a bounded window (session 35) | `User.verificationCode` = HMAC-SHA256(AUTH_SECRET, code) + `codeExpiresAt` (10 min, fail-closed); real comparison under `AUTH_DELIVERY=smtp`; cleared on success |
 | Sessions are REVOCABLE server-side (session 34) | `getSession()` re-validates the user row + the per-user epoch (`User.sessionVersion` vs the token's `ver`) on every read — a deleted user's token dies with the row; a bumped epoch kills every outstanding token for that user (see §6.4) |
 | Passwords never stored or logged in plaintext | scrypt (`salt:hash`, 64-byte); no plaintext fields |
 | Session cookie is httpOnly + sameSite=lax + secure in production | `sessionCookieOptions` in `auth.ts` |
@@ -531,6 +533,7 @@ Single role (authenticated learner). `POST /api/auth/login` verifies scrypt, set
 | Vector | Mitigation |
 |---|---|
 | Cookie forgery | HMAC-SHA256 + timing-safe compare; `AUTH_SECRET` required in prod |
+| Self-session-revocation (suspected cookie leak) | `POST /api/auth/revoke-sessions` (session 35): the account owner bumps their own epoch — every outstanding token dies, the account survives; also available as the SQL lever in DEPLOYMENT 12 |
 | Stale/leaked token after account removal or compromise | per-user epoch re-checked in `getSession()` (session 34): delete the row or bump `sessionVersion` — no AUTH_SECRET rotation needed (the 7-day iat window alone was the pre-34 gap) |
 | Password DB leak | scrypt with per-user salt |
 | CSRF on mutations | sameSite=lax cookies + JSON-only endpoints (cross-site form posts can't set JSON content type); logout is the only state-changing form-POSTable route and is benign |
@@ -605,8 +608,8 @@ No numeric gate configured; the required **pre-push gate** is the sequence `lint
 
 - [ ] `bun run lint` clean
 - [ ] `bun run typecheck` clean
-- [ ] `bun run test` 113/113
-- [ ] `bun run test:e2e` 303/303 (incl. 12 mobile-nav specs: the 10 original guards + the 2 session-22 additions)
+- [ ] `bun run test` 126/126
+- [ ] `bun run test:e2e` 307/307 (incl. 12 mobile-nav specs: the 10 original guards + the 2 session-22 additions)
 - [ ] `bun run build` compiles (standalone)
 - [ ] Mobile menu manually eyeballed at 375×667 (screenshot diff vs `docs/screenshots/`)
 - [ ] No new `tailwind.config.js` (Tailwind v4 is CSS-first)

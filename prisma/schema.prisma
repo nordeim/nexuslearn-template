@@ -21,6 +21,15 @@ model User {
   // Signup flow (session 5): new accounts start unverified and must confirm
   // a 6-digit code via POST /api/auth/verify. Seeded accounts are verified.
   emailVerified Boolean  @default(true)
+  // Session 35 — the verification-code persistence (the first half of the
+  // DEPLOYMENT §13 SMTP drill): the signup route PERSISTS the code as an
+  // HMAC-SHA256 hash (never the raw digits — a DB leak must not expose
+  // live codes) with a 10-minute expiry, and the verify route compares for
+  // real when AUTH_DELIVERY=smtp (the env gate; the simulated any-code
+  // contract stays the dev/test default). Both fields clear on success.
+  // Pre-35 the code was logged and discarded — any 6-digit string verified.
+  verificationCode String?
+  codeExpiresAt    DateTime?
   // Session 34 — the per-user epoch (the revocation lever). Embedded in the
   // session token at mint time (`ver`) and re-compared on every getSession()
   // read: bumping it (UPDATE User SET sessionVersion = sessionVersion + 1)

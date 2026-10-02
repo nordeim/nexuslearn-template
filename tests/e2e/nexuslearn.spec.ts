@@ -4705,6 +4705,194 @@ test.describe("session-34 parity: the per-route delivered-JS budget surface", ()
   });
 });
 
+// ---------------------------------------------------------------------------
+// Session 35 — the verification-code persistence surface (the first half of
+// the DEPLOYMENT §13 SMTP drill) + the revoke-sessions lever + the per-route
+// TTFB budget. The persistence/housekeeping specs use the spec-side
+// PrismaClient (the session-31/34 pattern) against db/e2e.db.
+// ---------------------------------------------------------------------------
+
+test.describe("session-35 parity: the verification-code persistence surface", () => {
+  test("after signup, the code hash + expiry are PERSISTED on the User row", async ({ request }) => {
+    // Pre-fix: the 6-digit code was generated, logged, and DISCARDED — the
+    // User row carried no verificationCode/codeExpiresAt columns at all.
+    const email = `s35-code-${Date.now()}@example.com`;
+    const su = await request.post("/api/auth/signup", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "SuperSecret99!" },
+    });
+    expect(su.status()).toBe(200);
+
+    const db = await s34SpecDb();
+    try {
+      const user = await db.user.findUnique({
+        where: { email },
+        select: { verificationCode: true, codeExpiresAt: true, emailVerified: true },
+      });
+      expect(user, "the row exists").toBeTruthy();
+      expect(user!.emailVerified, "still unverified until the code").toBe(false);
+      expect(user!.verificationCode, "the code hash is persisted (an HMAC, never the raw digits)").toBeTruthy();
+      expect(user!.codeExpiresAt, "the expiry is persisted").toBeTruthy();
+      const delta = user!.codeExpiresAt!.getTime() - Date.now();
+      expect(delta, "the window is ~10 minutes (tolerance)").toBeGreaterThan(9 * 60 * 1000 - 5000);
+      expect(delta).toBeLessThan(11 * 60 * 1000);
+    } finally {
+      await db.$disconnect();
+    }
+  });
+
+  test("a successful verify CLEARS both fields (the persistence housekeeping — simulated mode keeps the any-code contract)", async ({ request }) => {
+    // The simulated-delivery default (AUTH_DELIVERY unset) keeps the
+    // documented any-code contract — the e2e server sets no AUTH_DELIVERY
+    // (verified in playwright.config.ts webServer.env). The persistence
+    // housekeeping still runs: both fields cleared on success.
+    const email = `s35-clear-${Date.now()}@example.com`;
+    await request.post("/api/auth/signup", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "SuperSecret99!" },
+    });
+    const vf = await request.post("/api/auth/verify", {
+      headers: { "content-type": "application/json" },
+      data: { email, code: "123456" },
+    });
+    expect(vf.status(), "the simulated any-code contract holds (the gate default)").toBe(200);
+
+    const db = await s34SpecDb();
+    try {
+      const user = await db.user.findUnique({
+        where: { email },
+        select: { verificationCode: true, codeExpiresAt: true, emailVerified: true },
+      });
+      expect(user!.emailVerified, "the verify flipped the flag").toBe(true);
+      expect(user!.verificationCode, "the code hash is cleared").toBeNull();
+      expect(user!.codeExpiresAt, "the expiry is cleared").toBeNull();
+    } finally {
+      await db.$disconnect();
+    }
+  });
+});
+
+test.describe("session-35 parity: the revoke-sessions lever (the authed API surface)", () => {
+  test("POST /api/auth/revoke-sessions kills every outstanding token for the caller; the account survives", async ({ request }) => {
+    // Pre-fix: the session-34 epoch lever existed ONLY as raw SQL in
+    // DEPLOYMENT.md §12 — an account owner had no first-party way to
+    // revoke their own sessions. The route bumps the caller's epoch and
+    // clears the cookie (the logout semantics + the epoch bump).
+    // Uses a THROWAWAY user (never the demo user — the s32 control's
+    // ver-less mint requires the demo user's epoch to stay 0, and the
+    // seed's upsert preserves a bumped sessionVersion across runs).
+    const email = `s35-revoke-${Date.now()}@example.com`;
+
+    // No session -> 401 (the authed-route contract). Probed BEFORE the
+    // signup/verify below — the shared request context stores the verify
+    // cookie in its jar, so a later "anonymous" post would carry it.
+    const anon = await request.post("/api/auth/revoke-sessions");
+    expect(anon.status(), "the route requires a session").toBe(401);
+
+    await request.post("/api/auth/signup", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "SuperSecret99!" },
+    });
+    const vf = await request.post("/api/auth/verify", {
+      headers: { "content-type": "application/json" },
+      data: { email, code: "123456" },
+    });
+    expect(vf.status()).toBe(200);
+    const cookie = (vf.headers()["set-cookie"] ?? "").split(";")[0];
+
+    // The revocation: the presented (and every outstanding) token dies.
+    const res = await request.post("/api/auth/revoke-sessions", { headers: { cookie } });
+    expect(res.status()).toBe(200);
+    const body = (await res.json()) as { ok?: boolean };
+    expect(body.ok).toBe(true);
+
+    const me1 = await request.get("/api/auth/me", { headers: { cookie } });
+    expect(
+      ((await me1.json()) as { user: unknown }).user,
+      "the pre-revocation token must be dead"
+    ).toBeNull();
+
+    // The deletion cookie is attribute-symmetric (the s32 pattern).
+    const setCookie = res.headers()["set-cookie"] ?? "";
+    const header = Array.isArray(setCookie) ? setCookie.join("\n") : setCookie;
+    expect(header.toLowerCase()).toContain("nexus_session=;");
+    expect(header.toLowerCase()).toContain("httponly");
+
+    // The control: the ACCOUNT survives — a fresh login re-mints at the
+    // bumped epoch and authenticates.
+    const li = await request.post("/api/auth/login", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "SuperSecret99!" },
+    });
+    expect(li.status(), "the account still logs in").toBe(200);
+    const freshCookie = (li.headers()["set-cookie"] ?? "").split(";")[0];
+    const me2 = await request.get("/api/auth/me", { headers: { cookie: freshCookie } });
+    expect(
+      ((await me2.json()) as { user: unknown }).user,
+      "the fresh mint carries the bumped epoch"
+    ).toBeTruthy();
+  });
+});
+
+test.describe("session-35 parity: the per-route TTFB budget surface", () => {
+  test("every route's median TTFB stays under 500ms on the standalone (the s34 budget precedent, now server latency)", async ({ request }) => {
+    // Measured s35 (dedicated :3400 standalone, 3 rounds): 7-31ms medians —
+    // the 500ms ceiling leaves 16-70x headroom (effectively unflakeable on
+    // a loaded box) while still catching the pathological regressions the
+    // budget exists for: an N+1 query storm, a missing index, a synchronous
+    // external call in a render path. Raw Node http (the s27 pattern — the
+    // playwright request fixture cannot isolate TTFB from full-body time).
+    const http = await import("node:http");
+    const base = process.env.E2E_TTFB_ORIGIN ?? "http://localhost:3100";
+    const { hostname, port } = new URL(base);
+    const routes = [
+      "/",
+      "/Courses",
+      "/CourseDetail?id=seed-1",
+      "/Pricing",
+      "/About",
+      "/Contact",
+      "/BecomeInstructor",
+      "/AIAssistant",
+      "/Dashboard",
+      "/login",
+    ];
+    const ttfb = (path: string) =>
+      new Promise<number>((resolve, reject) => {
+        const started = process.hrtime.bigint();
+        const req = http.get({ hostname, port: Number(port), path }, (res) => {
+          res.once("data", () => {
+            resolve(Number(process.hrtime.bigint() - started) / 1e6);
+            res.resume();
+          });
+        });
+        req.on("error", reject);
+        req.setTimeout(15000, () => { req.destroy(); reject(new Error("timeout")); });
+      });
+
+    // Warm-up round (page-module caches), then 3 measured rounds per route.
+    for (const r of routes) await ttfb(r).catch(() => {});
+    const summary: string[] = [];
+    const medians: Record<string, number> = {};
+    for (const r of routes) {
+      const runs: number[] = [];
+      for (let i = 0; i < 3; i++) {
+        const ms = await ttfb(r).catch(() => -1);
+        runs.push(ms);
+      }
+      const med = runs.sort((a, b) => a - b)[1];
+      medians[r] = med;
+      summary.push(`${r}: ${med.toFixed(0)}ms`);
+    }
+    for (const [route, med] of Object.entries(medians)) {
+      expect(
+        med,
+        `${route} median TTFB must stay under 500ms (all: ${summary.join(", ")})`
+      ).toBeLessThan(500);
+    }
+  });
+});
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a

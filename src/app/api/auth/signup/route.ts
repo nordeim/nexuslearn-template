@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword, resolveSessionSecret, SessionSecretError } from "@/lib/auth";
 import { RATE_LIMITS, checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { bodyTooLarge, fieldTooLong, FIELD_LIMITS } from "@/lib/request-guard";
+import { generateVerificationCode, hashCodeForStorage, codeExpiryFromNow } from "@/lib/verification";
 
 /**
  * POST /api/auth/signup — create an account (reference signup flow).
@@ -16,7 +17,11 @@ import { bodyTooLarge, fieldTooLong, FIELD_LIMITS } from "@/lib/request-guard";
  * Email delivery is simulated: this template ships no SMTP transport, so
  * the 6-digit verification code is logged server-side and ANY complete
  * 6-digit code is accepted by /api/auth/verify (documented in the README —
- * wire real email before production use).
+ * wire real email before production use). Session 35 (the DEPLOYMENT §13
+ * drill's first half): the code is now ALSO PERSISTED — an HMAC-SHA256
+ * hash + a 10-minute expiry on the User row — so the verify route can
+ * compare for real the moment an operator sets AUTH_DELIVERY=smtp (the
+ * hash uses the AUTH_SECRET as its key; no new secret to manage).
  */
 export async function POST(req: NextRequest) {
   try {
@@ -54,11 +59,16 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "A user with this email already exists" }, { status: 409 });
       }
       // Unverified account: refresh the stored credentials + code (resend).
+      // session-35: the code is persisted (hash + expiry) in BOTH branches.
+      const code = generateVerificationCode();
       await db.user.update({
         where: { email },
-        data: { passwordHash: hashPassword(password) },
+        data: {
+          passwordHash: hashPassword(password),
+          verificationCode: hashCodeForStorage(code, resolveSessionSecret(process.env)),
+          codeExpiresAt: codeExpiryFromNow(),
+        },
       });
-      const code = String(Math.floor(100000 + Math.random() * 900000));
       console.info(`[auth] verification code for ${email}: ${code} (simulated delivery)`);
       return NextResponse.json({ ok: true });
     }
@@ -66,19 +76,25 @@ export async function POST(req: NextRequest) {
     // The reference greets users by the email prefix (the seeded demo user
     // follows the same convention).
     const name = email.split("@")[0];
+    const code = generateVerificationCode();
     await db.user.create({
       data: {
         email,
         name,
         passwordHash: hashPassword(password),
         emailVerified: false,
+        verificationCode: hashCodeForStorage(code, resolveSessionSecret(process.env)),
+        codeExpiresAt: codeExpiryFromNow(),
       },
     });
-    const code = String(Math.floor(100000 + Math.random() * 900000));
     console.info(`[auth] verification code for ${email}: ${code} (simulated delivery)`);
 
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    // session-35: the code hash needs the AUTH_SECRET — a misconfigured
+    // production deployment fails LOUD here too (the session-33 contract:
+    // auth-using requests fail fast, anonymous pages keep rendering).
+    if (err instanceof SessionSecretError) throw err;
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }
