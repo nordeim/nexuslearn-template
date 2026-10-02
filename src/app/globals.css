@@ -254,6 +254,19 @@
   --tw-ring-color: var(--color-slate-400);
 }
 
+/* Session 37 — the /reset-password inputs' cascade pin (the SAME family as
+ * the slate-400 rule above): the live's reset-password inputs carry
+ * `focus:ring-gray-400` (probed: keyboard focus computes
+ * --tw-ring-color: rgb(156 163 175 / 1) = gray-400), and the v4 sheet's
+ * later-emitted `.focus-visible:ring-ring:focus-visible` would flip the
+ * winner to the --ring near-black on keyboard focus — byte-identical
+ * classes, different cascade outcome. The UNLAYERED rule restores the
+ * reference winner; the selector matches only the reset-password inputs'
+ * class strings (the only `focus:ring-gray-400` usage in src/). */
+.focus\:ring-gray-400:focus {
+  --tw-ring-color: var(--color-gray-400);
+}
+
 /* ---------------------------------------------------------------------------
  * Session 14 — the v3 variant-order line-height pins (the seventh v4 trap).
  *

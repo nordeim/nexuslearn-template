@@ -1,0 +1,43 @@
+
+===== [1] the throwaway account: signup + verify (the simulated any-code default) =====
+  signup: 200
+  verify (any 6-digit code — the simulated default): 200
+
+===== [2] the forgot-password request (the always-ok contract + the mint) =====
+  status: 200
+  body: {"ok":true}
+  elapsed: 42ms
+
+===== [3] the simulated delivery: the log line carries the reset LINK (the raw token) =====
+  the reset link: http://localhost:3000/reset-password?token=b76a38ea131e6653d6ad76bc5c5335ba4e6b3fb0aca23af5b9a4c9c8465970cc
+
+===== [4] the link's view: GET the /reset-password?token=... route (the form state) =====
+  the rendered heading: "Set new password"
+  the document title: "NexusLearn"
+  the canonical: http://localhost:3000/reset-password?token=b76a38ea131e6653d6ad76bc5c5335ba4e6b3fb0aca23af5b9a4c9c8465970cc
+
+===== [5] the consumption: POST /api/auth/reset-password with the raw token =====
+  status: 200
+  body: {"ok":true}
+
+===== [6] single-use: the REPLAYED token is dead =====
+  status: 400
+  body: {"error":"Invalid or expired reset token"}
+
+===== [7] the login matrix: the NEW password signs in; the OLD password 401s =====
+  login with the NEW password: 200
+  login with the OLD password: 401
+
+===== [8] a GARBAGE token: the exact reference error =====
+  status: 400
+  body: {"error":"Invalid or expired reset token"}
+
+===== [9] the no-enumeration contract: a NON-EXISTENT email gets the IDENTICAL response (shape + timing family) =====
+  status: 200
+  body: {"ok":true}
+  elapsed: 10ms (the hit was 42ms — the shared-cost equalizer)
+
+===== [10] the UI flow: the reset view -> the reset-sent view (the reference dead-end, now a round trip) =====
+  the reset-sent view: "Check your email We've sent password reset instructions to s37-proof-1790927001738@example.com Please check your email for the password reset link. It may take "
+
+===== PROOF MATRIX COMPLETE =====

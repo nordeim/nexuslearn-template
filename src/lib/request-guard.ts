@@ -39,6 +39,11 @@ export const FIELD_LIMITS = {
   message: 10_000,
   /** The ai/chat messages-array length (turns). */
   chatTurns: 100,
+  /**
+   * The password-reset token (session 37): the real mint is 64 hex chars
+   * (32 bytes) — 128 gives 2x headroom as a bounded lookup key.
+   */
+  resetToken: 128,
 } as const;
 
 /** True when the request's declared Content-Length exceeds the cap. */

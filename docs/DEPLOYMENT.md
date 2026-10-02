@@ -159,7 +159,7 @@ answers `3`; against the standalone server every request negotiates
 The six public POST routes (`/api/auth/login`, `/api/auth/signup`,
 `/api/auth/forgot-password`, `/api/contact`, `/api/newsletter`,
 `/api/ai/chat`) carry an **in-memory fixed-window per-IP throttle**
-(`src/lib/rate-limit.ts` — login 30/min, signup + forgot-password 10,
+(`src/lib/rate-limit.ts` — login 30/min, signup + forgot-password + reset-password 10,
 newsletter + contact 15, ai-chat 30; 429 + `Retry-After` + the house
 `{ error }` body). Two deployment notes:
 
@@ -303,7 +303,31 @@ email:
   any-code contract; either gate the real comparison behind an env flag
   (`AUTH_DELIVERY=smtp` with the simulated path as the test default) or
   re-pin the specs deliberately when the contract changes.
-6. **Forgot-password** is a stub that always returns ok (no user
+6. ~~**Forgot-password** is a stub that always returns ok (no user
   enumeration — reference parity); wiring real reset emails means the
   same transport + a `resetToken` column + an expiry, with the same
-  always-ok response shape.
+  always-ok response shape.~~
+  **SHIPPED (session 37)**: the full reset round trip — `POST
+  /api/auth/forgot-password` mints a single-use 32-byte bearer token
+  (persisted as `User.resetTokenHash` = HMAC-SHA256 over the `r1:`-prefixed
+  token, keyed by AUTH_SECRET — never the raw token at rest — plus
+  `User.resetTokenExpiresAt`, a 10-minute fail-closed window) and delivers
+  the reset link (`<origin>/reset-password?token=<raw>`) through the SAME
+  transport seam (`sendPasswordResetEmail`: the simulated log line by
+  default; Resend HTTP delivery under `AUTH_DELIVERY=smtp` +
+  `RESEND_API_KEY`; a 10-second AbortController bounds every delivery
+  fetch). The response is ALWAYS `{ok:true}` — including on delivery
+  failure (the no-enumeration contract outranks fail-loud here: a
+  502-for-existing-emails-only would BE the enumeration oracle), and the
+  token mint + hash run BEFORE the user lookup so both paths pay the same
+  crypto (the timing-equalizer form). `POST /api/auth/reset-password`
+  (the eighth public POST route — the api-guard exact-set pin moved 7→8)
+  consumes the token: hash + window verified, the new passwordHash +
+  BOTH cleared token fields + the `sessionVersion` bump (a reset kills
+  every outstanding session) in ONE atomic update, the caller's cookie
+  cleared attribute-symmetrically. The `/reset-password` PAGE (the
+  reference route the clone 404'd on) renders the "Invalid Reset Link"
+  state for the bare route and the optimistic "Set new password" form
+  for any non-empty `?token=` — the exact reference classes + the exact
+  validation messages ("Passwords do not match" / "Password must be at
+  least 8 characters long" / "Invalid or expired reset token").

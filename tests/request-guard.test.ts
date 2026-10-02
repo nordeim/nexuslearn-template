@@ -36,6 +36,7 @@ describe("request-guard: the field-length caps", () => {
     expect(FIELD_LIMITS.subject).toBe(200);
     expect(FIELD_LIMITS.message).toBe(10_000);
     expect(FIELD_LIMITS.chatTurns).toBe(100);
+    expect(FIELD_LIMITS.resetToken).toBe(128);
   });
 
   it("fieldTooLong is the strict boundary (254 ok, 255 rejects)", () => {

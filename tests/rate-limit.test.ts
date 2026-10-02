@@ -76,6 +76,8 @@ describe("rate-limit: the fixed-window verdicts", () => {
     expect(RATE_LIMITS.newsletter).toBe(15);
     expect(RATE_LIMITS.contact).toBe(15);
     expect(RATE_LIMITS["ai-chat"]).toBe(30);
+    // session-37: the reset-consumption route (the drill's step 6).
+    expect(RATE_LIMITS["reset-password"]).toBe(10);
   });
 });
 

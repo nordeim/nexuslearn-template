@@ -45,6 +45,20 @@ export interface MailerEnv {
 /** The default sender (Resend's documented test address — override with EMAIL_FROM). */
 const DEFAULT_FROM = "NexusLearn <onboarding@resend.dev>";
 
+/**
+ * Session 37 — the delivery timeout: a hung/slow Resend endpoint (or a
+ * black-hole RESEND_BASE_URL self-host) must never pin the calling route
+ * indefinitely. Every real-delivery fetch carries an AbortController with
+ * this cap; the abort maps to the typed MailerError (the existing 502
+ * degrade path on signup). Overridable per-call for the unit tests.
+ */
+const FETCH_TIMEOUT_MS = 10_000;
+
+interface SendOptions {
+  /** The abort cap override (unit tests pass ~25ms to keep the battery fast). */
+  timeoutMs?: number;
+}
+
 /** The Resend endpoint (overridable for the e2e proof / self-hosts). */
 function resendEndpoint(env: MailerEnv): string {
   const base = env.RESEND_BASE_URL?.trim() || "https://api.resend.com";
@@ -89,13 +103,15 @@ export function buildVerificationEmail(code: string): {
 /**
  * Deliver the signup verification code through the selected channel.
  * Returns "simulated" | "sent" so callers/tests can assert the path taken.
- * Throws the typed MailerError on any real-delivery failure.
+ * Throws the typed MailerError on any real-delivery failure (including the
+ * session-37 timeout — a hung upstream aborts at 10s).
  */
 export async function sendVerificationEmail(
   env: MailerEnv,
   to: string,
   code: string,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  options: SendOptions = {}
 ): Promise<"simulated" | "sent"> {
   const mode = deliveryMode(env);
 
@@ -113,6 +129,87 @@ export async function sendVerificationEmail(
   }
 
   const email = buildVerificationEmail(code);
+  const res = await postToResend(env, email, to, fetchImpl, options);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new MailerError(`Email delivery failed (HTTP ${res.status}): ${body.slice(0, 200)}`);
+  }
+  return "sent";
+}
+
+/** The reset-password email content (pure — the link never rides the subject). */
+export function buildResetEmail(resetUrl: string): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const subject = "Reset your NexusLearn password";
+  const text =
+    `We received a request to reset your NexusLearn password.\n\n` +
+    `Reset your password with this link (valid for 10 minutes):\n${resetUrl}\n\n` +
+    `If you didn't request a password reset, you can ignore this email — ` +
+    `your password stays unchanged.`;
+  const html =
+    `<div style="font-family:Inter,system-ui,-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:24px">` +
+    `<h2 style="margin:0 0 12px">Reset your password</h2>` +
+    `<p style="margin:0 0 12px;color:#334155">We received a request to reset your NexusLearn password. Click the button below to choose a new one.</p>` +
+    `<p style="margin:0 0 24px"><a href="${resetUrl}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">Reset password</a></p>` +
+    `<p style="margin:0 0 12px;color:#64748b;font-size:14px">Or paste this link into your browser (valid for 10 minutes):<br><a href="${resetUrl}" style="color:#2563eb">${resetUrl}</a></p>` +
+    `<p style="margin:0;color:#94a3b8;font-size:13px">If you didn't request a password reset, you can ignore this email — your password stays unchanged.</p>` +
+    `</div>`;
+  return { subject, text, html };
+}
+
+/**
+ * Deliver the password-reset link through the selected channel (session 37
+ * — the drill's step 6). The SAME three-mode contract as the verification
+ * code: simulated (the log line), resend (the HTTP POST), misconfigured
+ * (the fail-loud throw).
+ */
+export async function sendPasswordResetEmail(
+  env: MailerEnv,
+  to: string,
+  resetUrl: string,
+  fetchImpl: typeof fetch = fetch,
+  options: SendOptions = {}
+): Promise<"simulated" | "sent"> {
+  const mode = deliveryMode(env);
+
+  if (mode === "simulated") {
+    console.info(`[auth] password reset link for ${to}: ${resetUrl} (simulated delivery)`);
+    return "simulated";
+  }
+
+  if (mode === "misconfigured") {
+    throw new MailerError(
+      "Email delivery is not configured: AUTH_DELIVERY=smtp requires RESEND_API_KEY (see docs/DEPLOYMENT.md §13)."
+    );
+  }
+
+  const email = buildResetEmail(resetUrl);
+  const res = await postToResend(env, email, to, fetchImpl, options);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new MailerError(`Email delivery failed (HTTP ${res.status}): ${body.slice(0, 200)}`);
+  }
+  return "sent";
+}
+
+/**
+ * The shared Resend POST (session 37): the built email, the Bearer key, and
+ * the AbortController timeout — a hung upstream rejects at the cap and
+ * maps to the typed MailerError (the availability fix).
+ */
+async function postToResend(
+  env: MailerEnv,
+  email: { subject: string; text: string; html: string },
+  to: string,
+  fetchImpl: typeof fetch,
+  options: SendOptions
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutMs = options.timeoutMs ?? FETCH_TIMEOUT_MS;
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   let res: Response;
   try {
     res = await fetchImpl(resendEndpoint(env), {
@@ -128,16 +225,17 @@ export async function sendVerificationEmail(
         text: email.text,
         html: email.html,
       }),
+      signal: controller.signal,
     });
   } catch (err) {
+    if (err instanceof Error && (err.name === "AbortError" || controller.signal.aborted)) {
+      throw new MailerError(`Email delivery failed (timeout after ${timeoutMs}ms): the endpoint did not respond`);
+    }
     throw new MailerError(
       `Email delivery failed (network): ${err instanceof Error ? err.message : String(err)}`
     );
+  } finally {
+    clearTimeout(timer);
   }
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new MailerError(`Email delivery failed (HTTP ${res.status}): ${body.slice(0, 200)}`);
-  }
-  return "sent";
+  return res;
 }

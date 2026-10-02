@@ -30,6 +30,15 @@ model User {
   // Pre-35 the code was logged and discarded — any 6-digit string verified.
   verificationCode String?
   codeExpiresAt    DateTime?
+  // Session 37 — the password-reset token lifecycle (the drill's step 6,
+  // the backend of the /reset-password parity gap): forgot-password PERSISTS
+  // an HMAC-SHA256 hash of a 32-byte bearer token (`r1:` domain-separated
+  // from the `v1:` code hashes) with a 10-minute expiry; the consumption
+  // route (/api/auth/reset-password) verifies the hash + the window, sets
+  // the new password, CLEARS both fields (single-use), and bumps
+  // sessionVersion (a reset kills every outstanding session).
+  resetTokenHash      String?
+  resetTokenExpiresAt DateTime?
   // Session 34 — the per-user epoch (the revocation lever). Embedded in the
   // session token at mint time (`ver`) and re-compared on every getSession()
   // read: bumping it (UPDATE User SET sessionVersion = sessionVersion + 1)

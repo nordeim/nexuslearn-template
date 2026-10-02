@@ -5056,6 +5056,250 @@ test.describe("session-36 parity: the web-vitals budget surface (FCP + LCP)", ()
   });
 });
 
+// ---------------------------------------------------------------------------
+// Session 37 — the /reset-password parity surface (the LIVE ships the route;
+// the clone 404'd — a REAL functional parity drift found by probing the
+// live's own UI) + the forgot-password token lifecycle (the drill's step 6)
+// + the TBT budget (the interaction-latency dimension of the per-route
+// performance contract). The API specs use the spec-side PrismaClient (the
+// session-31/34/35 pattern) against db/e2e.db and THROWAWAY users.
+// ---------------------------------------------------------------------------
+
+test.describe("session-37 parity: the /reset-password route (the view states)", () => {
+  test("GET /reset-password with NO token renders the Invalid Reset Link state (the reference DOM)", async ({ page }) => {
+    await page.goto("/reset-password", { waitUntil: "networkidle" });
+    await expect(page.getByRole("heading", { name: "Invalid Reset Link" })).toBeVisible();
+    await expect(page.getByText("This password reset link is invalid or has expired.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Back to Login" })).toBeVisible();
+    // The metadata contract: the plain "NexusLearn" title + the bare canonical.
+    await expect(page).toHaveTitle("NexusLearn");
+    const canon = await page.getAttribute('link[rel="canonical"]', "href");
+    expect(canon).toMatch(/\/reset-password$/);
+  });
+
+  test("the Invalid Reset Link Back button navigates to /login", async ({ page }) => {
+    await page.goto("/reset-password", { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "Back to Login" }).click();
+    await page.waitForURL("**/login", { timeout: 10000 });
+  });
+
+  test("GET /reset-password?token=<any> renders the Set new password form OPTIMISTICALLY (the live's contract)", async ({ page }) => {
+    await page.goto("/reset-password?token=anything-at-all", { waitUntil: "networkidle" });
+    await expect(page.getByRole("heading", { name: "Set new password" })).toBeVisible();
+    await expect(page.getByText("Enter your new password for NexusLearn")).toBeVisible();
+    await expect(page.getByLabel("New Password", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Confirm New Password", { exact: true })).toBeVisible();
+    await expect(page.getByText("Must be at least 8 characters")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reset password" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Back to login" })).toBeVisible();
+    // The canonical carries the token query (the CourseDetail ?id= pattern).
+    const canon = await page.getAttribute('link[rel="canonical"]', "href");
+    expect(canon).toContain("/reset-password?token=anything-at-all");
+  });
+
+  test("the client-side validation: mismatch and short passwords render the live's exact messages", async ({ page }) => {
+    await page.goto("/reset-password?token=abc", { waitUntil: "networkidle" });
+    await page.locator("#password").fill("password-one-123");
+    await page.locator("#confirmPassword").fill("password-two-456");
+    await page.getByRole("button", { name: "Reset password" }).click();
+    await expect(page.locator('form [role="alert"]')).toContainText("Passwords do not match");
+
+    await page.locator("#password").fill("short");
+    await page.locator("#confirmPassword").fill("short");
+    await page.getByRole("button", { name: "Reset password" }).click();
+    await expect(page.locator('form [role="alert"]')).toContainText("Password must be at least 8 characters long");
+  });
+
+  test("an INVALID token at submit renders the reference API error in the alert", async ({ page }) => {
+    await page.goto("/reset-password?token=garbage-token", { waitUntil: "networkidle" });
+    await page.locator("#password").fill("BrandNewPw456!");
+    await page.locator("#confirmPassword").fill("BrandNewPw456!");
+    await page.getByRole("button", { name: "Reset password" }).click();
+    await expect(page.locator('form [role="alert"]')).toContainText("Invalid or expired reset token");
+  });
+});
+
+test.describe("session-37 parity: the forgot-password token lifecycle (the API contract)", () => {
+  test("forgot-password for an EXISTING user persists the token hash + expiry (the s35 pattern) and stays always-ok", async ({ request }) => {
+    const email = `s37-fp-${Date.now()}@example.com`;
+    await request.post("/api/auth/signup", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "SuperSecret99!" },
+    });
+    const res = await request.post("/api/auth/forgot-password", {
+      headers: { "content-type": "application/json" },
+      data: { email },
+    });
+    expect(res.status(), "the always-ok contract").toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+
+    const db = await s34SpecDb();
+    try {
+      const user = await db.user.findUnique({
+        where: { email },
+        select: { resetTokenHash: true, resetTokenExpiresAt: true },
+      });
+      expect(user!.resetTokenHash, "the token hash is persisted (an HMAC, never the raw token)").toBeTruthy();
+      expect(user!.resetTokenExpiresAt, "the expiry is persisted").toBeTruthy();
+      const delta = user!.resetTokenExpiresAt!.getTime() - Date.now();
+      expect(delta, "the window is ~10 minutes (tolerance)").toBeGreaterThan(9 * 60 * 1000 - 5000);
+      expect(delta).toBeLessThan(11 * 60 * 1000);
+    } finally {
+      await db.$disconnect();
+    }
+  });
+
+  test("forgot-password for a NON-EXISTENT email stays always-ok (the no-enumeration contract)", async ({ request }) => {
+    const res = await request.post("/api/auth/forgot-password", {
+      headers: { "content-type": "application/json" },
+      data: { email: `no-such-user-${Date.now()}@example.com` },
+    });
+    expect(res.status()).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+  });
+
+  test("the FULL round trip on a throwaway user: mint -> consume -> the new password signs in, the old one 401s, the epoch bumps", async ({ request }) => {
+    const email = `s37-reset-${Date.now()}@example.com`;
+    const OLD_PW = "SuperSecret99!";
+    const NEW_PW = "BrandNewPw456!";
+    await request.post("/api/auth/signup", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: OLD_PW },
+    });
+    await request.post("/api/auth/verify", {
+      headers: { "content-type": "application/json" },
+      data: { email, code: "123456" },
+    });
+
+    // Mint a valid token in-spec (the same seam + the server's AUTH_SECRET)
+    // and write the hash + expiry directly onto the row (the s35 pattern).
+    const { randomBytes, createHmac } = await import("node:crypto");
+    const secret = E2E_AUTH_SECRET; // the playwright webServer's fixed secret
+    const token = randomBytes(32).toString("hex");
+    const hash = createHmac("sha256", secret).update(`r1:${token}`).digest("hex");
+    const db = await s34SpecDb();
+    try {
+      await db.user.update({
+        where: { email },
+        data: { resetTokenHash: hash, resetTokenExpiresAt: new Date(Date.now() + 10 * 60 * 1000) },
+      });
+
+      // The short-password contract (the server-side validation).
+      const short = await request.post("/api/auth/reset-password", {
+        headers: { "content-type": "application/json" },
+        data: { token, password: "short" },
+      });
+      expect(short.status()).toBe(400);
+
+      const res = await request.post("/api/auth/reset-password", {
+        headers: { "content-type": "application/json" },
+        data: { token, password: NEW_PW },
+      });
+      expect(res.status(), "the reset succeeds").toBe(200);
+
+      // Single-use: the token is dead after consumption.
+      const replay = await request.post("/api/auth/reset-password", {
+        headers: { "content-type": "application/json" },
+        data: { token, password: "AnotherPw789!" },
+      });
+      expect(replay.status(), "the consumed token never works again").toBe(400);
+      expect((await replay.json()).error).toBe("Invalid or expired reset token");
+
+      const after = await db.user.findUnique({
+        where: { email },
+        select: { resetTokenHash: true, resetTokenExpiresAt: true, sessionVersion: true },
+      });
+      expect(after!.resetTokenHash, "the token hash is cleared").toBeNull();
+      expect(after!.resetTokenExpiresAt, "the expiry is cleared").toBeNull();
+      expect(after!.sessionVersion, "the epoch is bumped (the reset killed outstanding sessions)").toBe(1);
+    } finally {
+      await db.$disconnect();
+    }
+
+    // The new password signs in (the verified account); the old one 401s.
+    // NOTE: fresh request contexts — the earlier posts may share the jar.
+    const ok = await request.post("/api/auth/login", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: NEW_PW },
+    });
+    expect(ok.status(), "the NEW password signs in").toBe(200);
+    const stale = await request.post("/api/auth/login", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: OLD_PW },
+    });
+    expect(stale.status(), "the OLD password is dead").toBe(401);
+  });
+
+  test("an EXPIRED token is rejected (the fail-closed window)", async ({ request }) => {
+    const email = `s37-exp-${Date.now()}@example.com`;
+    await request.post("/api/auth/signup", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "SuperSecret99!" },
+    });
+    const { randomBytes, createHmac } = await import("node:crypto");
+    const secret = E2E_AUTH_SECRET; // the playwright webServer's fixed secret
+    const token = randomBytes(32).toString("hex");
+    const hash = createHmac("sha256", secret).update(`r1:${token}`).digest("hex");
+    const db = await s34SpecDb();
+    try {
+      await db.user.update({
+        where: { email },
+        data: { resetTokenHash: hash, resetTokenExpiresAt: new Date(Date.now() - 1000) },
+      });
+    } finally {
+      await db.$disconnect();
+    }
+    const res = await request.post("/api/auth/reset-password", {
+      headers: { "content-type": "application/json" },
+      data: { token, password: "BrandNewPw456!" },
+    });
+    expect(res.status()).toBe(400);
+    expect((await res.json()).error).toBe("Invalid or expired reset token");
+  });
+});
+
+test.describe("session-37 parity: the main-thread-blocking budget (TBT)", () => {
+  test("every route's TBT stays under 500ms on the standalone (the s33->s36 budget family, now interaction latency)", async ({ page }) => {
+    // Measured 0-51ms per route on the production standalone (probe
+    // s37-probe-tbt.js) — a 10x+ headroom ceiling that still catches the
+    // pathological regressions: a giant synchronous hydration task, a
+    // render-blocking script. The longtask PerformanceObserver is the
+    // collection seam; blocking = max(0, duration - 50ms) summed.
+    const ROUTES = [
+      "/",
+      "/Home",
+      "/Courses",
+      "/Pricing",
+      "/About",
+      "/Contact",
+      "/BecomeInstructor",
+      "/AIAssistant",
+      "/Dashboard",
+      "/login",
+      "/CourseDetail?id=seed-1",
+    ];
+    const summary: string[] = [];
+    for (const route of ROUTES) {
+      await page.goto(route, { waitUntil: "load", timeout: 30000 });
+      const tbt = await page.evaluate(async () => {
+        await new Promise((res) => setTimeout(res, 2000));
+        let durations: number[] = [];
+        try {
+          const po = new PerformanceObserver(() => {});
+          po.observe({ type: "longtask", buffered: true });
+          durations = po.takeRecords().map((e) => e.duration);
+          po.disconnect();
+        } catch {
+          durations = [];
+        }
+        return durations.reduce((acc, d) => acc + Math.max(0, d - 50), 0);
+      });
+      summary.push(`${route}=${Math.round(tbt)}ms`);
+      expect(tbt, `${route} TBT under 500ms (all: ${summary.join(", ")})`).toBeLessThan(500);
+    }
+  });
+});
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a

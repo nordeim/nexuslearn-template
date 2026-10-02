@@ -38,9 +38,11 @@ describe("session-35: the revoke-sessions route source pin", () => {
     expect(src, "the authed routes stay unthrottled (session 31)").not.toContain("checkRateLimit(");
   });
 
-  it("the api-guard seven-route pin is unaffected (the new route is authed, not public)", () => {
+  it("the api-guard public-route pin is unaffected (the new route is authed, not public)", () => {
     const guard = readFileSync(join(REPO, "tests/api-guard-source.test.ts"), "utf8");
-    expect(guard).toContain("toBe(7)");
+    // Session 37 moved the public set seven -> eight (reset-password joins);
+    // revoke-sessions must still NOT be in it.
+    expect(guard).toContain("toBe(8)");
     expect(guard, "revoke-sessions must NOT join the public set").not.toContain("revoke-sessions");
   });
 });

@@ -49,6 +49,10 @@ export const RATE_LIMITS = {
   // per signup; the e2e suite sends exactly one per run → 10x headroom).
   verify: 10,
   "forgot-password": 10,
+  // session-37: the reset-consumption route (the eighth public POST route —
+  // the drill's step 6). The e2e round-trip spec sends 4 POSTs per run
+  // (short-password + consume + replay + expired) → 10x headroom.
+  "reset-password": 10,
   newsletter: 15,
   contact: 15,
   "ai-chat": 30,
