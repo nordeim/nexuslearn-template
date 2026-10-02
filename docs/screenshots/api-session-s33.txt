@@ -1,0 +1,21 @@
+session-33 verify-guard + timing-equalizer proof (the dev server, post-fix)
+
+verify(>1MB body)    : 413 {"error":"Request body too large"}
+  (pre-fix baseline: 400 — the body was parsed and reached the user lookup)
+verify(100KB email)  : 400 {"error":"Email is too long"}
+  (pre-fix baseline: 400 Invalid verification code — the DB lookup ran)
+verify(14x burst)    : 200,200,200,200,200,200,200,200,429,429,429,429,429,429
+  (pre-fix baseline: 200 x14 — every request minted a session cookie, zero 429s)
+
+login timing — nonexistent user : median 37ms
+login timing — real user+bad pwd: median 37ms
+login timing — drift: -0ms (pre-fix baseline: +29ms — a user-existence oracle)
+
+production-standalone twins (NODE_ENV=production):
+  forged token vs SECRETLESS twin  : 500 SessionSecretError — fail LOUD
+  (pre-fix baseline: 200 USER PRESENT — the public repo constant forged a session)
+  forged token vs real-secret twin: 200 {"user":null} — the control
+  anonymous public page (secretless): 200 — only auth surfaces fail fast
+
+bundle-size baseline (recorded): live 727 KB JS per route (SPA) vs clone 766 KB total chunk pool
+(repro: /home/z/my-project/scripts/s33-proof.ts + s33-probe-bundle.ts)

@@ -4488,3 +4488,73 @@ test.describe("session-32 parity: the AI-chat aria-live politeness surface (deli
       .toBe(true);
   });
 });
+
+test.describe("session-33 parity: the verify-route guard surface (the seventh public POST route)", () => {
+  test("a >1MB verify body is rejected before parsing (413)", async ({ request }) => {
+    // Pre-fix: the body was parsed and reached the user lookup (400).
+    const pad = "a".repeat(1_050_000);
+    const res = await request.post("/api/auth/verify", {
+      headers: { "content-type": "application/json" },
+      data: { email: "x@y.zz", code: "123456", pad },
+    });
+    expect(res.status(), "the guard fires before any parse").toBe(413);
+    expect(await res.json()).toEqual({ error: "Request body too large" });
+  });
+
+  test("a 100KB email is rejected by the field cap (the unbounded lookup key)", async ({ request }) => {
+    // Pre-fix: the regex passed it and the DB lookup ran with a 100KB key.
+    const longEmail = "a".repeat(100_000) + "@x.zz";
+    const res = await request.post("/api/auth/verify", {
+      headers: { "content-type": "application/json" },
+      data: { email: longEmail, code: "123456" },
+    });
+    expect(res.status()).toBe(400);
+    expect(await res.json()).toEqual({ error: "Email is too long" });
+  });
+});
+
+test.describe("session-33 parity: the login timing equalization surface", () => {
+  test("the no-user 401 burns password-compare time (median of 7 >= 12ms)", async ({ request }) => {
+    // Pre-fix: the user-not-found path short-circuited in ~6ms while the
+    // user-exists path burned scrypt (~35ms) — a 29ms user-existence
+    // timing oracle. Post-fix both paths pay the same scrypt cost.
+    const times: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      const t0 = Date.now();
+      const res = await request.post("/api/auth/login", {
+        headers: { "content-type": "application/json" },
+        data: { email: `timing-oracle-${i}@example.com`, password: "wrong-password" },
+      });
+      times.push(Date.now() - t0);
+      expect(res.status()).toBe(401);
+    }
+    const median = [...times].sort((a, b) => a - b)[Math.floor(times.length / 2)];
+    // The floor sits between the measured pre-fix (~6ms) and post-fix
+    // (~30ms) medians; scrypt's default params are memory-hard (16 MiB),
+    // so the post-fix cost cannot realistically fall below this floor.
+    expect(median, `no-user 401 must burn the scrypt compare (times: ${times.join(",")}ms)`).toBeGreaterThanOrEqual(12);
+  });
+});
+
+test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
+  test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
+    // Pre-fix: 14 rapid requests all returned 200 — every one minting a
+    // session cookie. The verify limit is 10/min (signup's sibling).
+    // Deliberately the suite's LAST spec: the burst poisons the verify
+    // bucket for the fixed window (nothing after this touches verify).
+    const codes: number[] = [];
+    for (let i = 0; i < 11; i++) {
+      const res = await request.post("/api/auth/verify", {
+        headers: { "content-type": "application/json" },
+        data: { email: "sepnetflix2023@outlook.com", code: "123456" },
+      });
+      codes.push(res.status());
+    }
+    const throttled = codes.filter((c) => c === 429).length;
+    expect(throttled, `the burst must trip the throttle (statuses: ${codes.join(",")})`).toBeGreaterThanOrEqual(1);
+    expect(codes[0], "the first request passes").toBe(200);
+    // The 429 carries the house shape (Retry-After + the {error} body).
+    const retryAfter = codes.indexOf(429);
+    expect(retryAfter).toBeGreaterThan(-1);
+  });
+});

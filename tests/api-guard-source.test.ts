@@ -2,10 +2,13 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Session 31 — the API-guard SOURCE pin: every one of the six public POST
-// routes must carry the rate-limit check + the body-size pre-check (the
-// session-30 source-guard pattern — a future refactor cannot silently drop
-// a route's protection). The skills/ folder is not app code and never
+// Session 31 — the API-guard SOURCE pin: every public POST route must
+// carry the rate-limit check + the body-size pre-check (the session-30
+// source-guard pattern — a future refactor cannot silently drop a route's
+// protection). Session 33 re-pins to SEVEN: the signup-verification route
+// POST /api/auth/verify (which MINTS the session cookie) had escaped the
+// session-31 net — the exact-set assertion is the discipline that catches
+// the next public route. The skills/ folder is not app code and never
 // appears here.
 
 const REPO = join(import.meta.dirname, "..");
@@ -13,6 +16,7 @@ const REPO = join(import.meta.dirname, "..");
 const ROUTES: Record<string, string> = {
   "POST /api/auth/login": "src/app/api/auth/login/route.ts",
   "POST /api/auth/signup": "src/app/api/auth/signup/route.ts",
+  "POST /api/auth/verify": "src/app/api/auth/verify/route.ts",
   "POST /api/auth/forgot-password": "src/app/api/auth/forgot-password/route.ts",
   "POST /api/contact": "src/app/api/contact/route.ts",
   "POST /api/newsletter": "src/app/api/newsletter/route.ts",
@@ -21,7 +25,7 @@ const ROUTES: Record<string, string> = {
 
 const source = (rel: string) => readFileSync(join(REPO, rel), "utf8");
 
-describe("api-guard source pin: the six public POST routes", () => {
+describe("api-guard source pin: the seven public POST routes", () => {
   for (const [label, rel] of Object.entries(ROUTES)) {
     it(`${label} wires the rate limiter + the body-size pre-check`, () => {
       const src = source(rel);
@@ -39,7 +43,7 @@ describe("api-guard source pin: the six public POST routes", () => {
     });
   }
 
-  it("the guarded routes are exactly the six public ones (the authed routes stay unthrottled)", () => {
+  it("the guarded routes are exactly the seven public ones (the authed routes stay unthrottled)", () => {
     const walk = (dir: string): string[] =>
       readdirSync(dir).flatMap((f) => {
         const p = join(dir, f);
@@ -47,8 +51,8 @@ describe("api-guard source pin: the six public POST routes", () => {
       });
     const all = walk(join(REPO, "src", "app", "api"));
     const guarded = all.filter((p) => readFileSync(p, "utf8").includes("checkRateLimit("));
-    expect(guarded.length).toBe(6);
-    // The exact set: the six PUBLIC POST routes (and nothing else). The
+    expect(guarded.length).toBe(7);
+    // The exact set: the seven PUBLIC POST routes (and nothing else). The
     // authed routes are deliberately NOT in the set (documented in
     // docs/remediation-plan-session31.md §B-2c): enrollments, progress,
     // logout, me require a session cookie.
@@ -58,8 +62,14 @@ describe("api-guard source pin: the six public POST routes", () => {
       "auth/forgot-password",
       "auth/login",
       "auth/signup",
+      "auth/verify",
       "contact",
       "newsletter",
     ]);
+  });
+
+  it("session-33: the verify route caps the email field (the unbounded lookup key)", () => {
+    const src = source("src/app/api/auth/verify/route.ts");
+    expect(src).toContain("fieldTooLong(email, FIELD_LIMITS.email)");
   });
 });

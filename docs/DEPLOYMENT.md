@@ -33,7 +33,7 @@ process CWD to find the repo anchor. Behind a reverse proxy, forward
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `DATABASE_URL` | Yes | SQLite connection string. See §4. |
-| `AUTH_SECRET` | **Yes in production** | HMAC secret for session cookies. Generate with `openssl rand -hex 32`. An insecure dev constant is used when unset — never ship that. |
+| `AUTH_SECRET` | **Yes in production — ENFORCED (session 33)** | HMAC secret for session cookies. Generate with `openssl rand -hex 32`. When unset or shorter than 16 characters in production, the server REFUSES to sign/verify session tokens (the login/verify routes fail loudly with the typed `SessionSecretError`; a token forged with the public dev fallback constant is rejected). Dev (`next dev`) and tests keep the documented zero-config fallback. |
 | `NEXT_PUBLIC_SITE_URL` | Recommended | Canonical public origin, used for metadata URLs and `robots.txt` (e.g. `https://nexuslearn.example.com`). |
 
 `.env.example` documents the same contract — copy it to `.env` and adjust.
@@ -202,3 +202,25 @@ Two hardening notes from the session-32 pass:
   stays clean only while the override holds; `tests/dependency-pin.test.ts`
   guards it). **`bun.lock` is the only lockfile** — never re-add a second
   one (a stale `package-lock.json` was removed in session 32).
+
+## 11. Verify-route guards + the enforced secret (session 33)
+
+Three notes from the session-33 pass:
+
+- **`POST /api/auth/verify` is the seventh throttled public POST route**
+  (10 requests/min per IP — signup's sibling; the UI sends exactly one
+  verify per signup). The route also carries the 413 body-size pre-check
+  and the email field cap like every other public POST route. If a future
+  route accepts public POSTs — especially one that mints or changes auth
+  state — add it to `RATE_LIMITS` and to `tests/api-guard-source.test.ts`
+  (the exact-set pin is the discipline that catches escapes).
+- **The login 401 burns a scrypt compare on the user-not-found path**
+  (the timing equalizer): both paths pay the same cost, so response timing
+  no longer enumerates valid emails. No deployment action — but do not
+  remove the equalizer "for performance"; the ~30ms is the security.
+- **The enforced `AUTH_SECRET` contract** (see §3): production deployments
+  without a ≥16-character secret fail LOUD on the auth surfaces (500 with
+  the actionable `SessionSecretError` message) while anonymous public
+  pages keep rendering — the failure lands exactly where a smoke test
+  looks. Wire a real secret into the environment before the first login;
+  rotating it still invalidates every outstanding token instantly.

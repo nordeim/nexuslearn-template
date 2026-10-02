@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
-import { createSessionToken, verifyPassword, SESSION_COOKIE, sessionCookieOptions } from "@/lib/auth";
+import {
+  createSessionToken,
+  verifyPassword,
+  SESSION_COOKIE,
+  sessionCookieOptions,
+  timingEqualizerHash,
+  SessionSecretError,
+} from "@/lib/auth";
 import { RATE_LIMITS, checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { bodyTooLarge, fieldTooLong, FIELD_LIMITS } from "@/lib/request-guard";
 
@@ -32,7 +39,11 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await db.user.findUnique({ where: { email } });
-    if (!user || !verifyPassword(password, user.passwordHash)) {
+    // session-33: the timing equalizer — BOTH paths burn the same scrypt
+    // compare, so the 401 no longer leaks whether the email exists (the
+    // pre-fix drift was ~29ms: ~6ms not-found vs ~35ms real-user).
+    const passwordOk = verifyPassword(password, user?.passwordHash ?? timingEqualizerHash());
+    if (!user || !passwordOk) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
@@ -45,7 +56,11 @@ export async function POST(req: NextRequest) {
       name: user.name,
     }), sessionCookieOptions);
     return res;
-  } catch {
+  } catch (err) {
+    // session-33: the enforced AUTH_SECRET contract must fail LOUD, not be
+    // muted into a generic 400 by this catch-all (the mint throws the typed
+    // error when production runs without a real secret).
+    if (err instanceof SessionSecretError) throw err;
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }

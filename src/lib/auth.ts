@@ -24,6 +24,11 @@ export {
   SESSION_MAX_AGE,
   SESSION_MAX_AGE_MS,
   SESSION_CLOCK_SKEW_MS,
+  // session-33: the timing equalizer + the enforced-secret contract.
+  timingEqualizerHash,
+  TIMING_EQUALIZER_PASSWORD,
+  resolveSessionSecret,
+  SessionSecretError,
 } from "@/lib/session";
 
 /** Read the current session from cookies (RSC + route handlers). */

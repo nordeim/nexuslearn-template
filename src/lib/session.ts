@@ -24,13 +24,47 @@ export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days, seconds (cookie maxA
 export const SESSION_MAX_AGE_MS = SESSION_MAX_AGE * 1000; // the verify window
 export const SESSION_CLOCK_SKEW_MS = 60 * 1000; // future-iat tolerance (clock drift)
 
-function getSecret(): string {
-  const secret = process.env.AUTH_SECRET;
+/**
+ * Session 33 — the typed error for the enforced AUTH_SECRET contract. The
+ * login + verify routes wrap their bodies in catch-all 400s; a plain throw
+ * there would be MUTED into a generic "Invalid request" — the typed error
+ * is rethrown so a misconfigured production deployment fails LOUD (500 +
+ * the actionable message) instead of silently.
+ */
+export class SessionSecretError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SessionSecretError";
+  }
+}
+
+/**
+ * Session 33 — the ENFORCED production secret contract (pure, so unit
+ * tests can exercise every branch). Production (NODE_ENV === "production")
+ * with an unset or <16-char AUTH_SECRET throws: the old console.warn left
+ * every misconfigured deployment signing tokens with the PUBLIC repo
+ * fallback constant — a forged token was accepted end-to-end (verified on
+ * a deliberately secretless production standalone). Dev/test keep the
+ * documented zero-config fallback.
+ */
+export function resolveSessionSecret(env: {
+  NODE_ENV?: string;
+  AUTH_SECRET?: string;
+}): string {
+  const secret = env.AUTH_SECRET;
   if (secret && secret.length >= 16) return secret;
-  if (process.env.NODE_ENV === "production" && !secret) {
-    console.warn("[auth] AUTH_SECRET unset in production — using insecure dev fallback. Set it!");
+  if (env.NODE_ENV === "production") {
+    throw new SessionSecretError(
+      "AUTH_SECRET must be set to a >= 16 character value in production " +
+        "(generate one with `openssl rand -hex 32`). Refusing to sign or verify " +
+        "session tokens with the public dev fallback constant."
+    );
   }
   return "nexuslearn-dev-only-insecure-secret";
+}
+
+function getSecret(): string {
+  return resolveSessionSecret(process.env);
 }
 
 export function createSessionToken(user: SessionUser): string {
@@ -65,6 +99,22 @@ export function verifySessionToken(token: string | undefined | null): SessionUse
   } catch {
     return null;
   }
+}
+
+/**
+ * Session 33 — the login timing equalizer. The pre-fix login 401 path
+ * short-circuited on user-not-found (~6ms) while the user-exists path
+ * burned scryptSync (~35ms) — a 29ms user-existence timing oracle. The
+ * login route burns this dummy compare on the not-found path so BOTH
+ * paths pay the same scrypt cost. Lazily computed ONCE, then cached.
+ */
+export const TIMING_EQUALIZER_PASSWORD = "nexuslearn-timing-equalizer-constant";
+
+let equalizerHash: string | null = null;
+
+export function timingEqualizerHash(): string {
+  equalizerHash ??= hashPassword(TIMING_EQUALIZER_PASSWORD);
+  return equalizerHash;
 }
 
 export function hashPassword(password: string): string {

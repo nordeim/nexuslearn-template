@@ -44,6 +44,10 @@ import { NextRequest, NextResponse } from "next/server";
 export const RATE_LIMITS = {
   login: 30,
   signup: 10,
+  // session-33: the signup-verification route MINTS the session cookie —
+  // it is the seventh public POST route (the UI sends exactly one verify
+  // per signup; the e2e suite sends exactly one per run → 10x headroom).
+  verify: 10,
   "forgot-password": 10,
   newsletter: 15,
   contact: 15,
