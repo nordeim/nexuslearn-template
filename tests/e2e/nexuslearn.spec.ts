@@ -4893,6 +4893,169 @@ test.describe("session-35 parity: the per-route TTFB budget surface", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Session 36 — the unverified-login gate + the web-vitals budget (the s35
+// mailer is unit-pinned + proof-matrix-proven; the e2e server runs the
+// simulated delivery default).
+// ---------------------------------------------------------------------------
+
+test.describe("session-36 parity: the unverified-login surface (the account-state gate)", () => {
+  const UNVERIFIED_MSG =
+    "Please verify your email before logging in. Check your email for the verification code.";
+
+  test("signing in with an UNVERIFIED account returns 403 + the reference message (no session minted)", async ({ request }) => {
+    // Pre-fix (the drift, probed on the LIVE through its own UI — its raw
+    // API sits behind the platform wall): the reference BLOCKS the
+    // unverified login with this exact message and zero cookies; the clone
+    // minted a full session (nexus_session set, landed on /).
+    const email = `s36-unverified-${Date.now()}@example.com`;
+    const su = await request.post("/api/auth/signup", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "SuperSecret99!" },
+    });
+    expect(su.status()).toBe(200);
+
+    const li = await request.post("/api/auth/login", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "SuperSecret99!" },
+    });
+    expect(li.status(), "valid credentials + unverified account -> 403 (not 200, not 401)").toBe(403);
+    expect(await li.json()).toEqual({ error: UNVERIFIED_MSG });
+    const setCookie = li.headers()["set-cookie"] ?? "";
+    expect(String(setCookie), "no session cookie is minted").not.toContain("nexus_session=");
+  });
+
+  test("the UI shows the reference error in the signin card and stays on /login (the live's observable contract)", async ({ page }) => {
+    const email = `s36-ui-${Date.now()}@example.com`;
+    // Signup through the card (the 5-view state machine).
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Need an account? Sign up" }).click();
+    await page.fill("#email", email);
+    await page.fill("#password", "SuperSecret99!");
+    await page.fill("#confirmPassword", "SuperSecret99!");
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expect(page.getByRole("heading", { name: "Verify your email" })).toBeVisible();
+
+    // Back to the signin view with the UNVERIFIED credentials.
+    await page.getByRole("button", { name: "Back to sign in" }).click();
+    await page.fill("#email", email);
+    await page.fill("#password", "SuperSecret99!");
+    await page.getByRole("button", { name: "Sign in" }).click();
+
+    // The reference error renders in the card's alert area; no navigation.
+    await expect(page.locator("[role=alert]:not(#__next-route-announcer__)")).toHaveText(UNVERIFIED_MSG);
+    await page.waitForTimeout(800);
+    expect(page.url()).toContain("/login");
+    const me = await page.request.get("/api/auth/me");
+    expect(((await me.json()) as { user: unknown }).user).toBeNull();
+  });
+
+  test("the control: a VERIFIED account logs in normally (the gate never touches the verified path)", async ({ request }) => {
+    const email = `s36-verified-${Date.now()}@example.com`;
+    await request.post("/api/auth/signup", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "SuperSecret99!" },
+    });
+    const vf = await request.post("/api/auth/verify", {
+      headers: { "content-type": "application/json" },
+      data: { email, code: "123456" },
+    });
+    expect(vf.status()).toBe(200);
+    const li = await request.post("/api/auth/login", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "SuperSecret99!" },
+    });
+    expect(li.status(), "the verified account still mints the session").toBe(200);
+    expect(String(li.headers()["set-cookie"] ?? "")).toContain("nexus_session=");
+  });
+
+  test("a WRONG password on an unverified account still gets the uniform 401 (no state leak)", async ({ request }) => {
+    const email = `s36-wrongpw-${Date.now()}@example.com`;
+    await request.post("/api/auth/signup", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "SuperSecret99!" },
+    });
+    const li = await request.post("/api/auth/login", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "WrongPassword1!" },
+    });
+    expect(li.status(), "wrong password -> the indistinguishable 401 (the gate fires only after a valid compare)").toBe(401);
+    expect(await li.json()).toEqual({ error: "Invalid email or password" });
+  });
+});
+
+test.describe("session-36 parity: the web-vitals budget surface (FCP + LCP)", () => {
+  test("every route's FCP stays under 2000ms and LCP under 5000ms on the standalone", async ({ page }) => {
+    // Measured s36 (dedicated :3400 standalone): FCP 136-468ms (the /login
+    // entry lands at 224ms but can postdate the load event — hence the
+    // poll), LCP 164-1432ms (the / LCP includes the remote Unsplash hero
+    // imagery). The ceilings leave 4x+ / 3.5x+ headroom — effectively
+    // unflakeable while catching the pathological regressions the budget
+    // family exists for (a render-blocking asset regression, a giant
+    // inlined payload, an LCP-image serving failure).
+    const routes = [
+      "/",
+      "/Courses",
+      "/CourseDetail?id=seed-1",
+      "/Pricing",
+      "/About",
+      "/Contact",
+      "/BecomeInstructor",
+      "/AIAssistant",
+      "/Dashboard",
+      "/login",
+    ];
+    const summary: string[] = [];
+    for (const route of routes) {
+      await page.goto(route, { waitUntil: "load", timeout: 45000 });
+      const vitals = await page.evaluate(
+        () =>
+          new Promise<{ fcp: number | null; lcp: number | null }>((resolve) => {
+            const out = { fcp: null as number | null, lcp: null as number | null };
+            // FCP: POLL for the paint entry (it can land after the load
+            // event on /login — measured 224ms there).
+            let tries = 0;
+            const poll = setInterval(() => {
+              const fcp = performance
+                .getEntriesByType("paint")
+                .find((p) => p.name === "first-contentful-paint");
+              if (fcp) out.fcp = Math.round(fcp.startTime);
+              tries += 1;
+              if (out.fcp !== null || tries > 10) clearInterval(poll);
+            }, 500);
+            // LCP: the observer with buffered entries, finalized after a settle.
+            try {
+              const po = new PerformanceObserver((list) => {
+                const entries = list.getEntries();
+                if (entries.length) {
+                  out.lcp = Math.round(entries[entries.length - 1].startTime);
+                }
+              });
+              po.observe({ type: "largest-contentful-paint", buffered: true });
+              setTimeout(() => {
+                po.disconnect();
+                clearInterval(poll);
+                resolve(out);
+              }, 3000);
+            } catch {
+              setTimeout(() => {
+                clearInterval(poll);
+                resolve(out);
+              }, 3000);
+            }
+          })
+      );
+      summary.push(`${route}: fcp=${vitals.fcp ?? "n/a"}ms lcp=${vitals.lcp ?? "n/a"}ms`);
+      if (vitals.fcp !== null) {
+        expect(vitals.fcp, `${route} FCP under 2000ms (all: ${summary.join(", ")})`).toBeLessThan(2000);
+      }
+      if (vitals.lcp !== null) {
+        expect(vitals.lcp, `${route} LCP under 5000ms (all: ${summary.join(", ")})`).toBeLessThan(5000);
+      }
+    }
+  });
+});
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a

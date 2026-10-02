@@ -1,0 +1,24 @@
+=== SESSION 36 PROOF MATRIX (dev :3000 + smtp-mode standalone :3500 + misconfigured standalone :3501 + mock :3555) ===
+
+[1] UNVERIFIED-LOGIN GATE (dev :3000, simulated delivery)
+    signup -> 200 (the account exists, unverified)
+    login (valid creds, unverified) -> 403 | error="Please verify your email before logging in. Check your email for the verification code."
+    session cookie minted -> NO (correct)
+    login (WRONG password) -> 401 (the uniform 401 — no state leak)
+    verify (any-code simulated default) -> 200
+    login AFTER verify -> 200 (the verified path unaffected)
+    message matches the live verbatim -> YES
+
+[2] RESEND-MODE WIRE PROOF (standalone :3500, AUTH_DELIVERY=smtp -> mock :3555)
+    signup -> 200
+    transport POST recorded -> true (url=/emails, auth=Bearer re_mock_proof_key)
+    payload: from="NexusLearn <onboarding@resend.dev>" to="s36-smtp-1790921096184@example.com" subject="Your NexusLearn verification code"
+    text carries the code -> true (011127); html carries it -> true
+    verify with WRONG code 000000 -> 400 (the real comparison rejects it)
+    verify with the DELIVERED code 011127 -> 200 (the end-to-end delivery+comparison loop)
+
+[3] MISCONFIGURED MODE (standalone :3501, AUTH_DELIVERY=smtp WITHOUT RESEND_API_KEY)
+    signup -> 502 (fail loud, 502) | error="Email delivery is not configured. Please try again later."
+    the pre-s35 contract: the account row still persists (the Resend button recovers) — see the unit source pins
+
+[standalones + mock stopped]

@@ -47,6 +47,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
+    // session-36: the unverified-account gate — the reference app BLOCKS
+    // the session mint until the email is verified (probed on the live
+    // through its own UI: the signin card shows the exact message below
+    // and zero cookies are set; its raw API sits behind the documented
+    // platform wall). The check runs AFTER the password-compare 401 gate:
+    // a wrong-password caller still gets the indistinguishable 401, so
+    // the account state is only revealed to a caller who already holds
+    // the correct password — zero new enumeration oracle. 403 (not 401):
+    // the credentials are valid, the account state forbids the session.
+    if (!user.emailVerified) {
+      return NextResponse.json(
+        {
+          error:
+            "Please verify your email before logging in. Check your email for the verification code.",
+        },
+        { status: 403 }
+      );
+    }
+
     const res = NextResponse.json({
       user: { id: user.id, email: user.email, name: user.name },
     });

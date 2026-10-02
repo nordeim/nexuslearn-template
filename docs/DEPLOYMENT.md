@@ -270,8 +270,19 @@ ANY complete 6-digit code verifies (`POST /api/auth/verify`). This is the
 documented template simplification (PAD §10). The drill to swap in real
 email:
 
-1. **Add a transport module** (e.g. `src/lib/mailer.ts` — nodemailer,
-  Resend, SES; keep it server-only like the AI SDK import).
+1. **Add a transport module** — ~~`src/lib/mailer.ts` (nodemailer,
+  Resend, SES; keep it server-only like the AI SDK import)~~
+  **SHIPPED (session 36)**: `src/lib/mailer.ts` is the zero-dependency
+  transport seam — the **Resend HTTP API** via plain `fetch` (no new
+  packages). `AUTH_DELIVERY=smtp` + `RESEND_API_KEY=re_...` activates the
+  real delivery; `EMAIL_FROM="NexusLearn <hello@yourdomain.com>"` brands
+  the sender (defaults to Resend's test address `onboarding@resend.dev`);
+  `RESEND_BASE_URL` points the transport at a self-host or a test mock.
+  The gate WITHOUT a key **fails loud** (signup 502 — the account row
+  persists, so the verify view's Resend button recovers once the config is
+  fixed). Swapping in nodemailer/SES later means implementing the same
+  two-function surface (`buildVerificationEmail` +
+  `sendVerificationEmail`) against the seam.
 2. **Persist the code** — ~~add `verificationCode String?` +
   `codeExpiresAt DateTime?` to `User`; the signup route (both the create
   and the unverified-resend branches) writes them instead of logging.~~

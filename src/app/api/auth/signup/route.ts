@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 import { hashPassword, resolveSessionSecret, SessionSecretError } from "@/lib/auth";
+import { MailerError, sendVerificationEmail } from "@/lib/mailer";
 import { RATE_LIMITS, checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { bodyTooLarge, fieldTooLong, FIELD_LIMITS } from "@/lib/request-guard";
 import { generateVerificationCode, hashCodeForStorage, codeExpiryFromNow } from "@/lib/verification";
@@ -22,6 +23,14 @@ import { generateVerificationCode, hashCodeForStorage, codeExpiryFromNow } from 
  * hash + a 10-minute expiry on the User row — so the verify route can
  * compare for real the moment an operator sets AUTH_DELIVERY=smtp (the
  * hash uses the AUTH_SECRET as its key; no new secret to manage).
+ *
+ * Session 36 (the drill's step 1 — its ONLY remaining step): delivery now
+ * routes through the transport seam `src/lib/mailer.ts`. The simulated
+ * default keeps the exact log line; AUTH_DELIVERY=smtp + RESEND_API_KEY
+ * delivers for real via Resend's HTTP API (zero new dependencies); a
+ * misconfigured gate fails LOUD with a 502 (the account row persists —
+ * the Resend button recovers with a fresh code once the operator fixes
+ * the config).
  */
 export async function POST(req: NextRequest) {
   try {
@@ -69,7 +78,9 @@ export async function POST(req: NextRequest) {
           codeExpiresAt: codeExpiryFromNow(),
         },
       });
-      console.info(`[auth] verification code for ${email}: ${code} (simulated delivery)`);
+      // session-36: the transport seam (simulated log line by default;
+      // Resend HTTP delivery under AUTH_DELIVERY=smtp + RESEND_API_KEY).
+      await sendVerificationEmail(process.env, email, code);
       return NextResponse.json({ ok: true });
     }
 
@@ -87,7 +98,9 @@ export async function POST(req: NextRequest) {
         codeExpiresAt: codeExpiryFromNow(),
       },
     });
-    console.info(`[auth] verification code for ${email}: ${code} (simulated delivery)`);
+    // session-36: the transport seam (simulated log line by default;
+    // Resend HTTP delivery under AUTH_DELIVERY=smtp + RESEND_API_KEY).
+    await sendVerificationEmail(process.env, email, code);
 
     return NextResponse.json({ ok: true });
   } catch (err) {
@@ -95,6 +108,18 @@ export async function POST(req: NextRequest) {
     // production deployment fails LOUD here too (the session-33 contract:
     // auth-using requests fail fast, anonymous pages keep rendering).
     if (err instanceof SessionSecretError) throw err;
+    // session-36: a delivery failure is VISIBLE, not swallowed — the
+    // AI-route degrade shape (502 + the house { error } body). The account
+    // row persists with its code hash, so the verify-view's Resend button
+    // recovers the user with a fresh code once the operator fixes the
+    // delivery config.
+    if (err instanceof MailerError) {
+      console.error(`[auth] ${err.message}`);
+      return NextResponse.json(
+        { error: "Email delivery is not configured. Please try again later." },
+        { status: 502 }
+      );
+    }
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }

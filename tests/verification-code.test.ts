@@ -95,9 +95,13 @@ describe("session-35: the verification-code source pins", () => {
     expect(writes.length, "both branches persist the code hash").toBe(2);
     const expiries = src.match(/codeExpiresAt:\s*codeExpiryFromNow/g) ?? [];
     expect(expiries.length, "both branches persist the expiry").toBe(2);
-    // The simulated-delivery log line stays (it IS the delivery channel
-    // until an operator wires SMTP — the DEPLOYMENT §13 drill).
-    expect(src).toContain("simulated delivery");
+    // Session 36: the simulated-delivery log line MOVED to the mailer seam
+    // (src/lib/mailer.ts owns it verbatim — pinned in tests/mailer.test.ts;
+    // the DEPLOYMENT §13 drill's step 1 shipped). The route now DELEGATES
+    // delivery in both branches instead of logging inline.
+    expect(src).not.toMatch(/console\.info\(.{0,80}verification code/);
+    const deliveries = src.match(/sendVerificationEmail\(/g) ?? [];
+    expect(deliveries.length, "both branches delegate to the transport seam").toBe(2);
   });
 
   it("the verify route compares under the gate + clears both fields on success", () => {
