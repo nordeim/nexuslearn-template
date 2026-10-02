@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { CONTENT_ROUTES, resolveSlashPath } from "@/lib/slash-resolution";
+
 /**
  * Case-insensitive content-route rewrites (session 17).
  *
@@ -25,6 +27,36 @@ import { NextRequest, NextResponse } from "next/server";
  *
  * ---
  *
+ * Session 40 — the trailing-slash resolution tier (fresh-eyes family A: the
+ * live renders content-route slash variants AT THE TYPED URL, platform-404s
+ * the exact-match + unknown slash variants; Next's built-in pre-proxy 308
+ * owned every shape before this proxy could see it). The decisions live in
+ * the pure seam (src/lib/slash-resolution.ts — unit-tested); this adapter
+ * carries them out AFTER the verb guard + the request-header injection:
+ *
+ *  - redirect (exact-case content route + slash) -> the s24 canonicalization
+ *    308, constructed MANUALLY with the RELATIVE Location form
+ *    (NextResponse.redirect() requires an absolute URL; the s24 pin asserts
+ *    "/Courses") + the baseline security headers + the CSP (the s23
+ *    every-response posture — the live's platform ships its headers on every
+ *    response incl. redirects).
+ *  - rewrite (case-variant content route + slash) -> the s17 render-at-
+ *    typed-URL contract (one FEWER hop than the pre-fix 308-then-rewrite
+ *    chain — the live renders these with zero hops).
+ *  - not-found (exact-match route + slash) -> the rewrite to an internal
+ *    unmatched path: the router renders not-found.tsx with a REAL 404 status
+ *    (the s24 principle) while the injected x-nexus-raw-path/search headers
+ *    drive the s38 head derivations (title "Login | NexusLearn", canonical
+ *    /login — the live's platform-404 head family byte-for-byte).
+ *
+ * next.config.ts ships `skipTrailingSlashRedirect: true` — without it Next's
+ * built-in handler 308s every single-slash shape BEFORE the proxy (the
+ * request never reaches this file; empirically verified). The leading-//
+ * and multi-slash shapes are normalized pre-proxy EITHER WAY (no flag
+ * controls them) — the documented deliberate-variance family.
+ */
+
+/**
  * Content-Security-Policy with a per-request nonce (session 24 — the
  * session-23 documented future work; the deliberate-better hardening family:
  * neither the live nor the clone shipped a CSP before this). The proxy
@@ -68,17 +100,6 @@ import { NextRequest, NextResponse } from "next/server";
  * <script> must read the nonce via `await headers()` in the component (the
  * official pattern) — no inline scripts ship today.
  */
-const CANONICAL_ROUTES = [
-  "/Home",
-  "/Courses",
-  "/CourseDetail",
-  "/AIAssistant",
-  "/Pricing",
-  "/About",
-  "/Contact",
-  "/BecomeInstructor",
-  "/Dashboard",
-] as const;
 
 /**
  * Builds the CSP header value for a request. The nonce is baked into
@@ -134,6 +155,9 @@ function cspHeaderValue(nonce: string): string {
  */
 const ALLOWED_METHODS = new Set(["GET", "HEAD"]);
 
+/** The internal unmatched path the not-found action rewrites to (session 40). */
+const SLASH_NOT_FOUND_PATH = "/__nexus-slash-404__";
+
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -167,12 +191,48 @@ export function proxy(req: NextRequest) {
   requestHeaders.set("x-nexus-raw-path", pathname);
   requestHeaders.set("x-nexus-raw-search", req.nextUrl.search);
 
+  // Session 40 — the trailing-slash resolution tier (the seam decides; this
+  // adapter acts). Runs AFTER the verb guard (method beats path resolution —
+  // POST /Courses/ 405s directly) and AFTER the header injection (the
+  // not-found branch's head derivations need the RAW slashed path).
+  const slash = resolveSlashPath(pathname, req.nextUrl.search);
+  if (slash.action === "redirect") {
+    // The s24 canonicalization 308. The target is constructed ABSOLUTE —
+    // Next's middleware adapter RELATIVIZES same-host Locations before the
+    // response ships (server/web/adapter.js: getRelativeURL), so the emitted
+    // header keeps the s24 pin's relative "/Courses" form. (A relative
+    // Location passed straight through CRASHES the adapter — NextURL
+    // requires an absolute URL; empirically verified.) The raw search rides
+    // along on the seam's location; the every-response header posture (the
+    // baseline security set + the CSP) applies to redirects too.
+    const target = new URL(slash.location, req.nextUrl.toString()).toString();
+    return NextResponse.redirect(target, {
+      status: 308,
+      headers: {
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "X-Frame-Options": "SAMEORIGIN",
+        "Strict-Transport-Security": "max-age=31536000",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+        "Content-Security-Policy": csp,
+      },
+    });
+  }
+  if (slash.action === "rewrite" || slash.action === "not-found") {
+    const url = req.nextUrl.clone();
+    url.pathname = slash.action === "rewrite" ? slash.path : SLASH_NOT_FOUND_PATH;
+    // The search string is preserved by the clone(); only the path changes.
+    // The rewritten request keeps the URL bar at the typed path (the s17
+    // contract) while the x-nexus-raw-* headers drive the head derivations.
+    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+  }
+
   let res: NextResponse;
-  if ((CANONICAL_ROUTES as readonly string[]).includes(pathname)) {
+  if ((CONTENT_ROUTES as readonly string[]).includes(pathname)) {
     // Fast exit on the exact canonical form (the overwhelmingly common case).
     res = NextResponse.next({ request: { headers: requestHeaders } });
   } else {
-    const canonical = CANONICAL_ROUTES.find(
+    const canonical = CONTENT_ROUTES.find(
       (r) => r.toLowerCase() === pathname.toLowerCase()
     );
     if (canonical) {

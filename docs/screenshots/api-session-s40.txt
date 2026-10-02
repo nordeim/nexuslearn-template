@@ -1,0 +1,58 @@
+=== PART 1: THE TRAILING-SLASH RESOLUTION (clone vs live) ===
+
+  (The two DIFF cells are the DOCUMENTED deliberate-variance families, not
+  real drifts: /courses/ carries the typed-case canonical on the live —
+  artifact-grade output the s17 decision deliberately canonicalizes on the
+  clone; /CourseDetail/?id= shows the s24 deliberate-better 308 (the probe
+  follows the hop — the rendered head is byte-identical: same title, same
+  canonical path+query modulo the twin-id probing convention seed-1 = the
+  live's 699081e752032065b878129d). The /login/, /reset-password/ and
+  /nope/ cells: the BODY TEXT is byte-identical on both sites ("The page
+  \"X\" could not be found in this application") — the clone's 404 screen
+  mirrors the live's platform 404 screen; the status differs by the pinned
+  s24 real-404 principle (404 vs the live's SPA 200).)
+  MATCH /Courses/                   clone=200@/Courses "Courses | NexusLearn" canon=/Courses | live=200@/Courses/ "Courses | NexusLearn" canon=/Courses
+        body: clone="NexusLearn | Home | Courses | AI Assistant | Pricing | Teach | About |" | live="NexusLearn | Home | Courses | AI Assistant | Pricing | Teach | About |"
+  DIFF  /courses/                   clone=200@/courses/ "Courses | NexusLearn" canon=/Courses | live=200@/courses/ "Courses | NexusLearn" canon=/courses  <-- HEAD DIFF
+        body: clone="NexusLearn | Home | Courses | AI Assistant | Pricing | Teach | About |" | live="NexusLearn | Home | Courses | AI Assistant | Pricing | Teach | About |"
+  DIFF  /CourseDetail/?id=          clone=200@/CourseDetail?id=seed-1 "Course Detail | NexusLearn" canon=/CourseDetail?id=seed-1 | live=200@/CourseDetail/?id=699081e752032065b878129d "Course Detail | NexusLearn" canon=/CourseDetail?id=699081e752032065b878129d  <-- HEAD DIFF
+        body: clone="NexusLearn | Home | Courses | AI Assistant | Pricing | Teach | About |" | live="NexusLearn | Home | Courses | AI Assistant | Pricing | Teach | About |"
+  MATCH /Home/                      clone=200@/Home "NexusLearn" canon= | live=200@/Home/ "NexusLearn" canon=
+        body: clone="NexusLearn | Home | Courses | AI Assistant | Pricing | Teach | About |" | live="NexusLearn | Home | Courses | AI Assistant | Pricing | Teach | About |"
+  MATCH /login/                     clone=404@/login/ "Login | NexusLearn" canon=/login | live=200@/login/ "Login | NexusLearn" canon=/login
+        body: clone="404 | Page Not Found | The page "login/" could not be found in this ap" | live="404 | Page Not Found | The page "login/" could not be found in this ap"
+  MATCH /reset-password/            clone=404@/reset-password/ "Reset Password | NexusLearn" canon=/reset-password | live=200@/reset-password/ "Reset Password | NexusLearn" canon=/reset-password
+        body: clone="404 | Page Not Found | The page "reset-password/" could not be found i" | live="404 | Page Not Found | The page "reset-password/" could not be found i"
+  MATCH /reset-password/?token=abc  clone=404@/reset-password/?token=abc "Reset Password | NexusLearn" canon=/reset-password?token=abc | live=200@/reset-password/?token=abc "Reset Password | NexusLearn" canon=/reset-password?token=abc
+        body: clone="404 | Page Not Found | The page "reset-password/" could not be found i" | live="404 | Page Not Found | The page "reset-password/" could not be found i"
+  MATCH /nope/                      clone=404@/nope/ "Nope | NexusLearn" canon=/nope | live=200@/nope/ "Nope | NexusLearn" canon=/nope
+        body: clone="404 | Page Not Found | The page "nope/" could not be found in this app" | live="404 | Page Not Found | The page "nope/" could not be found in this app"
+
+=== PART 2: THE s17xs39 COMPOSITE HEADS (clone vs live) ===
+
+  (All three cells sit in the documented families: the typed-case canonical
+  (/courses vs /Courses) and the raw-path title (COURSES vs Courses) are the
+  s16/s17 deliberate-better decisions; the query processing itself — x=1
+  kept, utm dropped, the alpha-sort (?extra=2&id=…) — matches on BOTH sites.)
+  /courses?x=1                clone="Courses | NexusLearn" canon=/Courses?x=1 | live="Courses | NexusLearn" canon=/courses?x=1
+  /COURSES?utm_source=a&x=1   clone="Courses | NexusLearn" canon=/Courses?x=1 | live="COURSES | NexusLearn" canon=/COURSES?x=1
+  /courseDetail?id&extra      clone="Course Detail | NexusLearn" canon=/CourseDetail?extra=2&id=seed-1 | live="Course Detail | NexusLearn" canon=/CourseDetail?extra=2&id=699081e752032065b878129d
+
+=== PART 3: THE LCP/FCP/CLS VITALS (clone production :3100, cold cache) ===
+  /                           LCP=1172ms (budget 2500)  FCP=224ms (budget 1800)  CLS=0.00000 (budget 0.1)
+  /Courses                    LCP=812ms (budget 2500)  FCP=136ms (budget 1800)  CLS=0.00000 (budget 0.1)
+  /CourseDetail?id=seed-1     LCP=628ms (budget 2500)  FCP=200ms (budget 1800)  CLS=0.00000 (budget 0.1)
+  /login                      LCP=196ms (budget 2500)  FCP=196ms (budget 1800)  CLS=0.00000 (budget 0.1)
+
+=== PART 4: THE FRAMEWORK-NORMALIZATION VARIANCE (documented, uncontrollable) ===
+  VARIANCE //Courses     clone=200@/Courses (normalized by Next pre-proxy) | live=200@//Courses "Courses | NexusLearn"
+  VARIANCE /Courses///   clone=200@/Courses (normalized by Next pre-proxy) | live=200@/Courses/// "Courses | NexusLearn"
+  (the leading-// and multi-slash shapes never reach the app layer on the
+   clone — Next normalizes them pre-proxy regardless of
+   skipTrailingSlashRedirect; the live renders them as unknown routes.
+   The deliberate-variance family — the mirror of the live's %zz infra-400.)
+
+=== PART 5: THE ENV CONTRACT ===
+  .env == .env.example: IDENTICAL
+  DATABASE_URL: file:../db/custom.db
+  db/ at repo root: custom.db present

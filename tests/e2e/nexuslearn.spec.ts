@@ -5582,6 +5582,173 @@ test.describe("session-39 parity: the canonical query-processing contract (every
   });
 });
 
+// ---------------------------------------------------------------------------
+// Session 40 — the trailing-slash resolution tier (fresh-eyes family A: a
+// REAL functional parity drift, probed shape-by-shape on the live). The live
+// resolves single-trailing-slash paths through a three-tier contract:
+// content routes RENDER at the typed slashed URL; exact-match routes
+// (/login, /reset-password) + slash → the platform 404 with the DERIVED head
+// (title "Login | NexusLearn", canonical /login); unknown + slash → the same
+// platform-404 family. The clone's resolution: exact-case content routes
+// canonicalize via the s24 308; case-variant content routes render at the
+// typed URL (the s17 contract); exact-match routes force the in-app 404 view
+// (the platform tier's in-app equivalent — the head family matches, the page
+// content is the documented platform-artifact variance); unknown slash
+// shapes fall to the router's natural 404. The leading-// and multi-slash
+// shapes are normalized by Next PRE-PROXY (uncontrollable — the documented
+// deliberate-variance family, the mirror of the live's %zz infra-400).
+// Reference: docs/remediation-plan-session40.md (finding 1).
+// ---------------------------------------------------------------------------
+
+test.describe("session-40 parity: the trailing-slash resolution tier", () => {
+  test("the exact-case content route canonicalizes via the s24 308 (now proxy-issued)", async ({ request }) => {
+    const res = await request.get("/Courses/", { maxRedirects: 0 });
+    expect(res.status(), "the slash variant redirects").toBe(308);
+    expect(res.headers().location, "the relative Location form (the s24 pin)").toBe("/Courses");
+  });
+
+  test("the redirect Location carries the raw search (Next's own behavior)", async ({ request }) => {
+    const res = await request.get("/CourseDetail/?id=seed-1&extra=2", { maxRedirects: 0 });
+    expect(res.status()).toBe(308);
+    expect(res.headers().location).toBe("/CourseDetail?id=seed-1&extra=2");
+  });
+
+  test("the case-variant + slash composite RENDERS at the typed URL (the live's contract)", async ({ page }) => {
+    const res = await page.goto("/courses/", { waitUntil: "domcontentloaded" });
+    expect(res?.request().redirectedFrom(), "no redirect hop — the URL bar keeps /courses/").toBeNull();
+    expect(page.url().endsWith("/courses/")).toBe(true);
+    // The full catalog renders (the s17 render contract through the slash tier).
+    await expect(page.locator("main h1")).toHaveText("Explore Our Courses");
+    // The head family stays clean: canonical-case canonical + the mirrors.
+    const canonical = await page.locator('link[rel="canonical"]').first().getAttribute("href");
+    expect(new URL(canonical!).pathname).toBe("/Courses");
+    expect(new URL(canonical!).search).toBe("");
+  });
+
+  test("/login/ renders the in-app 404 view with the platform-404 head family", async ({ page }) => {
+    const res = await page.goto("/login/", { waitUntil: "domcontentloaded" });
+    expect(res?.status(), "a REAL 404 (the s24 principle — the live platform-404s it)").toBe(404);
+    expect(res?.request().redirectedFrom(), "no redirect — the live never redirects").toBeNull();
+    await expect(page).toHaveTitle("Login | NexusLearn");
+    const canonical = await page.locator('link[rel="canonical"]').first().getAttribute("href");
+    expect(new URL(canonical!).pathname).toBe("/login");
+    expect(new URL(canonical!).search).toBe("");
+  });
+
+  test("/reset-password/ + token renders the 404 view with the derived head", async ({ page }) => {
+    const res = await page.goto("/reset-password/?token=abc", { waitUntil: "domcontentloaded" });
+    expect(res?.status()).toBe(404);
+    await expect(page).toHaveTitle("Reset Password | NexusLearn");
+    const canonical = await page.locator('link[rel="canonical"]').first().getAttribute("href");
+    expect(new URL(canonical!).pathname).toBe("/reset-password");
+    expect(new URL(canonical!).search).toBe("?token=abc");
+  });
+
+  test("an unknown path + slash falls to the natural 404 (no redirect)", async ({ page }) => {
+    const res = await page.goto("/nope/", { waitUntil: "domcontentloaded" });
+    expect(res?.status()).toBe(404);
+    expect(res?.request().redirectedFrom()).toBeNull();
+    expect(page.url().endsWith("/nope/")).toBe(true);
+    await expect(page).toHaveTitle("Nope | NexusLearn");
+    const canonical = await page.locator('link[rel="canonical"]').first().getAttribute("href");
+    expect(new URL(canonical!).pathname).toBe("/nope");
+  });
+
+  test("the verb guard keeps precedence over the slash resolution (POST /Courses/ -> 405)", async ({ request }) => {
+    const res = await request.post("/Courses/");
+    expect(res.status()).toBe(405);
+    expect(res.headers().allow).toBe("GET, HEAD");
+  });
+
+  test("the API slash tolerance: /api/health/ answers 200 (the live-matching form)", async ({ request }) => {
+    const res = await request.get("/api/health/");
+    expect(res.status()).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, service: "nexuslearn" });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session 40 — the s17×s39 cross-product pins (fresh-eyes family B: the
+// case-variant × query-processing composition, verified matching on both
+// sites but never pinned — the s39 specs visit canonical-case URLs only).
+// Reference: docs/remediation-plan-session40.md (finding 3).
+// ---------------------------------------------------------------------------
+
+test.describe("session-40 parity: the case-variant × query composite", () => {
+  test("/courses?x=1 renders the catalog + the canonical-case canonical with the query", async ({ page }) => {
+    await page.goto("/courses?x=1", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("main h1")).toHaveText("Explore Our Courses");
+    expect(page.url().endsWith("/courses?x=1")).toBe(true);
+    const canonical = await page.locator('link[rel="canonical"]').first().getAttribute("href");
+    expect(new URL(canonical!).pathname).toBe("/Courses");
+    expect(new URL(canonical!).search).toBe("?x=1");
+    const ogUrl = await page.locator('meta[property="og:url"]').first().getAttribute("content");
+    expect(new URL(ogUrl!).search).toBe("?x=1");
+  });
+
+  test("/courseDetail?id=seed-1&extra=2 renders the course (firstId) + the sorted canonical", async ({ page }) => {
+    await page.goto("/courseDetail?id=seed-1&extra=2", { waitUntil: "domcontentloaded" });
+    // The rendering uses the FIRST id (the s17 pin) — the course renders.
+    await expect(page.locator("main h1")).toHaveText("Complete Web Development Bootcamp 2026");
+    const canonical = await page.locator('link[rel="canonical"]').first().getAttribute("href");
+    expect(new URL(canonical!).pathname).toBe("/CourseDetail");
+    expect(new URL(canonical!).search).toBe("?extra=2&id=seed-1");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session 40 — the LCP/FCP/CLS budget family (fresh-eyes family C — the
+// session_82-suggested direction (b); TTFB/TBT/INP are pinned by s32/s37/s38,
+// the loading + visual-stability trio was not). Measured on the production
+// standalone server (cold-cache first visits): / LCP 1396ms / FCP 436ms,
+// CLS 0.00000 on every route (the reveal system's transform/opacity
+// animations are CLS-free). The budgets pin the Core-Web-Vitals "good"
+// thresholds — the same approach as the standing budget pins.
+// Reference: docs/remediation-plan-session40.md (finding 4).
+// ---------------------------------------------------------------------------
+
+test.describe("session-40 parity: the LCP/FCP/CLS budget", () => {
+  const VITALS_ROUTES = ["/", "/Courses", "/CourseDetail?id=seed-1", "/login"];
+
+  for (const route of VITALS_ROUTES) {
+    test(`${route}: LCP < 2500ms, FCP < 1800ms, CLS < 0.1 (the CWV "good" thresholds)`, async ({ page }) => {
+      await page.goto(route, { waitUntil: "load", timeout: 45000 });
+      await page.waitForLoadState("networkidle").catch(() => {});
+      await page.waitForTimeout(2500);
+      const vitals = await page.evaluate(() =>
+        new Promise<{ lcp: number | null; fcp: number | null; cls: number }>((resolve) => {
+          const out = { lcp: null as number | null, fcp: null as number | null, cls: 0 };
+          new PerformanceObserver((l) => {
+            const entries = l.getEntries();
+            if (entries.length) out.lcp = entries[entries.length - 1].startTime;
+          }).observe({ type: "largest-contentful-paint", buffered: true });
+          new PerformanceObserver((l) => {
+            const entries = l.getEntries();
+            const fcp = entries.find((e) => e.name === "first-contentful-paint");
+            if (fcp) out.fcp = fcp.startTime;
+          }).observe({ type: "paint", buffered: true });
+          new PerformanceObserver((l) => {
+            // Structural cast — LayoutShift is not in this TS version's DOM lib
+            // (and PerformanceEntry lacks value/hadRecentInput, hence unknown).
+            const shifts = l.getEntries() as unknown as Array<{ hadRecentInput?: boolean; value: number }>;
+            for (const e of shifts) {
+              if (!e.hadRecentInput) out.cls += e.value;
+            }
+          }).observe({ type: "layout-shift", buffered: true });
+          setTimeout(() => resolve(out), 500);
+        })
+      );
+      // LCP: null means "no LCP-eligible paint observed" (an empty shell) —
+      // on these four routes the hero/card imagery always fires it.
+      expect(vitals.lcp, `${route}: LCP must be observed`).not.toBeNull();
+      expect(vitals.lcp!, `${route}: LCP budget (measured headroom ~1.8x)`).toBeLessThan(2500);
+      expect(vitals.fcp, `${route}: FCP must be observed`).not.toBeNull();
+      expect(vitals.fcp!, `${route}: FCP budget`).toBeLessThan(1800);
+      expect(vitals.cls, `${route}: CLS budget (measured 0.00000)`).toBeLessThan(0.1);
+    });
+  }
+});
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a

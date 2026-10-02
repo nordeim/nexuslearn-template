@@ -3,6 +3,19 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
+  // Trailing-slash resolution tier (session 40 — the fresh-eyes family A fix):
+  // WITHOUT this flag Next's built-in handler 308s every single-trailing-slash
+  // path BEFORE the proxy can see it (empirically verified — the request never
+  // reaches src/proxy.ts), so the three-tier live contract (content routes
+  // render at the typed URL; exact-match + unknown routes 404) is unreachable.
+  // With it, the single-slash shapes flow to the proxy, whose resolution seam
+  // (src/lib/slash-resolution.ts) carries them out: the s24 canonicalization
+  // 308 for exact-case content routes, the s17 render-at-typed-URL rewrite
+  // for case variants, and the 404 view for the exact-match/unknown tiers.
+  // The leading-// and multi-slash shapes are normalized by the framework
+  // PRE-proxy either way (no flag controls them) — the documented
+  // deliberate-variance family (docs/remediation-plan-session40.md finding 2).
+  skipTrailingSlashRedirect: true,
   // Compression tier (session 27 — the compression/content-encoding surface).
   // `compress` is default-true in Next.js; restating it explicitly anchors the
   // app's gzip tier (dynamic pages + API JSON + /_next/static chunks, each

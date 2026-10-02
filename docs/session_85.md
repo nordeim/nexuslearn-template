@@ -1,0 +1,29 @@
+# Session 40 — Final Log
+
+**The trailing-slash resolution + composite-pins + LCP/FCP/CLS-budget pass** — pushed to `main` and verified.
+
+## What ran this session
+
+**Baseline & standing parity (all green):** the full gate re-verified at the documented session-39 state (583 tests: 245 unit + 338 e2e, zero flakes) → heights ×9 routes ×2 viewports **byte-exact 18/18**, innerText 18/18 identical, **mobile battery fully identical — NO Tailwind v4 bug** (trigger byte-identical, panel 375×405 @ y=64, 9 members at identical geometry), console **13/13 clean** (incl. both /reset-password states). The environment contract re-verified (`.env` == `.env.example`, `DATABASE_URL="file:../db/custom.db"`, `db/` recreated at the repo root).
+
+**The headline fresh-eyes find — the trailing-slash RESOLUTION tier (a REAL functional parity drift, a surface no prior session probed at the redirect-chain level):** the standing pins always FOLLOWED the redirect to its final state, so nothing constrained the resolution itself. Probing the chain (status + Location + redirectedFrom) exposed the live's THREE-tier contract:
+
+1. **Content routes RENDER at the typed slashed URL** — `/Courses/`, `/courses/` (case+slash!), `/CourseDetail/?id=<real>`, `/Home/`, `/Dashboard/`, `/Pricing/` all render 200 with the URL bar preserved, the clean title, and the clean canonical + the s39-processed query.
+2. **The exact-match routes (`/login/`, `/reset-password/`) render the platform 404 with the DERIVED head family** — title `Login | NexusLearn` (the s38 raw-path derivation), canonical `/login` (trailing slash stripped, query processed) — and the body text is **byte-identical to the clone's not-found screen** ("The page "login/" could not be found in this application. | Go Home"): the live's "platform 404" and the app 404 screen the clone mirrors are the SAME screen.
+3. **Unknown paths + slash (`/nope/`) render the same 404 family.**
+
+The clone's Next.js 308-redirected EVERY single-slash shape BEFORE the proxy could see it (empirically verified — no proxy log line), which made `/login/` and `/reset-password/` serve FOUND pages where the live 404s. The fix: `skipTrailingSlashRedirect: true` + the pure seam (`src/lib/slash-resolution.ts` — CONTENT_ROUTES, the case-sensitive EXACT_MATCH_ROUTES, `resolveSlashPath()` returning redirect/rewrite/not-found/pass) + the proxy adapter (after the verb guard + the header injection): the **s24 canonicalization 308 PRESERVED** for exact-case content routes (now proxy-issued — the ABSOLUTE Location construction is required: Next's middleware adapter relativizes same-host Locations, and a relative Location passed straight through crashes its NextURL parse — both verified empirically); the **s17 render-at-typed-URL** for case variants (one hop FEWER than the pre-fix 308-then-rewrite chain); the **internal 404-rewrite** for the exact-match tier (a REAL 404 per the s24 principle, with the s38-derived head matching the live's platform-404 head byte-for-byte); the router's natural 404 for unknown shapes; and the flag's `/api/*` slash tolerance is a parity IMPROVEMENT (`/api/health/` 200s like the live).
+
+**The framework-normalization variance (documented, uncontrollable):** leading-`//` and multi-trailing-slash shapes (`//Courses`, `/Courses///`, `///`) are normalized by Next PRE-proxy regardless of the flag (empirically verified with the flag on) — the live renders them as unknown routes, the clone normalizes to the route. Uncontrollable at the app layer → the deliberate-variance family, the mirror of the live's `%zz` infra-400.
+
+**The second family — the s17×s39 cross-product** (case-variant × query canonicals): probed matching on both sites (`/courses?x=1` → the live's typed-case canonical vs the clone's canonical-case — the documented s17 deliberate-better; the utm-drop + alpha-sort identical; `/courseDetail?id=<real>&extra=2` → both canonicals `?extra=2&id=<real>`). Green by construction — pinned (the composites were never spec'd together).
+
+**The third family — the LCP/FCP/CLS budget trio** (the session_82-suggested direction (b); TTFB/TBT/INP were pinned, the loading + visual-stability vitals were not): measured on the production standalone server (cold-cache first visits) — `/` LCP 1396ms / FCP 436ms, `/Courses` 716/212, `/CourseDetail` 708/272, `/login` 184/184, **CLS 0.00000 on every route incl. a full-scroll sweep** (the reveal system's transform/opacity animations are CLS-free by design). Pinned at the Core-Web-Vitals "good" thresholds (LCP < 2500ms, FCP < 1800ms, CLS < 0.1).
+
+**The stale-build lesson (the session's mid-flight catch):** the first post-fix e2e run failed 3 specs against a stale `.next` build (the compiled chunk still carried the pre-fix manual-relative redirect — the production 500s were the OLD code, diagnosed by reading the compiled chunk). Rebuilt → every shape verified in production.
+
+**GUARD:** the ENTIRE standing parity battery re-ran after the changes (the proxy + config change touches every request): heights 18/18 byte-exact, innerText identical, the mobile battery identical, console 13/13 clean.
+
+**Deliverables:** 619 tests green (267 unit + 352 e2e, zero regressions) · the proof matrix (`docs/screenshots/api-session-s40.txt` — the slash-resolution matrix 6/8 byte-identical incl. the byte-identical 404 bodies with the 2 documented-variance cells annotated, the composite heads, the vitals, the variance family, the env contract) · the screenshot matrix recaptured (24 standard + login ×2 viewports + the 5 new session-40 captures) · all docs aligned (gotcha 69, SKILL v3.28.0, [S40] PAD row, session_84/85 logs).
+
+**Suggested next:** (a) the error-boundary surface (`error.tsx` — still unpinned), (b) the deferred logout-everywhere UI (still beyond-reference), or (c) a fonts/preload deep-dive on the LCP element (the landing's LCP is the hero imagery — a `fetchpriority` probe family).
