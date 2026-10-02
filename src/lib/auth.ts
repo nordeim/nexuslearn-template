@@ -1,19 +1,30 @@
 import "server-only";
 import { cookies } from "next/headers";
 
-import { verifySessionToken, type SessionUser } from "@/lib/session";
+import { verifySessionToken, SESSION_MAX_AGE, type SessionUser } from "@/lib/session";
 
 /**
  * First-party cookie sessions — HMAC-SHA256 signed, no external auth service.
  * Pure crypto lives in `@/lib/session` (testable without Next.js runtime);
  * this module adds the cookies() adapter for RSC + route handlers.
+ *
+ * SESSION_MAX_AGE lives in `@/lib/session` (the single source of truth) —
+ * the same window bounds BOTH the browser cookie (maxAge below) and the
+ * server-side token verification (session 32).
  */
 
 export const SESSION_COOKIE = "nexus_session";
-const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
 export type { SessionUser };
-export { createSessionToken, hashPassword, verifyPassword, verifySessionToken } from "@/lib/session";
+export {
+  createSessionToken,
+  hashPassword,
+  verifyPassword,
+  verifySessionToken,
+  SESSION_MAX_AGE,
+  SESSION_MAX_AGE_MS,
+  SESSION_CLOCK_SKEW_MS,
+} from "@/lib/session";
 
 /** Read the current session from cookies (RSC + route handlers). */
 export async function getSession(): Promise<SessionUser | null> {

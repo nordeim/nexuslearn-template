@@ -4402,3 +4402,89 @@ test.describe("session-31 parity: the per-IP throttle surface", () => {
     expect(body.error!.length).toBeGreaterThan(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Session 32 — the auth-session-lifetime + cookie-symmetry + aria-live
+// surface. The stale/future-iat tokens are minted with the SAME secret the
+// e2e standalone server runs with (playwright.config.ts webServer env) —
+// this is the attacker model: a validly-signed token whose payload claims
+// an old issue time (a restored cookie, a leaked backup).
+// ---------------------------------------------------------------------------
+import { createHmac } from "node:crypto";
+
+const E2E_AUTH_SECRET = "playwright-e2e-session-secret";
+
+function mintToken(claim: { userId: string; email: string; name: string; iat: number }): string {
+  const payload = Buffer.from(JSON.stringify(claim)).toString("base64url");
+  const mac = createHmac("sha256", E2E_AUTH_SECRET).update(payload).digest("base64url");
+  return `${payload}.${mac}`;
+}
+
+test.describe("session-32 parity: the server-side session-lifetime surface", () => {
+  const claim = { userId: "s32-stale-probe-user", email: "probe@example.com", name: "Probe" };
+
+  test("a freshly-minted signed token still authenticates (the control)", async ({ request }) => {
+    const res = await request.get("/api/auth/me", {
+      headers: { cookie: `nexus_session=${mintToken({ ...claim, iat: Date.now() })}` },
+    });
+    expect(res.status()).toBe(200);
+    const body = (await res.json()) as { user: { userId?: string } | null };
+    expect(body.user?.userId, "the control proves the mint is faithful").toBe(claim.userId);
+  });
+
+  test("a 30-day-old signed token is REJECTED server-side", async ({ request }) => {
+    const res = await request.get("/api/auth/me", {
+      headers: { cookie: `nexus_session=${mintToken({ ...claim, iat: Date.now() - 30 * 24 * 3600 * 1000 })}` },
+    });
+    const body = (await res.json()) as { user: unknown };
+    expect(body.user, "the 7-day promise must hold beyond the browser cookie jar").toBeNull();
+  });
+
+  test("a future-issued signed token is REJECTED beyond the clock-skew window", async ({ request }) => {
+    const res = await request.get("/api/auth/me", {
+      headers: { cookie: `nexus_session=${mintToken({ ...claim, iat: Date.now() + 2 * 60 * 1000 })}` },
+    });
+    const body = (await res.json()) as { user: unknown };
+    expect(body.user, "future iat must not authenticate").toBeNull();
+  });
+});
+
+test.describe("session-32 parity: the logout deletion-cookie attribute symmetry", () => {
+  test("the logout Set-Cookie carries the full attribute set (HttpOnly, SameSite=Lax, Max-Age=0, Path=/)", async ({ request }) => {
+    const res = await request.post("/api/auth/logout");
+    expect(res.status()).toBe(200);
+    const setCookie = res.headers()["set-cookie"] ?? "";
+    const header = Array.isArray(setCookie) ? setCookie.join("\n") : setCookie;
+    // Next serializes the SameSite value lowercase ("SameSite=lax") — the
+    // semantics matter, not the case.
+    const headerCI = header.toLowerCase();
+    expect(header, "deletion must be attribute-symmetric with the login cookie").toContain("nexus_session=;");
+    expect(headerCI).toContain("httponly");
+    expect(headerCI).toContain("samesite=lax");
+    expect(headerCI).toContain("max-age=0");
+    expect(headerCI).toContain("path=/");
+  });
+});
+
+test.describe("session-32 parity: the AI-chat aria-live politeness surface (deliberate-better)", () => {
+  test("the messages region announces politely; the Thinking bubble carries role=status", async ({ page }) => {
+    await page.goto("/AIAssistant");
+    await page.waitForLoadState("networkidle");
+
+    // The messages scroll container (flex-1 p-6 space-y-6 overflow-y-auto).
+    const live = await page
+      .locator("main div.flex-1.p-6.space-y-6")
+      .first()
+      .getAttribute("aria-live");
+    expect(live, "the async chat surface must be announced to screen readers").toBe("polite");
+
+    // Ask something to trigger the Thinking bubble, then read its role.
+    await page.locator("textarea").fill("Hello");
+    await page.keyboard.press("Enter");
+    const bubble = page.locator("div[role='status']").first();
+    await expect(bubble, "the transient Thinking... state is announced").toContainText("Thinking");
+    await expect
+      .poll(async () => (await page.locator("div[role='status']").count()) === 0, { timeout: 20_000 })
+      .toBe(true);
+  });
+});

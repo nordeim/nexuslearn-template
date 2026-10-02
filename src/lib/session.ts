@@ -14,6 +14,16 @@ export interface SessionUser {
   name: string;
 }
 
+/**
+ * Session 32 — the server-side session-lifetime contract (single source of
+ * truth). The cookie carries `maxAge` for the BROWSER jar; these constants
+ * let the SERVER enforce the same window on the token's embedded `iat`, so a
+ * restored/backed-up/exported cookie cannot outlive the promise.
+ */
+export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days, seconds (cookie maxAge)
+export const SESSION_MAX_AGE_MS = SESSION_MAX_AGE * 1000; // the verify window
+export const SESSION_CLOCK_SKEW_MS = 60 * 1000; // future-iat tolerance (clock drift)
+
 function getSecret(): string {
   const secret = process.env.AUTH_SECRET;
   if (secret && secret.length >= 16) return secret;
@@ -42,6 +52,15 @@ export function verifySessionToken(token: string | undefined | null): SessionUse
   try {
     const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     if (typeof data.userId !== "string" || typeof data.email !== "string") return null;
+    // session-32: server-side lifetime — the embedded iat bounds the token
+    // itself (not just the browser's copy of it). Missing/malformed iat,
+    // future-issued beyond the skew window, or older than the 7-day window
+    // are all rejections.
+    const iat = typeof data.iat === "number" ? data.iat : Number.NaN;
+    if (!Number.isFinite(iat)) return null;
+    const now = Date.now();
+    if (iat > now + SESSION_CLOCK_SKEW_MS) return null;
+    if (now - iat > SESSION_MAX_AGE_MS) return null;
     return { userId: data.userId, email: data.email, name: String(data.name ?? "") };
   } catch {
     return null;

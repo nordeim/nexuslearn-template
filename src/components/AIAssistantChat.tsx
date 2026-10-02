@@ -178,8 +178,11 @@ export function AIAssistantChat() {
           {/* Chat card — reference: max-w-3xl overlapping -mt-6, min-h-60vh flex column */}
           <div className="max-w-3xl mx-auto px-4 -mt-6 pb-24">
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 min-h-[60vh] flex flex-col">
-            {/* Messages — reference: flex-1 (grows with the card, no fixed height) */}
-            <div ref={scrollRef} className="flex-1 p-6 space-y-6 overflow-y-auto">
+            {/* Messages — reference: flex-1 (grows with the card, no fixed height).
+                Session 32: aria-live="polite" (deliberate-better — the live
+                ships no announcement surface either; screen readers would
+                otherwise hear nothing after Enter). */}
+            <div ref={scrollRef} aria-live="polite" className="flex-1 p-6 space-y-6 overflow-y-auto">
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full py-16 text-center">
                   <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mb-6">
@@ -240,7 +243,7 @@ export function AIAssistantChat() {
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 flex items-center justify-center shrink-0">
                     <Bot className="h-4 w-4 text-white" aria-hidden="true" />
                   </div>
-                  <div className="bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 flex items-center gap-2 text-gray-400">
+                  <div role="status" className="bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 flex items-center gap-2 text-gray-400">
                     <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> Thinking...
                   </div>
                 </div>

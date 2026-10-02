@@ -1,0 +1,15 @@
+session-32 auth-session-lifetime proof (the dev server, post-fix)
+login: 200; cookie attrs: nexus_session=<token>; Path=/; Expires=Fri, 09 Oct 2026 00:26:21 GMT; Max-Age=604800; HttpOnly; SameSite=lax
+me(valid fresh token)          : 200 USER PRESENT  <- control
+me(stale 30d-old signed token) : 200 user: null  <- REJECTED (pre-fix: USER PRESENT)
+me(stale 8d-old signed token)  : 200 user: null  <- REJECTED
+me(fresh 6d-old signed token) : 200 USER PRESENT  <- accepted (within window)
+me(future +2min token)        : 200 user: null  <- REJECTED (pre-fix: USER PRESENT)
+me(future +30s token)         : 200 USER PRESENT  <- accepted (within skew)
+me(no-iat token)              : 200 user: null  <- REJECTED
+me(mangled signature)         : 200 user: null  <- REJECTED (control)
+
+logout deletion Set-Cookie: nexus_session=; Path=/; Max-Age=0; HttpOnly; SameSite=lax
+  (pre-fix baseline: nexus_session=; Path=/; Max-Age=0 — no HttpOnly/SameSite/Secure)
+
+(bun audit post-override: No vulnerabilities found — see the session transcript)

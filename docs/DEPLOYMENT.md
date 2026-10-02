@@ -182,3 +182,23 @@ The thresholds are code constants sized ≥ 4× the e2e suite's measured
 per-bucket load; tune them in `src/lib/rate-limit.ts` (the `RATE_LIMITS`
 table is unit-pinned — update `tests/rate-limit.test.ts` in the same
 commit).
+
+## 10. Session lifetime + dependency posture (session 32)
+
+Two hardening notes from the session-32 pass:
+
+- **The 7-day session window is enforced server-side too.** The cookie's
+  `maxAge` was always 7 days, but before session 32 only the BROWSER jar
+  honored it — `verifySessionToken` now also bounds the token's embedded
+  `iat` (older than 7 days → rejected; issued more than 60s in the future →
+  rejected; missing/malformed → rejected). Deployment note: **server clock
+  accuracy matters** — keep NTP healthy on the host; the 60-second skew
+  window absorbs normal drift but not a misconfigured clock. Rotating
+  `AUTH_SECRET` still invalidates every outstanding token instantly (the
+  recommended lever if a leak is ever suspected).
+- **`deepmerge-ts` is pinned to `^8.0.2` via the `overrides` field** in
+  `package.json` (GHSA-ggr8-5vv4-36mx — the advisory is in prisma's
+  CLI-time config-loading path, never reachable over HTTP, but `bun audit`
+  stays clean only while the override holds; `tests/dependency-pin.test.ts`
+  guards it). **`bun.lock` is the only lockfile** — never re-add a second
+  one (a stale `package-lock.json` was removed in session 32).
