@@ -32,7 +32,16 @@ import { db } from "@/lib/db";
 import { pickLocale } from "@/lib/number-format";
 import { headers } from "next/headers";
 
+import { routeMetadata } from "@/lib/metadata";
+
 export const dynamic = "force-dynamic";
+
+// Session 38: the landing carries its EXPLICIT head (plain "NexusLearn" +
+// the root canonical — the live's / contract, probed). Previously it
+// inherited the layout default; the layout default is now the DERIVED 404
+// family (the raw-path contract), so the no-title renders pin the absolute
+// form through routeMetadata.
+export const metadata = routeMetadata({ canonical: "/" });
 
 const CATEGORIES = [
   { name: "Business", slug: "business", icon: Briefcase },

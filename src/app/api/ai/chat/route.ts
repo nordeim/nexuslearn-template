@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import ZAI from "z-ai-web-dev-sdk";
 
+import { callAiCompletion } from "@/lib/ai-chat";
 import { RATE_LIMITS, checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rate-limit";
 import { bodyTooLarge, FIELD_LIMITS } from "@/lib/request-guard";
 
@@ -38,19 +38,12 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    const zai = await ZAI.create();
-    const completion = await zai.chat.completions.create({
-      model: "glm-4.5",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are the NexusLearn AI Study Assistant — an expert tutor covering programming, business, design, data science and more. Answer clearly and practically, with examples where useful. Keep answers focused on helping the user learn: explain concepts step by step, suggest practice exercises, and encourage the learner. Use markdown formatting when it improves readability.",
-        },
-        ...recent,
-      ],
-      thinking: { type: "disabled" },
-    });
+    // Session 38: the completion routes through the BOUNDED seam
+    // (src/lib/ai-chat.ts — the s37 mailer-timeout sibling). The SDK's raw
+    // fetch carries no signal and accepts none, so the seam races it against
+    // a 60s bound; a hung endpoint now degrades to this route's existing
+    // 502 + friendly message instead of pinning the request forever.
+    const completion = await callAiCompletion(recent);
 
     const reply = completion.choices[0]?.message?.content ?? "";
     return NextResponse.json({ reply });

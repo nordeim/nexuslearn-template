@@ -18,11 +18,15 @@ describe("routeMetadata — per-route OG identity (session 6)", () => {
     expect(m.twitter?.title).toBe("Courses | NexusLearn");
   });
 
-  it("keeps the plain NexusLearn title when no title segment is given", () => {
+  it("keeps the plain NexusLearn title when no title segment is given (session 38: the ABSOLUTE form — no layout-default inheritance)", () => {
     const m = routeMetadata({ canonical: "/login" });
     expect(m.openGraph?.title).toBe("NexusLearn");
     expect(m.twitter?.title).toBe("NexusLearn");
-    expect(m.title).toBeUndefined();
+    // Session 38: the no-title branch pins the ABSOLUTE plain title — the
+    // /login + /reset-password + landing guard. The layout's default title
+    // is now the DERIVED 404 family (the raw-path contract); these pages
+    // must not inherit it.
+    expect(m.title).toEqual({ absolute: "NexusLearn" });
   });
 
   it("points og:url at the route canonical (incl. query strings)", () => {

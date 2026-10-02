@@ -8,12 +8,30 @@ import type { Metadata } from "next";
  * restates the full root payload (description, type, siteName, images) with
  * the per-route title + url resolved — the single source for every route's
  * `metadata` export.
+ *
+ * Session 38 — the twitter:url dimension: the live ALSO ships
+ * `<meta name="twitter:url">` mirroring the per-route canonical on EVERY
+ * route (probed on /Courses + the 404 view; the clone never emitted it —
+ * Next's typed Twitter object has no url field). The root-level `other`
+ * map renders it (values are VERBATIM — no metadataBase resolution — so
+ * the absolute URL is constructed here, matching how Next resolves og:url
+ * against the same base). `other` MERGES per-key across the layout→page
+ * chain (the page's keys win) — both levels restate it, the restate-
+ * everything pattern of og/twitter.
  */
 
 export const REFERENCE_DESCRIPTION =
   "SkillSphere is a dynamic online learning platform offering a wide range of courses, structured learning paths, and AI-powered study tools to empower students, creators, and instructors in shaping their future.";
 
 const SITE_NAME = "NexusLearn";
+
+/** The metadataBase origin (NEXT_PUBLIC_SITE_URL, the dev fallback). */
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+/** The verbatim-rendered twitter:url value: the canonical against SITE_URL. */
+function twitterUrlFor(canonical: string): string {
+  return new URL(canonical, SITE_URL).toString();
+}
 
 export function routeMetadata({
   title,
@@ -29,7 +47,13 @@ export function routeMetadata({
   const resolvedTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
 
   return {
-    ...(title ? { title } : {}),
+    // Session 38: the no-title branch pins the ABSOLUTE plain title. The
+    // layout's default title is now the DERIVED 404 family (the live's
+    // raw-path contract — src/lib/not-found-metadata.ts); the four
+    // no-title renders (/, /Home, /login, /reset-password) must render the
+    // plain "NexusLearn" regardless of the layout default, so they carry
+    // the absolute form instead of inheriting it.
+    ...(title ? { title } : { title: { absolute: SITE_NAME } }),
     alternates: { canonical },
     openGraph: {
       title: resolvedTitle,
@@ -45,5 +69,8 @@ export function routeMetadata({
       description: REFERENCE_DESCRIPTION,
       images: ["/logo.png"],
     },
+    // Session 38: the live's twitter:url (every route — the missing sixth
+    // head dimension). Rendered verbatim by Next's `other` map.
+    other: { "twitter:url": twitterUrlFor(canonical) },
   };
 }

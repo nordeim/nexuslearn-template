@@ -1,5 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
+
+import {
+  notFoundCanonical,
+  notFoundTitle,
+} from "@/lib/not-found-metadata";
+import { SITE_URL } from "@/lib/metadata";
 
 import { ScrollRestoreNormalizer } from "@/components/ScrollRestoreNormalizer";
 import { REFERENCE_DESCRIPTION } from "@/lib/metadata";
@@ -29,42 +36,78 @@ import { REFERENCE_DESCRIPTION } from "@/lib/metadata";
  * so og:title / twitter:title mirror the per-route document title and og:url
  * mirrors the per-route canonical (reference behavior).
  */
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteUrl = SITE_URL;
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: "NexusLearn",
-    template: "%s | NexusLearn",
-  },
-  description: REFERENCE_DESCRIPTION,
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    title: "NexusLearn",
+/**
+ * Session 38 — the 404-metadata derivation (the live's raw-path contract,
+ * probed: "Definitely Not A Real Route | NexusLearn" for the 404 view, the
+ * canonical/og:url carrying the full path + query). The static metadata
+ * export became generateMetadata: it reads the PROXY-INJECTED raw path +
+ * search headers (src/proxy.ts) and derives the title/canonical/og family
+ * through the pure seam (src/lib/not-found-metadata.ts).
+ *
+ * WHY this is safe for every real route: a child page's metadata fields
+ * REPLACE the layout's wholesale (gotcha 18 — that is why routeMetadata()
+ * restates the full payload), so the derived values are invisible on real
+ * routes. They surface ONLY on the not-found render (the one render with no
+ * page metadata). The four no-title renders (/, /Home, /login,
+ * /reset-password) pin the ABSOLUTE plain title via routeMetadata — they
+ * never inherit the derived default (the plan-time catch).
+ *
+ * The non-404 fields (description, icons, manifest, appleWebApp,
+ * metadataBase, the title template) stay byte-identical to the previous
+ * static export.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const h = await headers();
+  const rawPath = h.get("x-nexus-raw-path") ?? "";
+  const rawSearch = h.get("x-nexus-raw-search") ?? "";
+
+  const derivedTitle = rawPath ? notFoundTitle(rawPath) : "NexusLearn";
+  const derivedCanonical = rawPath ? notFoundCanonical(rawPath, rawSearch) : "/";
+
+  return {
+    metadataBase: new URL(siteUrl),
+    title: {
+      default: derivedTitle,
+      template: "%s | NexusLearn",
+    },
     description: REFERENCE_DESCRIPTION,
-    url: siteUrl,
-    type: "website",
-    siteName: "NexusLearn",
-    images: [{ url: "/logo.png", width: 1200, height: 630, alt: "NexusLearn" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "NexusLearn",
-    description: REFERENCE_DESCRIPTION,
-    images: ["/logo.png"],
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black",
-    title: "NexusLearn",
-  },
-  icons: {
-    icon: "/logo.png",
-  },
-  manifest: "/manifest.json",
-};
+    alternates: {
+      canonical: derivedCanonical,
+    },
+    openGraph: {
+      title: derivedTitle,
+      description: REFERENCE_DESCRIPTION,
+      url: derivedCanonical,
+      type: "website",
+      siteName: "NexusLearn",
+      images: [{ url: "/logo.png", width: 1200, height: 630, alt: "NexusLearn" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: derivedTitle,
+      description: REFERENCE_DESCRIPTION,
+      images: ["/logo.png"],
+    },
+    // Session 38: the live's twitter:url on the 404 view too (probed —
+    // it mirrors the canonical incl. the query). Rendered verbatim by the
+    // `other` map, so the absolute URL is constructed against the same
+    // base Next uses for og:url.
+    other: {
+      "twitter:url": new URL(derivedCanonical, SITE_URL).toString(),
+    },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black",
+      title: "NexusLearn",
+    },
+    icons: {
+      icon: "/logo.png",
+    },
+    manifest: "/manifest.json",
+  };
+}
 
 // The reference viewport is the plain `width=device-width, initial-scale=1.0`
 // (unlimited pinch zoom). The earlier maximum-scale=5 cap was an a11y

@@ -5300,6 +5300,142 @@ test.describe("session-37 parity: the main-thread-blocking budget (TBT)", () => 
   });
 });
 
+test.describe("session-38 parity: the 404-metadata surface (the raw-path derivation family)", () => {
+  test("the derived 404 title battery (the startCase contract, probed on the live)", async ({ page }) => {
+    // The live derives the 404 document title from the LAST non-empty path
+    // segment, lodash-startCase-style (words split on hyphens, underscores
+    // AND lower->upper camel boundaries; first letter uppercased, the REST
+    // PRESERVED) + " | NexusLearn" — server-rendered in its HTML head.
+    const cases: Array<[string, string]> = [
+      ["/definitely-not-a-real-route", "Definitely Not A Real Route | NexusLearn"],
+      // a case-variant miss (the /login exact-match family)
+      ["/RESET-PASSWORDX", "RESET PASSWORDX | NexusLearn"],
+      // a nested miss (the LAST non-empty segment wins)
+      ["/Courses/deeper/missing", "Missing | NexusLearn"],
+      // a trailing-slash miss (the trailing slash never contributes a segment)
+      ["/no-such-page-xyz/", "No Such Page Xyz | NexusLearn"],
+      // a camel miss (the cOurSes-style hump split — every lower->upper
+      // transition is a boundary)
+      ["/cOurSesX", "C Our Ses X | NexusLearn"],
+    ];
+    for (const [path, expectedTitle] of cases) {
+      await page.goto(path);
+      await expect(page).toHaveTitle(expectedTitle);
+    }
+  });
+
+  test("the 404 canonical + og:url + twitter:url carry the raw path (+ the query)", async ({ request }) => {
+    // Probed on the live: canonical/og:url/twitter:url all mirror the raw
+    // path with the trailing slash stripped and the query INCLUDED.
+    const res = await request.get("/no-such-page-xyz?x=1");
+    expect(res.status()).toBe(404);
+    // The house pattern (the s6 specs): canonical/og:url assertions are
+    // ORIGIN-AGNOSTIC — the build-time metadataBase port is not a parity
+    // surface; the PATH + QUERY are the contract.
+    const html = await res.text();
+    const canonical = html.match(/<link rel="canonical" href="([^"]*)"/)?.[1];
+    const ogUrl = html.match(/<meta property="og:url" content="([^"]*)"/)?.[1];
+    const twitterUrl = html.match(/<meta name="twitter:url" content="([^"]*)"/)?.[1];
+    for (const [label, u] of [["canonical", canonical], ["og:url", ogUrl], ["twitter:url", twitterUrl]] as const) {
+      expect(u, `${label} present`).toBeTruthy();
+      const parsed = new URL(u!);
+      expect(`${parsed.pathname}${parsed.search}`, `${label} carries the raw path + query`).toBe(
+        "/no-such-page-xyz?x=1"
+      );
+    }
+    // og:title + twitter:title mirror the derived document title
+    expect(html).toContain('<meta property="og:title" content="No Such Page Xyz | NexusLearn"/>');
+    expect(html).toContain('<meta name="twitter:title" content="No Such Page Xyz | NexusLearn"/>');
+  });
+
+  test("the 404 status + body view are unchanged (the s10/s24 pins re-run)", async ({ page }) => {
+    // The metadata fix must not touch the VIEW: status 404 (the live 200s
+    // every GET — the clone's deliberate-better) + the reference body.
+    const res = await page.request.get("/definitely-not-a-real-route");
+    expect(res.status()).toBe(404);
+    await page.goto("/definitely-not-a-real-route");
+    await expect(page.locator("h1")).toHaveText("404");
+    await expect(page.getByRole("heading", { name: "Page Not Found" })).toBeVisible();
+    await expect(page.locator("main p")).toContainText('"definitely-not-a-real-route"');
+    await expect(page.getByRole("button", { name: "Go Home" })).toBeVisible();
+  });
+
+  test("the real-route titles are unaffected by the layout derivation (the guard)", async ({ page }) => {
+    // The layout is global — every real route must keep its exact title.
+    // The four no-title renders (/, /Home, /login, /reset-password) keep
+    // the plain root title via the ABSOLUTE form; the titled routes keep
+    // their template-resolved segments.
+    const cases: Array<[string, string]> = [
+      ["/", "NexusLearn"],
+      ["/Home", "NexusLearn"],
+      ["/login", "NexusLearn"],
+      ["/reset-password", "NexusLearn"],
+      ["/Courses", "Courses | NexusLearn"],
+      ["/CourseDetail?id=seed-1", "Course Detail | NexusLearn"],
+      ["/AIAssistant", "AI Assistant | NexusLearn"],
+    ];
+    for (const [path, expectedTitle] of cases) {
+      await page.goto(path);
+      await expect(page).toHaveTitle(expectedTitle);
+    }
+  });
+
+  test("the real-route canonicals are unaffected (the landing + login guard)", async ({ request }) => {
+    // / + /Home canonicalize to the ROOT (probed on the live — the
+    // footer-link route carries the landing's canonical); /login its own.
+    // Origin-agnostic (the house pattern): the path is the contract.
+    for (const [path, expectedPathname] of [
+      ["/Home", "/"],
+      ["/", "/"],
+      ["/login", "/login"],
+    ] as const) {
+      const html = await (await request.get(path)).text();
+      const canonical = html.match(/<link rel="canonical" href="([^"]*)"/)?.[1];
+      expect(canonical, `${path} canonical present`).toBeTruthy();
+      expect(new URL(canonical!).pathname, `${path} canonical`).toBe(expectedPathname);
+    }
+  });
+});
+
+test.describe("session-38 parity: the interaction-latency (INP-proxy) budget", () => {
+  test("the mobile-menu OPEN interaction lands under 200ms (the INP-good threshold)", async ({ page }) => {
+    // The s33 bundle -> s34 JS -> s35 TTFB -> s36 FCP/LCP -> s37 TBT
+    // budget family, now the INTERACTION dimension: the lab INP proxy is
+    // the click -> panel-state-flip latency of the highest-regression-
+    // risk chrome (the mobile menu — the Tailwind v4 watch surface).
+    // Measured 6-9ms on dev; 200ms = the Core-Web-Vitals INP "good"
+    // threshold (20x+ headroom, effectively unflakeable).
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1200);
+    const latencyMs = await page.evaluate(async () => {
+      const nav = document.querySelector("nav");
+      const candidates = Array.from(nav?.querySelectorAll('[class*="md:hidden"]') ?? []);
+      const btn = (candidates.find((el) => el.querySelector("svg")) ?? candidates[0]) as HTMLElement;
+      const panels = Array.from(document.querySelectorAll('nav div[class*="md:hidden"]'));
+      const panel = panels[panels.length - 1];
+      if (!btn || !panel) throw new Error("mobile menu chrome not found");
+      const beforeCls = panel.getAttribute("class") ?? "";
+      const beforeH = panel.getBoundingClientRect().height;
+      const t0 = performance.now();
+      btn.click();
+      await new Promise<void>((resolve) => {
+        const deadline = performance.now() + 10000;
+        const check = () => {
+          const cls = panel.getAttribute("class") ?? "";
+          const h = panel.getBoundingClientRect().height;
+          if (cls !== beforeCls || h > beforeH + 1 || performance.now() > deadline) resolve();
+          else requestAnimationFrame(check);
+        };
+        check();
+      });
+      return performance.now() - t0;
+    });
+    expect(latencyMs, `mobile-menu open latency ${Math.round(latencyMs)}ms < 200ms`).toBeLessThan(200);
+  });
+});
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a

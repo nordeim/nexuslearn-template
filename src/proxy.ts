@@ -158,6 +158,15 @@ export function proxy(req: NextRequest) {
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("content-security-policy", csp);
 
+  // Session 38 — the 404-metadata derivation inputs (REQUEST-scoped, never
+  // response-exposed): the raw pathname + search string. The root layout's
+  // generateMetadata reads them and derives the 404 family (the live's
+  // raw-path title/canonical contract — src/lib/not-found-metadata.ts).
+  // Every real page restates its full payload (routeMetadata), so the
+  // derived values surface only on not-found renders.
+  requestHeaders.set("x-nexus-raw-path", pathname);
+  requestHeaders.set("x-nexus-raw-search", req.nextUrl.search);
+
   let res: NextResponse;
   if ((CANONICAL_ROUTES as readonly string[]).includes(pathname)) {
     // Fast exit on the exact canonical form (the overwhelmingly common case).

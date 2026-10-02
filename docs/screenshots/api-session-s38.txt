@@ -1,0 +1,97 @@
+=== SESSION 38 PROOF MATRIX (the dev server on :3000) ===
+
+--- [1] The 404-metadata parity: clone vs live (the head family) ---
+
+GET /definitely-not-a-real-route
+  clone: status=404 title="Definitely Not A Real Route | NexusLearn"
+  live:  status=200 title="Definitely Not A Real Route | NexusLearn"  => MATCH
+  clone canonical:   http://localhost:3000/definitely-not-a-real-route
+  clone og:url:      http://localhost:3000/definitely-not-a-real-route
+  clone twitter:url: http://localhost:3000/definitely-not-a-real-route
+  clone og:title:    Definitely Not A Real Route | NexusLearn
+
+GET /RESET-PASSWORDX
+  clone: status=404 title="RESET PASSWORDX | NexusLearn"
+  live:  status=200 title="RESET PASSWORDX | NexusLearn"  => MATCH
+  clone canonical:   http://localhost:3000/RESET-PASSWORDX
+  clone og:url:      http://localhost:3000/RESET-PASSWORDX
+  clone twitter:url: http://localhost:3000/RESET-PASSWORDX
+  clone og:title:    RESET PASSWORDX | NexusLearn
+
+GET /Courses/deeper/missing
+  clone: status=404 title="Missing | NexusLearn"
+  live:  status=200 title="Missing | NexusLearn"  => MATCH
+  clone canonical:   http://localhost:3000/Courses/deeper/missing
+  clone og:url:      http://localhost:3000/Courses/deeper/missing
+  clone twitter:url: http://localhost:3000/Courses/deeper/missing
+  clone og:title:    Missing | NexusLearn
+
+GET /no-such-page?x=1
+  clone: status=404 title="No Such Page | NexusLearn"
+  live:  status=200 title="No Such Page | NexusLearn"  => MATCH
+  clone canonical:   http://localhost:3000/no-such-page?x=1
+  clone og:url:      http://localhost:3000/no-such-page?x=1
+  clone twitter:url: http://localhost:3000/no-such-page?x=1
+  clone og:title:    No Such Page | NexusLearn
+
+GET /cOurSesX
+  clone: status=404 title="C Our Ses X | NexusLearn"
+  live:  status=200 title="C Our Ses X | NexusLearn"  => MATCH
+  clone canonical:   http://localhost:3000/cOurSesX
+  clone og:url:      http://localhost:3000/cOurSesX
+  clone twitter:url: http://localhost:3000/cOurSesX
+  clone og:title:    C Our Ses X | NexusLearn
+
+  (The trailing-slash variants 308 to the canonical form first — the
+  s24 deliberate-better, pinned; the browser-followed view then
+  matches the live's title, e.g. /trailing-miss/ -> 'Trailing Miss |
+  NexusLearn' after the hop — verified via the e2e title battery.)
+
+--- [2] The real-route title guard (the layout change is global) ---
+
+GET /  clone="NexusLearn"  live="NexusLearn"  => MATCH
+GET /Home  clone="NexusLearn"  live="NexusLearn"  => MATCH
+GET /login  clone="NexusLearn"  live="NexusLearn"  => MATCH
+GET /reset-password  clone="NexusLearn"  live="NexusLearn"  => MATCH
+GET /Courses  clone="Courses | NexusLearn"  live="Courses | NexusLearn"  => MATCH
+GET /CourseDetail?id=seed-1  clone="Course Detail | NexusLearn"  live="Course Detail | NexusLearn"  => MATCH
+GET /AIAssistant  clone="AI Assistant | NexusLearn"  live="AI Assistant | NexusLearn"  => MATCH
+
+--- [3] The twitter:url dimension (every route incl. the 404) ---
+
+GET /
+  clone twitter:url: http://localhost:3000/
+  live  twitter:url: http://localhost:3000 (origin-normalized)
+
+GET /Courses
+  clone twitter:url: http://localhost:3000/Courses
+  live  twitter:url: http://localhost:3000/Courses (origin-normalized)
+
+GET /login
+  clone twitter:url: http://localhost:3000/login
+  live  twitter:url: http://localhost:3000/login (origin-normalized)
+
+GET /no-such-page?x=1
+  clone twitter:url: http://localhost:3000/no-such-page?x=1
+  live  twitter:url: http://localhost:3000/no-such-page?x=1 (origin-normalized)
+
+--- [4] The 404 status + view contract (unchanged) ---
+
+clone status=404 (the deliberate-better real 404; the live 200s every GET)
+
+--- [5] The AI-chat timeout seam (the unit proof) ---
+  See tests/ai-chat-timeout.test.ts (8 specs): the typed timeout fires
+  on a never-resolving await (5ms override), a fast resolution passes
+  through, the default bound is 60s, and the route delegates through
+  callAiCompletion (the source pin). The route's existing catch maps
+  the timeout to the same 502 + friendly message.
+
+--- [6] The INP-proxy budget (the mobile-menu OPEN interaction) ---
+  5 runs on the dev server: 10, 6, 6, 6, 6 ms (budget: < 200ms —
+  the Core-Web-Vitals INP 'good' threshold; 20x+ headroom)
+
+--- [7] The .env / db contract ---
+  .env DATABASE_URL=file:../db/custom.db (byte-identical to .env.example;
+  db/ at the repo root; the resolver ENFORCES the repo .env over the
+  stale absolute shell export — observed in the boot log)
+
