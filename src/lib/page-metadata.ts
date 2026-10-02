@@ -30,13 +30,16 @@ import { routeMetadata } from "./metadata";
 export async function pageMetadata({
   title,
   canonical,
+  authShell = false,
 }: {
   /** Title segment — omitted on the no-title renders (reference behavior). */
   title?: string;
   /** Route canonical (path only — the query is derived from the request). */
   canonical: string;
+  /** Session 41 — the platform-AUTH head family (/login + /reset-password). */
+  authShell?: boolean;
 }): Promise<Metadata> {
   const h = await headers();
   const search = h.get("x-nexus-raw-search") ?? "";
-  return routeMetadata({ title, canonical, search });
+  return routeMetadata({ title, canonical, search, authShell });
 }

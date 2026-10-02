@@ -1,13 +1,31 @@
 import { LoginForm } from "@/components/LoginForm";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import { pageMetadata } from "@/lib/page-metadata";
 
 // Reference behavior: /login ships the plain "NexusLearn" title (no segment)
 // with the /login canonical + mirrored og:url (session 6).
 export async function generateMetadata(): Promise<Metadata> {
-  return pageMetadata({ canonical: "/login" });
+  // Session 41 — the auth-shell head family (fresh-eyes family A: the
+  // per-route head census found the live's platform-AUTH routes carrying a
+  // family the app routes never see — the dimensioned og:image + alt, the
+  // apple-touch-icon, viewport-fit=cover, theme-color #000000).
+  return pageMetadata({ canonical: "/login", authShell: true });
 }
+
+// Session 41 — the live's auth-shell viewport family: viewport-fit=cover
+// (the notch-extends-webview rendering mode) + theme-color #000000 (the
+// mobile browser chrome tint — the same #000000 as the manifest's
+// theme_color, s25-pinned). The "initial-scale=1" vs the live's "1.0" is
+// the documented notation variance (unreachable through the Viewport
+// export; the parsed viewport is identical). Page viewport exports merge
+// per-key over the layout's, so the base width/initialScale are restated.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#000000",
+};
 
 // The reference login card is an in-place 5-view state machine (sign-in,
 // reset, reset-sent, signup, verify) that owns the WHOLE card interior:

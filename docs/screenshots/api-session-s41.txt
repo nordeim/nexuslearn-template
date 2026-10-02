@@ -1,0 +1,90 @@
+=== PART 1: THE AUTH-SHELL HEAD FAMILY (clone vs live, raw HTML) ===
+
+  (The two DOCUMENTED-VARIANCE members: the viewport notation — the live
+  serializes initial-scale=1.0, Next initialScale: 1 renders initial-scale=1,
+  the parsed viewport is identical — and the infra URLs — the live's supabase
+  render/icon URLs vs the clone's /logo.png, the same family as rel:icon.)
+
+  DIFF  viewport               clone="width=device-width, initial-scale=1, viewport-fit=cover" | live="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  MATCH theme-color            clone="#000000" | live="#000000"
+  MATCH apple-touch sizes      clone="180x180" | live="180x180"
+  MATCH og:image:width         clone="1200" | live="1200"
+  MATCH og:image:height        clone="630" | live="630"
+  MATCH og:image:alt           clone="Base44 link preview" | live="Base44 link preview"
+  MATCH twitter:image:alt      clone="Base44 link preview" | live="Base44 link preview"
+  MATCH title                  clone="NexusLearn" | live="NexusLearn"
+  MATCH canonical              clone="/login" | live="/login"
+
+  DIFF  viewport               clone="width=device-width, initial-scale=1, viewport-fit=cover" | live="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  MATCH theme-color            clone="#000000" | live="#000000"
+  MATCH apple-touch sizes      clone="180x180" | live="180x180"
+  MATCH og:image:width         clone="1200" | live="1200"
+  MATCH og:image:height        clone="630" | live="630"
+  MATCH og:image:alt           clone="Base44 link preview" | live="Base44 link preview"
+  MATCH twitter:image:alt      clone="Base44 link preview" | live="Base44 link preview"
+  MATCH title                  clone="NexusLearn" | live="NexusLearn"
+  MATCH canonical              clone="/reset-password" | live="/reset-password"
+
+  DIFF  viewport               clone="width=device-width, initial-scale=1, viewport-fit=cover" | live="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  MATCH theme-color            clone="#000000" | live="#000000"
+  MATCH apple-touch sizes      clone="180x180" | live="180x180"
+  MATCH og:image:width         clone="1200" | live="1200"
+  MATCH og:image:height        clone="630" | live="630"
+  MATCH og:image:alt           clone="Base44 link preview" | live="Base44 link preview"
+  MATCH twitter:image:alt      clone="Base44 link preview" | live="Base44 link preview"
+  MATCH title                  clone="NexusLearn" | live="NexusLearn"
+  MATCH canonical              clone="/reset-password?token=abc" | live="/reset-password?token=abc"
+
+=== PART 2: THE APP-HEAD STRIPPED FAMILY (clone vs live, raw HTML) ===
+
+  (The live's app routes ship og:image/twitter:image URL-ONLY; the clone's
+  unpinned dimension addition is stripped. The og:image URL itself is the
+  infra variance family. MATCH = both sites carry NO dimension/alt member.)
+
+  MATCH / og:image:width   clone=null | live=null
+  MATCH / og:image:height  clone=null | live=null
+  MATCH / og:image:alt     clone=null | live=null
+  MATCH / twitter:image:alt  clone=null | live=null
+  MATCH / theme-color       clone=null | live=null
+  MATCH /Courses og:image:width   clone=null | live=null
+  MATCH /Courses og:image:height  clone=null | live=null
+  MATCH /Courses og:image:alt     clone=null | live=null
+  MATCH /Courses twitter:image:alt  clone=null | live=null
+  MATCH /Courses theme-color       clone=null | live=null
+  MATCH /nope og:image:width   clone=null | live=null
+  MATCH /nope og:image:height  clone=null | live=null
+  MATCH /nope og:image:alt     clone=null | live=null
+  MATCH /nope twitter:image:alt  clone=null | live=null
+  MATCH /nope theme-color       clone=null | live=null
+
+=== PART 3: THE REVEAL-UNDER-REDUCED-MOTION NO-ADAPTATION (both sites) ===
+
+  clone opacity samples (reduce): 0.00 -> 0.00 -> 0.00 -> 0.00 -> 0.25 -> 0.56 -> 0.79 -> 0.88 -> 0.96 -> 1.00 -> 1.00 -> 1.00
+  live  opacity samples (reduce): 0.00 -> 0.00 -> 0.00 -> 0.01 -> 0.22 -> 0.54 -> 0.77 -> 0.88 -> 0.97 -> 1.00 -> 1.00 -> 1.00
+  (Both sites' reveal entries ANIMATE under prefers-reduced-motion: reduce —
+  the live's framer-motion is unconfigured (no MotionConfig reducedMotion=
+  "user"); the clone's WAAPI matches. The no-adaptation contract, pinned.)
+
+=== PART 4: THE STATIC-ASSET SLASH MATRIX (clone vs live) ===
+
+  (The live's 200-SPA-shell column is the platform's 200-for-everything
+  posture — the documented s24 deliberate-better family; its /favicon.ico
+  302 and /manifest.json 302 are platform chrome — the variance family.)
+
+  /manifest.json         clone=200 application/json         | live=302 -
+  /manifest.json/        clone=200 application/json         | live=200 text/html
+  /robots.txt            clone=200 text/plain               | live=200 text/plain
+  /robots.txt/           clone=200 text/plain               | live=200 text/html
+  /sitemap.xml           clone=200 application/xml          | live=200 application/xml
+  /sitemap.xml/          clone=200 application/xml          | live=200 text/html
+  /logo.png              clone=200 image/png                | live=200 text/html
+  /logo.png/             clone=200 image/png                | live=200 text/html
+  /favicon.ico           clone=404 -                        | live=302 -
+  /nonexistent.png       clone=404 text/html                | live=200 text/html
+  /nonexistent.png/      clone=404 text/html                | live=200 text/html
+
+=== PART 5: THE ENV CONTRACT ===
+
+  .env == .env.example: true
+  DATABASE_URL="file:../db/custom.db": true
+  db/custom.db at the repo root: true

@@ -48,18 +48,80 @@ describe("routeMetadata — per-route OG identity (session 6)", () => {
       type?: string;
       siteName?: string;
       description?: string;
-      images?: Array<{ url: string; width: number; height: number; alt: string }>;
+      images?: Array<{ url: string }>;
     };
     expect(og.description).toBe(REFERENCE_DESCRIPTION);
     expect(og.type).toBe("website");
     expect(og.siteName).toBe("NexusLearn");
-    expect(og.images).toEqual([
-      { url: "/logo.png", width: 1200, height: 630, alt: "NexusLearn" },
-    ]);
+    // Session 41 (finding 2 — the head census): the LIVE's app-shell routes
+    // ship og:image/twitter:image URL-ONLY (no width/height/alt on any of
+    // the 12 probed app shapes) — the dimensions were an unpinned
+    // beyond-reference addition, now stripped for exact parity.
+    expect(og.images).toEqual([{ url: "/logo.png" }]);
     const twitter = m.twitter as { card?: string; description?: string; images?: string[] };
     expect(twitter.card).toBe("summary_large_image");
     expect(twitter.description).toBe(REFERENCE_DESCRIPTION);
     expect(twitter.images).toEqual(["/logo.png"]);
+  });
+});
+
+describe("routeMetadata — the auth-shell head family (session 41)", () => {
+  // The live's two platform-AUTH routes (/login + /reset-password incl. its
+  // ?token= variant) carry an auth-shell head family the app routes never
+  // see (probed on all 14 live route shapes): the og:image gains
+  // width=1200/height=630/alt="Base44 link preview" AND twitter carries
+  // twitter:image:alt="Base44 link preview" — the platform generator's
+  // artifact, mirrored byte-exactly (the platform-404-body precedent).
+  it("authShell: true carries the og:image dimensions + the platform alt", () => {
+    const m = routeMetadata({ canonical: "/login", authShell: true });
+    const og = m.openGraph as {
+      images?: Array<{ url: string; width?: number; height?: number; alt?: string }>;
+    };
+    expect(og.images).toEqual([
+      { url: "/logo.png", width: 1200, height: 630, alt: "Base44 link preview" },
+    ]);
+    const twitter = m.twitter as {
+      images?: Array<{ url: string; alt?: string }>;
+    };
+    expect(twitter.images).toEqual([{ url: "/logo.png", alt: "Base44 link preview" }]);
+  });
+
+  it("the default (app) payload carries NO image dimensions or alt — the live's URL-only app shape", () => {
+    for (const args of [
+      { title: "Courses", canonical: "/Courses" },
+      { canonical: "/login" },
+    ]) {
+      const m = routeMetadata(args);
+      const og = m.openGraph as {
+        images?: Array<{ url: string; width?: number; height?: number; alt?: string }>;
+      };
+      expect(og.images).toEqual([{ url: "/logo.png" }]);
+      // Twitter's app shape is the plain-string image list (Next renders
+      // <meta name="twitter:image"> only — no alt, no dims).
+      const twitter = m.twitter as { images?: string[] };
+      expect(twitter.images).toEqual(["/logo.png"]);
+    }
+  });
+
+  it("authShell changes ONLY the image family — the canonical/query processing is identical (the s39 contract)", () => {
+    const app = routeMetadata({ canonical: "/reset-password", search: "?token=abc&utm_source=z" });
+    const auth = routeMetadata({
+      canonical: "/reset-password",
+      search: "?token=abc&utm_source=z",
+      authShell: true,
+    });
+    expect(auth.alternates?.canonical).toBe(app.alternates?.canonical);
+    expect(auth.openGraph?.url).toBe(app.openGraph?.url);
+    expect(auth.twitter?.title).toBe(app.twitter?.title);
+    expect((auth.other as Record<string, string>)["twitter:url"]).toBe(
+      (app.other as Record<string, string>)["twitter:url"]
+    );
+  });
+
+  it("authShell keeps the no-title ABSOLUTE form (the plain NexusLearn title)", () => {
+    const m = routeMetadata({ canonical: "/login", authShell: true });
+    expect(m.title).toEqual({ absolute: "NexusLearn" });
+    expect(m.openGraph?.title).toBe("NexusLearn");
   });
 });
 

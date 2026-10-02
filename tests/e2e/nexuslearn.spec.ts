@@ -5749,6 +5749,225 @@ test.describe("session-40 parity: the LCP/FCP/CLS budget", () => {
   }
 });
 
+// ─── session-41 parity: the auth-shell head family + the head census pins ──
+// Fresh-eyes family A — the COMPLETE per-route head census (every meta/link
+// on all 14 live route shapes, extracted order-agnostically from the raw SSR
+// HTML) found the live's two platform-AUTH routes (/login + /reset-password,
+// incl. its ?token= variant) carrying a head family the app routes NEVER
+// see, and the inverse: the app routes ship og:image URL-ONLY where the
+// clone shipped unpinned dimensions on every route.
+//
+// The live's auth-shell family (mirrored here): viewport-fit=cover in the
+// viewport meta, <meta name="theme-color" content="#000000">, the
+// apple-touch-icon link (sizes="180x180"), og:image:width=1200 +
+// og:image:height=630 + og:image:alt="Base44 link preview" +
+// twitter:image:alt="Base44 link preview" (the platform generator's string,
+// mirrored byte-exactly — the platform-404-body precedent).
+//
+// Documented variance (uncontrollable at the app layer): the live's
+// "initial-scale=1.0" notation (Next serializes initialScale: 1 as "1" —
+// the parsed viewport is identical) and the live's infra URLs (the
+// supabase render/icon URLs — the clone's /logo.png equivalent, the same
+// family as rel:icon).
+test.describe("session-41 parity: the auth-shell head family", () => {
+  // The raw-HTML request level (the s38 house pattern — head assertions
+  // never depend on client hydration).
+  const authShapes = ["/login", "/reset-password", "/reset-password?token=abc"];
+
+  for (const shape of authShapes) {
+    test(`${shape} carries the full auth-shell head family (viewport-fit, theme-color, apple-touch-icon, image dims/alt)`, async ({ request }) => {
+      const res = await request.get(shape);
+      expect(res.status()).toBe(200);
+      const html = await res.text();
+      // (a) the viewport meta gains viewport-fit=cover (the notch-extends-
+      // webview rendering mode — user-visible on iOS).
+      const viewport = html.match(/<meta name="viewport" content="([^"]*)"/)?.[1];
+      expect(viewport, "viewport meta present").toBeTruthy();
+      expect(viewport!, "viewport-fit=cover (the auth-shell family)").toContain("viewport-fit=cover");
+      expect(viewport!, "the base width/initialScale restated").toContain("width=device-width");
+      // (b) the mobile browser chrome tint.
+      expect(html).toContain('<meta name="theme-color" content="#000000"/>');
+      // (c) the iOS home-screen icon — the live's auth shell ships it with
+      // sizes="180x180" (the href is the clone's /logo.png — the infra-URL
+      // variance family, the same relationship as rel:icon).
+      const apple = html.match(/<link rel="apple-touch-icon"([^>]*)>/)?.[1] ?? "";
+      expect(apple, "apple-touch-icon present on the auth shell").toContain('href="/logo.png"');
+      expect(apple, "the live's sizes attribute").toContain('sizes="180x180"');
+      // (d) the og:image dimensions + the platform alt + twitter:image:alt.
+      expect(html).toContain('<meta property="og:image:width" content="1200"/>');
+      expect(html).toContain('<meta property="og:image:height" content="630"/>');
+      expect(html).toContain('<meta property="og:image:alt" content="Base44 link preview"/>');
+      expect(html).toContain('<meta name="twitter:image:alt" content="Base44 link preview"/>');
+      // The s37/s6 pins re-asserted alongside (the family changes NOTHING
+      // else): the plain title + the token-carrying canonical family.
+      expect(html).toContain("<title>NexusLearn</title>");
+      const canonical = html.match(/<link rel="canonical" href="([^"]*)"/)?.[1] ?? "";
+      const ogUrl = html.match(/<meta property="og:url" content="([^"]*)"/)?.[1] ?? "";
+      // The s38 house pattern: origin-agnostic path + query assertions.
+      const pathAndQuery = (u: string) => `${new URL(u).pathname}${new URL(u).search}`;
+      expect(pathAndQuery(canonical), "canonical path+query").toBe(shape);
+      expect(pathAndQuery(ogUrl), "og:url path+query").toBe(shape);
+    });
+  }
+
+  test("the app routes carry the URL-ONLY image family + the plain viewport (no auth-shell leakage)", async ({ request }) => {
+    // The live's app-shell routes (all 9 content routes + the 404, probed)
+    // ship og:image/twitter:image URL-ONLY — NO dimensions, NO alt — and the
+    // plain viewport with NO viewport-fit and NO theme-color.
+    for (const shape of ["/", "/Courses", "/no-such-page-s41"]) {
+      const res = await request.get(shape);
+      const html = await res.text();
+      for (const absent of [
+        '<meta property="og:image:width"',
+        '<meta property="og:image:height"',
+        '<meta property="og:image:alt"',
+        '<meta name="twitter:image:alt"',
+        '<meta name="theme-color"',
+        'rel="apple-touch-icon"',
+        "viewport-fit=cover",
+      ]) {
+        expect(html.includes(absent), `${shape} must not carry ${absent}`).toBe(false);
+      }
+      // The image URL itself survives (the s6 pin).
+      expect(html).toContain('<meta property="og:image"');
+      const ogImage = html.match(/<meta property="og:image" content="([^"]*)"/)?.[1] ?? "";
+      expect(ogImage).toContain("/logo.png");
+      const viewport = html.match(/<meta name="viewport" content="([^"]*)"/)?.[1] ?? "";
+      expect(viewport, "the plain app viewport").toBe("width=device-width, initial-scale=1");
+    }
+  });
+});
+
+test.describe("session-41 parity: the reveal-under-reduced-motion no-adaptation contract", () => {
+  // Fresh-eyes family C: the s22 media-emulation pin froze transition
+  // DURATIONS under reduce; the reveal ENTRY engine (the live's
+  // framer-motion vs the clone's WAAPI) was never probed under reduce.
+  // Probed on both sites: the reveal transitions PLAY under
+  // prefers-reduced-motion: reduce (the live's framer-motion is
+  // unconfigured — no MotionConfig reducedMotion="user"; the clone's WAAPI
+  // does not auto-respect the query). This pin freezes the matching
+  // no-adaptation contract: a future accessibility pass cannot diverge the
+  // clone from the live without the documentation gate.
+  test("the reveal entry animation still transitions under prefers-reduced-motion: reduce (the live's no-adaptation contract)", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1500);
+    const samples = await page.evaluate(async () => {
+      // A below-fold reveal target (pre-hidden at mount, revealed on scroll).
+      const targets = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
+      let target: HTMLElement | null = null;
+      for (const el of targets) {
+        const r = el.getBoundingClientRect();
+        if (r.top > 900 && getComputedStyle(el).opacity === "0") { target = el; break; }
+      }
+      if (!target) return null;
+      target.scrollIntoView({ block: "center" });
+      const ops: string[] = [];
+      for (let i = 0; i < 18; i++) {
+        ops.push(getComputedStyle(target).opacity);
+        await new Promise((r) => setTimeout(r, 40));
+      }
+      return ops;
+    });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    expect(samples, "a pre-hidden below-fold target exists on /").not.toBeNull();
+    // The no-adaptation contract: the entry ANIMATES under reduce — the
+    // sampled sequence contains intermediate opacities (not the instant
+    // 0 -> 1 snap a reduced-motion-respecting engine would produce).
+    const distinct = new Set(samples!);
+    expect(distinct.size, `intermediate opacities observed: ${[...distinct].join(",")}`).toBeGreaterThan(2);
+    expect(samples!.at(-1), "the reveal completes").toBe("1");
+  });
+});
+
+test.describe("session-41 parity: the route-transition loading UX", () => {
+  // Fresh-eyes family B: under throttle the live's in-app nav swaps
+  // INSTANTLY (its SPA carries every route in the initial bundle) and shows
+  // NO loading shell; the clone keeps the OLD page visible until the RSC
+  // payload commits (force-dynamic + no loading.tsx -> nothing prefetched)
+  // — also NO loading indicator. Two pinned contracts: (a) NO spinner/
+  // loading element appears during navigation (a loading.tsx would ADD one
+  // the live never shows — the documented reason none exists); (b) the
+  // old-page-persist (the React-transition deliberate-better).
+  test("no loading shell appears during a slow in-app navigation; the old page persists until the RSC commit", async ({ page }) => {
+    await page.goto("/Courses");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1000);
+
+    // Hold the target route's RSC payload fetch open for 800ms (the s18
+    // transient-state pattern — page.route + a delayed continue).
+    await page.route("**/About*", async (route) => {
+      const req = route.request();
+      if (req.headers()["rsc"] || req.headers()["next-router-state-tree"]) {
+        await new Promise((r) => setTimeout(r, 800));
+      }
+      await route.continue();
+    });
+
+    await page.click('nav a[href="/About"]');
+    await page.waitForTimeout(400); // mid-flight (the payload is still held)
+
+    // (a) NO spinner/loader element appears mid-flight.
+    const spinners = await page.evaluate(() =>
+      document.querySelectorAll(
+        "[class*='animate-spin'], [class*='loader'], [class*='spinner'], [class*='loading']"
+      ).length
+    );
+    expect(spinners, "no loading indicator mid-navigation (the live's no-loading-shell contract)").toBe(0);
+
+    // (b) The OLD page's h1 is still visible mid-flight (the
+    // old-page-persist deliberate-better).
+    const h1 = await page.locator("main h1").innerText();
+    expect(h1).toContain("Explore Our Courses");
+
+    // (c) The NEW page renders after the payload resolves.
+    await page.waitForURL("/About", { timeout: 10000 });
+    await expect(page.locator("main h1")).toContainText("About NexusLearn", { timeout: 5000 });
+  });
+});
+
+test.describe("session-41 parity: the static-asset slash tolerance", () => {
+  // Fresh-eyes family D: under skipTrailingSlashRedirect (s40) the clone
+  // serves REAL static files at single-trailing-slash paths (the flag's
+  // static-tier side effect — never pinned) and 404s nonexistent assets.
+  // The LIVE 200s the SPA shell (text/html) for every one of these shapes
+  // (the platform's 200-for-everything posture — the documented s24
+  // deliberate-better family) and 302s /favicon.ico to its logo (platform
+  // chrome; the clone 404s it — the documented variance family).
+  test("real static files resolve at single-trailing-slash paths (byte-identical bodies)", async ({ request }) => {
+    for (const [asset, type] of [
+      ["/manifest.json", "application/json"],
+      ["/robots.txt", "text/plain"],
+      ["/sitemap.xml", "application/xml"],
+      ["/logo.png", "image/png"],
+    ] as const) {
+      const canonical = await request.get(asset);
+      const slashed = await request.get(`${asset}/`);
+      expect(canonical.status(), `${asset} canonical status`).toBe(200);
+      expect(slashed.status(), `${asset}/ resolves (the flag's static-tier tolerance)`).toBe(200);
+      expect(slashed.headers()["content-type"]?.split(";")[0], `${asset}/ content-type`).toBe(type);
+      expect(await slashed.text(), `${asset}/ body identical to the canonical path`).toBe(
+        await canonical.text()
+      );
+    }
+  });
+
+  test("nonexistent assets 404 at both slash shapes (the real-404 deliberate-better); /favicon.ico 404s (the documented variance)", async ({ request }) => {
+    for (const shape of ["/nonexistent-s41.png", "/nonexistent-s41.png/"]) {
+      const res = await request.get(shape);
+      expect(res.status(), `${shape} -> the real 404 (the live 200s its SPA shell)`).toBe(404);
+    }
+    // The live 302s /favicon.ico to its supabase logo (platform chrome);
+    // the clone ships no favicon.ico file — the documented variance family
+    // (both sites' heads point rel:icon at the logo, so no browser fetches
+    // favicon.ico in practice).
+    const favicon = await request.get("/favicon.ico");
+    expect(favicon.status()).toBe(404);
+  });
+});
+
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a

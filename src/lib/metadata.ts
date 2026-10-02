@@ -29,6 +29,20 @@ import { processCanonicalQuery } from "./canonical-query";
  * search string (the proxy-injected x-nexus-raw-search header, read by
  * src/lib/page-metadata.ts — the header-reading half lives there so this
  * module stays free of next/headers and unit-importable).
+ *
+ * Session 41 — the auth-shell head family (fresh-eyes family A: the complete
+ * per-route head census, probed on all 14 live route shapes): the live's two
+ * platform-AUTH routes (/login + /reset-password, incl. its ?token= variant)
+ * carry a head family the app routes NEVER see — the og:image gains
+ * width=1200/height=630/alt="Base44 link preview", twitter gains
+ * twitter:image:alt="Base44 link preview", and (via the page wiring) the
+ * viewport meta gains viewport-fit=cover + a theme-color #000000 meta + the
+ * apple-touch-icon link (sizes="180x180"). The platform alt string is
+ * mirrored byte-exactly (the platform-404-body precedent — the observable
+ * contract is the string itself). The INVERSE finding: the live's app-shell
+ * routes (all 9 content routes + the 404) ship og:image/twitter:image
+ * URL-ONLY — the dimensions the clone shipped on every route were an
+ * unpinned beyond-reference addition, now stripped for exact parity.
  */
 
 export const REFERENCE_DESCRIPTION =
@@ -48,6 +62,7 @@ export function routeMetadata({
   title,
   canonical,
   search = "",
+  authShell = false,
 }: {
   /** Title segment (e.g. "Courses") — omitted on / and /login (reference behavior). */
   title?: string;
@@ -55,6 +70,13 @@ export function routeMetadata({
   canonical: string;
   /** The RAW search string ("?x=1") — processed per the pinned algorithm. */
   search?: string;
+  /**
+   * Session 41 — the platform-AUTH head family (only /login +
+   * /reset-password): the live's auth shell ships the dimensioned og:image
+   * (1200x630 + the platform alt) and the apple-touch-icon link. The app
+   * routes keep the URL-only image family (the live's app-shell shape).
+   */
+  authShell?: boolean;
 }): Metadata {
   // The resolved document title: "Courses | NexusLearn" with a segment,
   // plain "NexusLearn" without (matches the root title template).
@@ -79,14 +101,25 @@ export function routeMetadata({
       url: canonicalWithQuery,
       type: "website",
       siteName: SITE_NAME,
-      images: [{ url: "/logo.png", width: 1200, height: 630, alt: SITE_NAME }],
+      // Session 41: URL-only on the app routes (the live's app-shell shape —
+      // probed on all 12 app route shapes: no width/height/alt anywhere);
+      // the auth routes carry the live's auth-shell dimensions + alt.
+      images: authShell
+        ? [{ url: "/logo.png", width: 1200, height: 630, alt: "Base44 link preview" }]
+        : [{ url: "/logo.png" }],
     },
     twitter: {
       card: "summary_large_image",
       title: resolvedTitle,
       description: REFERENCE_DESCRIPTION,
-      images: ["/logo.png"],
+      images: authShell ? [{ url: "/logo.png", alt: "Base44 link preview" }] : ["/logo.png"],
     },
+    // Session 41: the auth shell's apple-touch-icon (the live's sizes
+    // attribute probed verbatim). The page-level icons key REPLACES the
+    // layout's wholesale, so the icon is restated alongside the addition.
+    ...(authShell
+      ? { icons: { icon: "/logo.png", apple: [{ url: "/logo.png", sizes: "180x180" }] } }
+      : {}),
     // Session 38: the live's twitter:url (every route — the missing sixth
     // head dimension). Rendered verbatim by Next's `other` map.
     other: { "twitter:url": twitterUrlFor(canonicalWithQuery) },

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import { ResetPasswordGate } from "@/components/ResetPasswordForm";
 import { pageMetadata } from "@/lib/page-metadata";
@@ -29,8 +29,20 @@ import { pageMetadata } from "@/lib/page-metadata";
  * request, and the layout's force-dynamic keeps the CSP nonce path).
  */
 export async function generateMetadata(): Promise<Metadata> {
-  return pageMetadata({ canonical: "/reset-password" });
+  // Session 41 — the auth-shell head family (fresh-eyes family A: the live's
+  // /reset-password — like /login — is served by the platform's auth shell,
+  // whose head carries the family the app routes never see).
+  return pageMetadata({ canonical: "/reset-password", authShell: true });
 }
+
+// Session 41 — the live's auth-shell viewport family (identical to
+// /login's): viewport-fit=cover + theme-color #000000.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#000000",
+};
 
 export default function ResetPasswordPage() {
   return (

@@ -82,7 +82,10 @@ export async function generateMetadata(): Promise<Metadata> {
       url: derivedCanonical,
       type: "website",
       siteName: "NexusLearn",
-      images: [{ url: "/logo.png", width: 1200, height: 630, alt: "NexusLearn" }],
+      // Session 41 (finding 2 — the head census): URL-only, matching the
+      // live's app-shell family (its 404 + content routes ship og:image
+      // with no dimensions/alt — probed on every shape).
+      images: [{ url: "/logo.png" }],
     },
     twitter: {
       card: "summary_large_image",
