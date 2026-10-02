@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 
+import { db } from "@/lib/db";
 import { verifySessionToken, SESSION_MAX_AGE, type SessionUser } from "@/lib/session";
 
 /**
@@ -31,10 +32,28 @@ export {
   SessionSecretError,
 } from "@/lib/session";
 
-/** Read the current session from cookies (RSC + route handlers). */
+/**
+ * Read the current session from cookies (RSC + route handlers).
+ *
+ * Session 34 — the revocation contract: the token's claims are RE-VALIDATED
+ * against the database on every read. The pure verifySessionToken proves the
+ * signature + the iat window; this adapter additionally proves the USER
+ * still exists and the token's epoch (`ver`) matches the user's current
+ * `sessionVersion`. Pre-fix a DELETED user's token authenticated until its
+ * 7-day iat bound (the ghost-token probe) and the only revocation lever was
+ * rotating the global AUTH_SECRET. The session's email/name also refresh
+ * from the row, so a renamed user's token cannot serve stale claims.
+ */
 export async function getSession(): Promise<SessionUser | null> {
   const store = await cookies();
-  return verifySessionToken(store.get(SESSION_COOKIE)?.value);
+  const token = verifySessionToken(store.get(SESSION_COOKIE)?.value);
+  if (!token) return null;
+  const user = await db.user.findUnique({
+    where: { id: token.userId },
+    select: { email: true, name: true, sessionVersion: true },
+  });
+  if (!user || user.sessionVersion !== (token.ver ?? 0)) return null;
+  return { userId: token.userId, email: user.email, name: user.name, ver: user.sessionVersion };
 }
 
 export const sessionCookieOptions = {

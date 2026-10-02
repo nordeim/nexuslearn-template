@@ -61,7 +61,10 @@ export async function POST(req: NextRequest) {
     });
     res.cookies.set(
       SESSION_COOKIE,
-      createSessionToken({ userId: user.id, email: user.email, name: user.name }),
+      createSessionToken(
+        { userId: user.id, email: user.email, name: user.name },
+        user.sessionVersion
+      ),
       sessionCookieOptions
     );
     return res;

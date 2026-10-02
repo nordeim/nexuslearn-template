@@ -64,6 +64,8 @@ Nothing is here "because it's popular."
 
 ---
 
+- `[S34]` Session 34 revocation-epoch + bundle-budget + SMTP-drill pass (see `docs/remediation-plan-session34.md`): the standing re-audit GREEN on every surface (the full baseline gate 300/300; heights ×9 routes ×2 viewports byte-exact 18/18, innerText 18/18 identical, tag drift 0, the mobile battery identical — no Tailwind v4 bug — console 9/10) + THREE probe families. (1) **The session-revocation / deleted-user surface** (the session-33 suggested direction): `getSession()` verified the HMAC + the iat bounds but NEVER re-validated the user against the database — a DELETED user's token authenticated until its 7-day iat bound (the ghost-token probe: `/api/auth/me` kept serving the full user object after the row was gone; only the FK schema stopped ghost writes, with zero orphan rows). Fixed: the **per-user epoch** — `User.sessionVersion Int @default(0)` embedded in the signed payload at mint (`ver`, via `createSessionToken(user, sessionVersion)`) and re-compared on every `getSession()` read (ONE indexed `findUnique` in the adapter; the pure `session.ts` stays DB-free for the unit layer). Pre-34 tokens read `ver: 0` and stay valid — no forced re-login wave. The operator levers: `UPDATE User SET sessionVersion = sessionVersion + 1` kills that user's outstanding tokens WITHOUT rotating the global AUTH_SECRET; deleting the user kills them too. The session-32 e2e control had PINNED the ghost behavior (a nonexistent userId mint asserting 200) — updated to mint for the real seeded demo user. (2) **The per-route delivered-JS budget surface** (the s33 recorded baseline converted into a spec): measured 536–662 KB per route on the production standalone vs the live's 727 KB SPA monolith (max `/Courses` at 91%) — pinned by the budget spec so a heavy shared-chunk import trips RED. (3) **The SMTP-transport drill** (docs): the concrete swap-in drill for the simulated verify-code + reset deliveries now in DEPLOYMENT.md §12 (the §10 known issue referenced it). TDD: 7 new unit specs + 3 new e2e pins. Test pyramid 113 unit + 303 e2e (416 total).
+
 ## 1. System Overview & Decisions
 
 ### 1.1 Document Metadata & Purpose
@@ -254,12 +256,12 @@ nexuslearn-template/
 │       ├── session.ts          # pure crypto: HMAC token sign/verify, scrypt hash/verify
 │       ├── auth.ts             # cookies() adapter + re-exports (server-only)
 │       └── utils.ts            # cn()
-├── tests/                     # 19 unit files, 106 specs (Vitest) + 2 e2e files, 300 specs (Playwright)
-│   ├── *.test.ts              # unit: auth crypto, session lifetime, timing equalizer, secret enforcement, tags, eyebrow, metadata, seed shape, db-url, svg/img guards, locale, request guard, throttle, api-guard source pin, logout-cookie + dependency pins
+├── tests/                     # 20 unit files, 113 specs (Vitest) + 2 e2e files, 303 specs (Playwright)
+│   ├── *.test.ts              # unit: auth crypto, session lifetime, timing equalizer, secret enforcement, session revocation (the epoch battery), tags, eyebrow, metadata, seed shape, db-url, svg/img guards, locale, request guard, throttle, api-guard source pin, logout-cookie + dependency pins
 │   └── e2e/
 │       ├── global-setup.ts     # push + seed db/e2e.db, reset enrollments
 │       ├── mobile-navigation.spec.ts   # 12 specs — the Tailwind v4 regression guard battery
-│       └── nexuslearn.spec.ts           # 288 specs — the session-2..33 parity blocks (see §7.1)
+│       └── nexuslearn.spec.ts           # 291 specs — the session-2..34 parity blocks (see §7.1)
 ├── docs/
 │   ├── screenshots/            # QA captures (desktop + mobile + open mobile menu)
 │   ├── DEPLOYMENT.md           # production deployment guide
@@ -506,6 +508,7 @@ Durations 300–700ms, `cubic-bezier(0.4, 0, 0.2, 1)`. Signature moves: nav stat
 | Rule | Enforcement |
 |---|---|
 | Session tokens are HMAC-signed and timing-safe compared | `session.ts` (`timingSafeEqual`); unit-tested |
+| Sessions are REVOCABLE server-side (session 34) | `getSession()` re-validates the user row + the per-user epoch (`User.sessionVersion` vs the token's `ver`) on every read — a deleted user's token dies with the row; a bumped epoch kills every outstanding token for that user (see §6.4) |
 | Passwords never stored or logged in plaintext | scrypt (`salt:hash`, 64-byte); no plaintext fields |
 | Session cookie is httpOnly + sameSite=lax + secure in production | `sessionCookieOptions` in `auth.ts` |
 | Protected pages deny at the server | `/Dashboard` renders the signed-out state for visitors (reference parity — no redirect; auth-gated APIs still 401) |
@@ -528,6 +531,7 @@ Single role (authenticated learner). `POST /api/auth/login` verifies scrypt, set
 | Vector | Mitigation |
 |---|---|
 | Cookie forgery | HMAC-SHA256 + timing-safe compare; `AUTH_SECRET` required in prod |
+| Stale/leaked token after account removal or compromise | per-user epoch re-checked in `getSession()` (session 34): delete the row or bump `sessionVersion` — no AUTH_SECRET rotation needed (the 7-day iat window alone was the pre-34 gap) |
 | Password DB leak | scrypt with per-user salt |
 | CSRF on mutations | sameSite=lax cookies + JSON-only endpoints (cross-site form posts can't set JSON content type); logout is the only state-changing form-POSTable route and is benign |
 | Enrollment IDOR | progress route checks ownership; enrollments scoped to `session.userId` |
@@ -560,6 +564,7 @@ Single role (authenticated learner). `POST /api/auth/login` verifies scrypt, set
 | Unit (session-lifetime boundary battery + logout-cookie + dependency pins, session 32) | 3 | 15 | `tests/session-lifetime.test.ts` + `tests/logout-cookie-source.test.ts` + `tests/dependency-pin.test.ts` | Vitest (node env) |
 | Unit (login timing-equalizer battery + source pin, session 33) | 1 | 5 | `tests/login-timing-source.test.ts` | Vitest (node env) |
 | Unit (secret-enforcement battery — resolveSessionSecret, session 33) | 1 | 7 | `tests/secret-enforcement.test.ts` | Vitest (node env) |
+| Unit (session-revocation epoch battery — ver embed/return + the pre-34 graceful-compat contract + the source pins, session 34) | 1 | 7 | `tests/session-revocation.test.ts` | Vitest (node env) |
 ode env) |
 | E2E mobile navigation | 1 | 12 | `tests/e2e/mobile-navigation.spec.ts` | Playwright (Chromium, 375×667 touch) |
 | E2E user journeys + parity (sessions 2–14 blocks) | 1 | 159 | `tests/e2e/nexuslearn.spec.ts` | Playwright (Desktop Chrome) |
@@ -581,6 +586,7 @@ ode env) |
 | E2E session-31 request-size/rate-limit parity (the four routes' field caps + the 413 pre-check + the turn cap + the happy-path guards + the 20-request burst) | 1 | 8 | `tests/e2e/nexuslearn.spec.ts` | Playwright (Desktop Chrome) |
 | E2E session-32 session-lifetime/logout-symmetry/aria-live parity (the stale/future token rejections + the logout attribute set + the chat announcements) | 1 | 5 | `tests/e2e/nexuslearn.spec.ts` | Playwright (Desktop Chrome) |
 | E2E session-33 verify-guard/timing-equalizer/throttle parity (the verify 413 + field cap + the login scrypt-timing floor + the 11x verify burst — the suite's last spec) | 1 | 4 | `tests/e2e/nexuslearn.spec.ts` | Playwright (Desktop Chrome) |
+| E2E session-34 revocation-epoch/bundle-budget parity (the deleted-user ghost probe + the epoch bump with the fresh-login control + the per-route delivered-JS budget under the live's 727KB monolith ceiling) | 1 | 3 | `tests/e2e/nexuslearn.spec.ts` | Playwright (Desktop Chrome) |
 | Computed-style parity | harness | 32 assertions + VLM band comparisons + the session-12 computed-shadow pins | recorded vs `src/app/globals.css` + components | measured via browser (see §5) |
 
 ### 7.2 Test Patterns
@@ -599,8 +605,8 @@ No numeric gate configured; the required **pre-push gate** is the sequence `lint
 
 - [ ] `bun run lint` clean
 - [ ] `bun run typecheck` clean
-- [ ] `bun run test` 106/106
-- [ ] `bun run test:e2e` 300/300 (incl. 12 mobile-nav specs: the 10 original guards + the 2 session-22 additions)
+- [ ] `bun run test` 113/113
+- [ ] `bun run test:e2e` 303/303 (incl. 12 mobile-nav specs: the 10 original guards + the 2 session-22 additions)
 - [ ] `bun run build` compiles (standalone)
 - [ ] Mobile menu manually eyeballed at 375×667 (screenshot diff vs `docs/screenshots/`)
 - [ ] No new `tailwind.config.js` (Tailwind v4 is CSS-first)
@@ -670,7 +676,7 @@ TypeScript strict; function-declaration components; `cn()` for classes; CVA for 
 
 | Priority | Issue | Impact | Status |
 |---|---|---|---|
-| LOW | Email delivery is simulated (signup verify code logged server-side; any 6-digit code verifies; forgot-password always ok) | Wire real SMTP + code comparison before production | Open (documented template simplification) |
+| LOW | Email delivery is simulated (signup verify code logged server-side; any 6-digit code verifies; forgot-password always ok) | Wire real SMTP + code comparison before production — the concrete swap-in drill now lives in `docs/DEPLOYMENT.md` §12 | Open (documented template simplification + the drill) |
 | LOW | "Continue with Google" is presentational (the reference's button IS wired — it redirects to real Google OAuth through the base44 platform, which cannot transfer to this standalone repo without the operator's own OAuth client) | Button matches reference; no provider behind it | Open (by design — platform-locked) |
 | LOW | No `prefers-reduced-motion` handling for hover/menu animations | Accessibility nicety missing (reference-matched: the live app ships no reduced-motion override either — verified session 12) | Open |
 | LOW | AI chat is not streaming (JSON response) | Perceived latency on long answers (reference-matched: the live's own chat is a one-shot `InvokeLLM` XHR rendering the complete answer in a single frame — verified session 12) | Open |

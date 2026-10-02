@@ -35,11 +35,12 @@ function mintWithIat(claim: number): string {
 
 describe("session-lifetime (server-side iat enforcement)", () => {
   it("a freshly-issued token verifies", () => {
-    expect(verifySessionToken(createSessionToken(user))).toEqual(user);
+    // session-34: the default mint carries ver: 0 (no epoch in the helper payload).
+    expect(verifySessionToken(createSessionToken(user))).toEqual({ ...user, ver: 0 });
   });
 
   it("a 6-day-old token is still within the window", () => {
-    expect(verifySessionToken(mintWithIat(Date.now() - 6 * DAY))).toEqual(user);
+    expect(verifySessionToken(mintWithIat(Date.now() - 6 * DAY))).toEqual({ ...user, ver: 0 });
   });
 
   it("an 8-day-old token is REJECTED (past the 7-day window)", () => {
@@ -55,7 +56,7 @@ describe("session-lifetime (server-side iat enforcement)", () => {
   });
 
   it("a future-issued token within the 60s clock skew still verifies", () => {
-    expect(verifySessionToken(mintWithIat(Date.now() + 30 * 1000))).toEqual(user);
+    expect(verifySessionToken(mintWithIat(Date.now() + 30 * 1000))).toEqual({ ...user, ver: 0 });
   });
 
   it("a token without iat is REJECTED (the field is now mandatory)", () => {

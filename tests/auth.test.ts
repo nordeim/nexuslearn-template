@@ -11,7 +11,8 @@ describe("session tokens (HMAC cookie auth)", () => {
   it("round-trips a session user", () => {
     const token = createSessionToken({ userId: "u1", email: "a@b.co", name: "Ada" });
     const session = verifySessionToken(token);
-    expect(session).toEqual({ userId: "u1", email: "a@b.co", name: "Ada" });
+    // session-34: the round-trip carries the epoch (ver: 0 — the default mint).
+    expect(session).toEqual({ userId: "u1", email: "a@b.co", name: "Ada", ver: 0 });
   });
 
   it("rejects tampered payloads", () => {

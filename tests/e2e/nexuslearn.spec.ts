@@ -4424,12 +4424,29 @@ test.describe("session-32 parity: the server-side session-lifetime surface", () 
   const claim = { userId: "s32-stale-probe-user", email: "probe@example.com", name: "Probe" };
 
   test("a freshly-minted signed token still authenticates (the control)", async ({ request }) => {
+    // session-34: the control now carries the revocation contract — the
+    // mint must reference the REAL seeded demo user (looked up from the
+    // isolated e2e database), because getSession() re-validates the user
+    // row + the epoch on every read. The pre-34 control minted a token for
+    // a NONEXISTENT userId and passed — the pin had codified the ghost
+    // behavior the session-34 fix closed.
+    const db = await s34SpecDb();
+    let demoUserId: string;
+    try {
+      const demo = await db.user.findUniqueOrThrow({
+        where: { email: "sepnetflix2023@outlook.com" },
+        select: { id: true },
+      });
+      demoUserId = demo.id;
+    } finally {
+      await db.$disconnect();
+    }
     const res = await request.get("/api/auth/me", {
-      headers: { cookie: `nexus_session=${mintToken({ ...claim, iat: Date.now() })}` },
+      headers: { cookie: `nexus_session=${mintToken({ ...claim, userId: demoUserId, iat: Date.now() })}` },
     });
     expect(res.status()).toBe(200);
     const body = (await res.json()) as { user: { userId?: string } | null };
-    expect(body.user?.userId, "the control proves the mint is faithful").toBe(claim.userId);
+    expect(body.user?.userId, "the control proves the mint is faithful").toBe(demoUserId);
   });
 
   test("a 30-day-old signed token is REJECTED server-side", async ({ request }) => {
@@ -4533,6 +4550,158 @@ test.describe("session-33 parity: the login timing equalization surface", () => 
     // (~30ms) medians; scrypt's default params are memory-hard (16 MiB),
     // so the post-fix cost cannot realistically fall below this floor.
     expect(median, `no-user 401 must burn the scrypt compare (times: ${times.join(",")}ms)`).toBeGreaterThanOrEqual(12);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session 34 — the session-revocation / deleted-user surface (the per-user
+// epoch) + the per-route delivered-JS budget. The ghost/epoch specs use the
+// spec-side PrismaClient (the session-31 pattern) against db/e2e.db.
+// ---------------------------------------------------------------------------
+async function s34SpecDb(): Promise<import("@prisma/client").PrismaClient> {
+  const { PrismaClient } = await import("@prisma/client");
+  const path = await import("node:path");
+  const db = new PrismaClient({
+    datasourceUrl: `file:${path.resolve(process.cwd(), "db", "e2e.db")}`,
+  });
+  return db;
+}
+
+test.describe("session-34 parity: the session-revocation surface (the deleted-user ghost token)", () => {
+  test("a DELETED user's token no longer authenticates (the ghost probe)", async ({ request }) => {
+    // Pre-fix: the token authenticated until its 7-day iat bound — the
+    // user row was gone but /api/auth/me kept serving the full object.
+    const email = `s34-ghost-${Date.now()}@example.com`;
+    const su = await request.post("/api/auth/signup", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "SuperSecret99!" },
+    });
+    expect(su.status(), "the throwaway signs up").toBe(200);
+    const vf = await request.post("/api/auth/verify", {
+      headers: { "content-type": "application/json" },
+      data: { email, code: "123456" },
+    });
+    expect(vf.status(), "verify mints the session cookie").toBe(200);
+    const cookie = (vf.headers()["set-cookie"] ?? "")
+      .split(";")[0];
+
+    // Control: the fresh token authenticates.
+    const me1 = await request.get("/api/auth/me", { headers: { cookie } });
+    expect(me1.status()).toBe(200);
+    expect(((await me1.json()) as { user: unknown }).user).toBeTruthy();
+
+    // DELETE the user row (the side-channel — an operator removing the
+    // account). Enrollments cascade.
+    const db = await s34SpecDb();
+    try {
+      await db.user.delete({ where: { email } });
+    } finally {
+      await db.$disconnect();
+    }
+
+    // THE PROBE: the same cookie must no longer authenticate.
+    const me2 = await request.get("/api/auth/me", { headers: { cookie } });
+    expect(me2.status()).toBe(200);
+    expect(
+      ((await me2.json()) as { user: unknown }).user,
+      "a deleted user's token must not outlive the user row"
+    ).toBeNull();
+  });
+});
+
+test.describe("session-34 parity: the session-revocation surface (the epoch bump)", () => {
+  test("a bumped sessionVersion revokes the outstanding token; a fresh login re-mints", async ({ request }) => {
+    const email = `s34-epoch-${Date.now()}@example.com`;
+    const su = await request.post("/api/auth/signup", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "SuperSecret99!" },
+    });
+    expect(su.status()).toBe(200);
+    const vf = await request.post("/api/auth/verify", {
+      headers: { "content-type": "application/json" },
+      data: { email, code: "123456" },
+    });
+    expect(vf.status()).toBe(200);
+    const cookie = (vf.headers()["set-cookie"] ?? "").split(";")[0];
+
+    // Bump the epoch: every outstanding token for this user must die —
+    // the revocation lever that does NOT require rotating AUTH_SECRET.
+    const db = await s34SpecDb();
+    try {
+      await db.user.update({ where: { email }, data: { sessionVersion: 1 } });
+    } finally {
+      await db.$disconnect();
+    }
+
+    const me1 = await request.get("/api/auth/me", { headers: { cookie } });
+    expect(
+      ((await me1.json()) as { user: unknown }).user,
+      "the pre-bump token must be revoked by the epoch compare"
+    ).toBeNull();
+
+    // The control: the ACCOUNT is not broken — a fresh login mints a
+    // token carrying the NEW epoch and authenticates.
+    const li = await request.post("/api/auth/login", {
+      headers: { "content-type": "application/json" },
+      data: { email, password: "SuperSecret99!" },
+    });
+    expect(li.status(), "the account still logs in").toBe(200);
+    const freshCookie = (li.headers()["set-cookie"] ?? "").split(";")[0];
+    const me2 = await request.get("/api/auth/me", { headers: { cookie: freshCookie } });
+    expect(
+      ((await me2.json()) as { user: { userId?: string } | null }).user,
+      "the fresh mint carries the bumped epoch and authenticates"
+    ).toBeTruthy();
+  });
+});
+
+test.describe("session-34 parity: the per-route delivered-JS budget surface", () => {
+  test("every route ships less JS than the live's 727KB SPA monolith", async ({ page }) => {
+    // The recorded s33 baseline: the live reference delivers ~727 KB of JS
+    // on every route (one SPA bundle). The clone's per-route delivery
+    // (measured s34): 536-662 KB. The budget pins the semantic ceiling —
+    // the clone must never deliver more JS per route than the reference's
+    // monolith (a heavy shared-chunk import trips this RED).
+    const LIVE_MONOLITH_BYTES = 727 * 1024;
+    const routes = [
+      "/",
+      "/Courses",
+      "/CourseDetail?id=seed-1",
+      "/Pricing",
+      "/About",
+      "/Contact",
+      "/BecomeInstructor",
+      "/AIAssistant",
+      "/Dashboard",
+      "/login",
+    ];
+    const origin = new URL(page.url() || "http://localhost:3100").origin;
+    const perRoute: Record<string, number> = {};
+    for (const route of routes) {
+      const sizes: number[] = [];
+      const pending: Promise<void>[] = [];
+      const collect = (r: { url(): string; body(): Promise<Buffer> }) => {
+        const u = new URL(r.url());
+        if (u.origin === origin && u.pathname.endsWith(".js")) {
+          pending.push(r.body().then((b: Buffer) => { sizes.push(b.length); }).catch(() => {}));
+        }
+      };
+      page.on("response", collect);
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      page.off("response", collect);
+      await Promise.all(pending);
+      perRoute[route] = sizes.reduce((s, x) => s + x, 0);
+    }
+    const summary = Object.entries(perRoute)
+      .map(([r, b]) => `${r}: ${(b / 1024).toFixed(1)}KB`)
+      .join(", ");
+    for (const [route, bytes] of Object.entries(perRoute)) {
+      expect(
+        bytes,
+        `${route} delivered JS must stay under the live monolith (all: ${summary})`
+      ).toBeLessThan(LIVE_MONOLITH_BYTES);
+    }
   });
 });
 

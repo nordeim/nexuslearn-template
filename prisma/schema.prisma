@@ -21,6 +21,13 @@ model User {
   // Signup flow (session 5): new accounts start unverified and must confirm
   // a 6-digit code via POST /api/auth/verify. Seeded accounts are verified.
   emailVerified Boolean  @default(true)
+  // Session 34 — the per-user epoch (the revocation lever). Embedded in the
+  // session token at mint time (`ver`) and re-compared on every getSession()
+  // read: bumping it (UPDATE User SET sessionVersion = sessionVersion + 1)
+  // revokes every outstanding token for that user WITHOUT rotating the
+  // global AUTH_SECRET; deleting the user row revokes them too (the
+  // deleted-user ghost-token gap — see docs/remediation-plan-session34.md).
+  sessionVersion Int     @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

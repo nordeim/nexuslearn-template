@@ -224,3 +224,62 @@ Three notes from the session-33 pass:
   pages keep rendering — the failure lands exactly where a smoke test
   looks. Wire a real secret into the environment before the first login;
   rotating it still invalidates every outstanding token instantly.
+
+## 12. Session revocation (session 34) — the per-user epoch
+
+`getSession()` re-validates the user row on every read: the token's
+embedded epoch (`ver`, minted from `User.sessionVersion`) must match the
+user's CURRENT `sessionVersion`, and the user must still exist. Two
+operator levers, neither of which requires rotating the global
+`AUTH_SECRET`:
+
+```sql
+-- Revoke ONE user's every outstanding session (a leaked cookie, a
+-- suspicious account, an offboarding):
+UPDATE User SET sessionVersion = sessionVersion + 1 WHERE email = 'user@example.com';
+
+-- Revoke everything a user ever held (enrollments cascade):
+DELETE FROM User WHERE email = 'user@example.com';
+```
+
+Notes:
+
+- **Scope**: one indexed `findUnique` per authenticated request — the
+  standard price of revocable sessions (the reference's JWT-in-localStorage
+  has no server check at all; this is deliberate-better hardening of the
+  clone's own first-party contract).
+- **Rollout**: tokens minted before session 34 carry no `ver` and read as
+  `0` (the schema default), so a deploy forces no re-login wave.
+- **Do not** "optimize" the check away because the signature is valid — a
+  validly-signed token whose user is gone is exactly the ghost-token
+  problem the check closes.
+
+## 13. The SMTP swap-in drill (the simulated-delivery seam)
+
+The verify-code and password-reset deliveries are **simulated** in the
+template: the 6-digit code is logged server-side
+(`[auth] verification code for <email>: <code> (simulated delivery)`) and
+ANY complete 6-digit code verifies (`POST /api/auth/verify`). This is the
+documented template simplification (PAD §10). The drill to swap in real
+email:
+
+1. **Add a transport module** (e.g. `src/lib/mailer.ts` — nodemailer,
+  Resend, SES; keep it server-only like the AI SDK import).
+2. **Persist the code** — add `verificationCode String?` +
+  `codeExpiresAt DateTime?` to `User`; the signup route (both the create
+  and the unverified-resend branches) writes them instead of logging.
+3. **Compare for real** — `POST /api/auth/verify` reads the stored code,
+  checks the expiry window, and clears both fields on success (the
+  `emailVerified: true` write stays as-is).
+4. **Keep the guards** — the throttle (10/min), the 413 pre-check and the
+  email field cap must survive the rewrite (the source pin
+  `tests/api-guard-source.test.ts` enforces the route set; add specs for
+  the new branches).
+5. **Test impact** — the e2e signup/verify specs RELY on the simulated
+  any-code contract; either gate the real comparison behind an env flag
+  (`AUTH_DELIVERY=smtp` with the simulated path as the test default) or
+  re-pin the specs deliberately when the contract changes.
+6. **Forgot-password** is a stub that always returns ok (no user
+  enumeration — reference parity); wiring real reset emails means the
+  same transport + a `resetToken` column + an expiry, with the same
+  always-ok response shape.

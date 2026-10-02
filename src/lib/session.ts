@@ -12,6 +12,14 @@ export interface SessionUser {
   userId: string;
   email: string;
   name: string;
+  /**
+   * Session 34 — the per-user epoch at MINT time. Absent on pre-34 tokens
+   * (reads as 0, the schema default — graceful compat: outstanding cookies
+   * stay valid until the first bump). The adapter (getSession) compares it
+   * against the user's CURRENT sessionVersion; the pure module never reads
+   * the database.
+   */
+  ver?: number;
 }
 
 /**
@@ -67,8 +75,13 @@ function getSecret(): string {
   return resolveSessionSecret(process.env);
 }
 
-export function createSessionToken(user: SessionUser): string {
-  const payload = Buffer.from(JSON.stringify({ ...user, iat: Date.now() })).toString("base64url");
+export function createSessionToken(user: SessionUser, sessionVersion = 0): string {
+  // session-34: the per-user epoch rides the SIGNED payload — the mint
+  // sites pass the user's current sessionVersion so a later bump (the
+  // revocation lever) invalidates every outstanding token.
+  const payload = Buffer.from(
+    JSON.stringify({ ...user, ver: sessionVersion, iat: Date.now() })
+  ).toString("base64url");
   const mac = createHmac("sha256", getSecret()).update(payload).digest("base64url");
   return `${payload}.${mac}`;
 }
@@ -95,7 +108,11 @@ export function verifySessionToken(token: string | undefined | null): SessionUse
     const now = Date.now();
     if (iat > now + SESSION_CLOCK_SKEW_MS) return null;
     if (now - iat > SESSION_MAX_AGE_MS) return null;
-    return { userId: data.userId, email: data.email, name: String(data.name ?? "") };
+    // session-34: surface the embedded epoch (pre-34 tokens carry none —
+    // they read as 0, the schema default, so the rollout forces no
+    // re-login wave). The ADAPTER compares it against the live DB value.
+    const ver = typeof data.ver === "number" && Number.isFinite(data.ver) ? data.ver : 0;
+    return { userId: data.userId, email: data.email, name: String(data.name ?? ""), ver };
   } catch {
     return null;
   }

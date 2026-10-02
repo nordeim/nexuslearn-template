@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       email: user.email,
       name: user.name,
-    }), sessionCookieOptions);
+    }, user.sessionVersion), sessionCookieOptions);
     return res;
   } catch (err) {
     // session-33: the enforced AUTH_SECRET contract must fail LOUD, not be

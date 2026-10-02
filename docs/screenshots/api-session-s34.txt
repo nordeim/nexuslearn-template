@@ -1,0 +1,26 @@
+session-34 session-revocation + epoch proof (the dev server, post-fix)
+
+signup 200; verify 200; cookie MINTED
+
+me (pre-delete control) -> 200 {"user":{"userId":"cmuqdh6wv0002oibu9h6umuah","email":"capture-s34-1790909837839@example.c
+user DELETED; me (ghost) -> 200 {"user":null}
+  (pre-fix baseline: 200 USER PRESENT — the ghost token outlived the user row)
+  verdict: PASS — the ghost token is DEAD
+
+epoch bumped to 1 (sessionVersion=1) -> me: 200 {"user":null}
+  (pre-fix baseline: the column did not exist — no revocation lever at all)
+  verdict: PASS — the pre-bump token revoked
+fresh login control      -> 200; me: 200 user OK (ver=1 mint)
+
+per-route delivered-JS budget (measured on the production standalone):
+  /Courses 662.3KB | /Contact 657.0KB | /AIAssistant 578.3KB | /Dashboard 573.0KB
+  /CourseDetail 569.6KB | / 569.0KB | /Pricing /About /BecomeInstructor 566.6KB | /login 536.8KB
+  ceiling: the live's 727KB SPA monolith — every route under (max 91%)
+  pinned by the session-34 e2e budget spec
+
+production-standalone (:3400) post-fix matrix:
+  ghost token after user delete : {"user":null} — PASS
+  epoch bump -> outstanding token: {"user":null} — PASS
+  fresh login after bump        : 200 user OK (ver=1) — PASS
+  pre-34 token (no ver)         : VALID (graceful compat — ver reads 0)
+(repro: /home/z/my-project/scripts/s34-proof.ts + s34-probe-bundle.ts + s34-probe-ghost.ts)
