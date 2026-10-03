@@ -881,7 +881,10 @@ test.describe("session-6 parity: per-route OG identity", () => {
     await page.goto("/Courses");
     expect(await page.locator('meta[property="og:description"]').getAttribute("content")).toContain("SkillSphere");
     expect(await page.locator('meta[property="og:site_name"]').getAttribute("content")).toBe("NexusLearn");
-    expect(await page.locator('meta[property="og:image"]').getAttribute("content")).toContain("/logo.png");
+    // Session 42: the og:image URL is the RENDER tier (/og-image.png — the
+    // live's og:image actually serves a 630x630 contain-fit render of the
+    // logo, not the raw 1024x1024 the icon family serves).
+    expect(await page.locator('meta[property="og:image"]').getAttribute("content")).toContain("/og-image.png");
     expect(await page.locator('meta[name="twitter:card"]').getAttribute("content")).toBe("summary_large_image");
   });
 });
@@ -5828,10 +5831,12 @@ test.describe("session-41 parity: the auth-shell head family", () => {
       ]) {
         expect(html.includes(absent), `${shape} must not carry ${absent}`).toBe(false);
       }
-      // The image URL itself survives (the s6 pin).
+      // The image URL itself survives (the s6 pin) — session 42: the
+      // RENDER tier URL (the live's og:image render URL serves every
+      // route — app and auth alike).
       expect(html).toContain('<meta property="og:image"');
       const ogImage = html.match(/<meta property="og:image" content="([^"]*)"/)?.[1] ?? "";
-      expect(ogImage).toContain("/logo.png");
+      expect(ogImage).toContain("/og-image.png");
       const viewport = html.match(/<meta name="viewport" content="([^"]*)"/)?.[1] ?? "";
       expect(viewport, "the plain app viewport").toBe("width=device-width, initial-scale=1");
     }
@@ -5964,6 +5969,286 @@ test.describe("session-41 parity: the static-asset slash tolerance", () => {
     // favicon.ico in practice).
     const favicon = await request.get("/favicon.ico");
     expect(favicon.status()).toBe(404);
+  });
+});
+
+
+// ============================================================================
+// Session 42 — the og-image render tier + the error boundary + the network
+// resilience + the scroll/no-SW surface.
+//
+// FOUR fresh-eyes families (the probes: /home/z/my-project/scripts/s42-*):
+//
+// (A) THE OG:IMAGE RENDER-BYTE CENSUS: the s41 head census pinned the
+//     og:image URL/dims/alt at the tag level but never FETCHED the asset.
+//     The live's og:image/twitter:image URLs (all 14 route shapes) actually
+//     serve a 630x630 PNG, 452,632 bytes, deterministic across fetches —
+//     supabase's contain-fit render of the raw 1024x1024 logo. The clone's
+//     og:image pointed at /logo.png (the RAW tier, byte-identical to the
+//     live's raw object but NOT the render). The fix: public/og-image.png =
+//     the live's render bytes verbatim (the raw-logo mirror precedent); the
+//     metadata image payloads carry /og-image.png on BOTH shapes; the
+//     icon/apple-touch-icon/manifest stay on /logo.png (the live's icon
+//     family serves the raw object).
+//
+// (B) THE ERROR BOUNDARY: the clone shipped NO error.tsx — a persistent
+//     client render error showed Next 16's built-in default ("This page
+//     couldn't load" — version-dependent chrome; the Next 16 default already
+//     silently replaced the old "Application error" string). The live's
+//     forced-crash UX is a BLANK WHITE SCREEN (no boundary, no recovery).
+//     src/app/error.tsx is the explicit deliberate-better (the s10 real-404
+//     precedent). The trigger: Number.prototype.toLocaleString sabotaged
+//     PERSISTENTLY (React 19 retries one-shot errors — probed: 5 logged
+//     errors, then the disarmed retry succeeded; only persistent errors
+//     reach the boundary), landing inside CourseCard's
+//     students.toLocaleString(locale) render (CourseCard.tsx:89).
+//
+// (C) THE NETWORK-RESILIENCE TIER: a surgical RSC abort (text/x-component
+//     requests only) makes Next's router "fall back to browser navigation"
+//     and the target page still renders; the AI-chat network failure renders
+//     the clone's explicit "Network error — please try again." message (the
+//     live's perpetual "Thinking..." bubble is the documented platform
+//     variance).
+//
+// (D) THE SCROLL-RESTORATION + NO-SW SURFACE: on back-navigation the clone
+//     restores the pre-nav scroll position (~2020 after scrolling to 2000 —
+//     the SSR content exists at the browser's restore moment) where the
+//     live's async client rendering lands at 0 (the s16 architecture
+//     family, opposite sign — the clone's restoration is the
+//     deliberate-better). Neither site registers a service worker (the PWA
+//     tier is manifest-only on both).
+// ============================================================================
+test.describe("session-42 parity: the og-image render tier (the byte census)", () => {
+  test("GET /og-image.png serves the committed render: 200, image/png, IHDR 630x630, 452632 bytes", async ({ request }) => {
+    const res = await request.get("/og-image.png");
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toBe("image/png");
+    const buf = Buffer.from(await res.body());
+    // The PNG IHDR: signature (8) + length (4) + "IHDR" (4), then width/height.
+    expect(buf.length).toBe(452632);
+    expect(buf.readUInt32BE(16)).toBe(630);
+    expect(buf.readUInt32BE(20)).toBe(630);
+    // The render is NOT the raw logo (the two tiers are different assets —
+    // the raw 1024x1024 stays at /logo.png for the icon family).
+    expect(buf.length).not.toBe(1123244);
+  });
+
+  test("the raw tier keeps /logo.png: the icon href, the manifest icons, the raw asset itself", async ({ request }) => {
+    // rel:icon keeps pointing at the raw logo (the live's icon URLs serve
+    // the raw object — the clone's /logo.png is byte-identical to it).
+    const html = await (await request.get("/Courses")).text();
+    const icon = html.match(/<link rel="icon" href="([^"]*)"/)?.[1] ?? "";
+    expect(icon).toContain("/logo.png");
+    // The manifest icons keep the raw tier.
+    const manifest = await (await request.get("/manifest.json")).json();
+    expect(manifest.icons.every((i: { src: string }) => i.src.includes("/logo.png"))).toBe(true);
+    // The raw asset is still the 1024x1024 logo.
+    const raw = await request.get("/logo.png");
+    expect(raw.status()).toBe(200);
+    const rawBuf = Buffer.from(await raw.body());
+    expect(rawBuf.readUInt32BE(16)).toBe(1024);
+    expect(rawBuf.readUInt32BE(20)).toBe(1024);
+  });
+
+  test("the auth-shell head carries the RENDER-tier og:image URL with the dimensioned family", async ({ request }) => {
+    // The live's auth shell: the og:image URL is the render URL (like every
+    // route) AND carries the dimensions + platform alt (the s41 family).
+    const html = await (await request.get("/login")).text();
+    const ogImage = html.match(/<meta property="og:image" content="([^"]*)"/)?.[1] ?? "";
+    expect(ogImage).toContain("/og-image.png");
+    const twitterImage = html.match(/<meta name="twitter:image" content="([^"]*)"/)?.[1] ?? "";
+    expect(twitterImage).toContain("/og-image.png");
+    // The dims/alt family rides along unchanged (the s41 pins).
+    expect(html).toContain('<meta property="og:image:width" content="1200"/>');
+    expect(html).toContain('<meta property="og:image:height" content="630"/>');
+    expect(html).toContain('<meta property="og:image:alt" content="Base44 link preview"/>');
+    // The apple-touch-icon stays on the RAW tier.
+    const apple = html.match(/<link rel="apple-touch-icon"([^>]*)>/)?.[1] ?? "";
+    expect(apple).toContain('href="/logo.png"');
+  });
+});
+
+test.describe("session-42 parity: the explicit error boundary", () => {
+  test("a persistent client render error renders the on-brand boundary, and Try again recovers", async ({ page }) => {
+    // Sign in first (the sabotage arms AFTER the landing settles — no count
+    // formatting fires between arming and the nav click; the landing's
+    // count surfaces are server-rendered pre-hydration).
+    await page.goto("/login");
+    await page.fill("#email", "sepnetflix2023@outlook.com");
+    await page.fill("#password", "$Abcd1234");
+    await page.click('button[type="submit"]');
+    await page.waitForURL((u) => !u.pathname.endsWith("/login"));
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(800);
+
+    // Arm the PERSISTENT sabotage + navigate. CourseCard calls
+    // students.toLocaleString(locale) during the /Courses client render —
+    // the throw lands inside a client component's render. React 19 retries
+    // one-shot errors (probed), so the sabotage must stay armed until the
+    // boundary renders.
+    await page.evaluate(() => {
+      const orig = Number.prototype.toLocaleString;
+      (window as unknown as { __restoreTLS: () => void }).__restoreTLS = () => {
+        Number.prototype.toLocaleString = orig;
+      };
+      Number.prototype.toLocaleString = function () {
+        throw new Error("injected persistent toLocaleString failure");
+      };
+      (document.querySelector('a[href="/Courses"]') as HTMLElement)!.click();
+    });
+    await page.waitForTimeout(2500);
+
+    // The boundary — NOT the framework default, NOT a blank screen. The
+    // not-found.tsx design language: h1 "500" + h2 "Something went wrong".
+    await expect(page.locator("h1", { hasText: "500" })).toBeVisible();
+    const heading = page.locator("h2", { hasText: "Something went wrong" });
+    await expect(heading).toBeVisible();
+    const body = await page.evaluate(() => document.body.innerText);
+    expect(body).toContain("Try again");
+    expect(body).not.toContain("This page couldn't load"); // the Next 16 default replaced
+    expect(body).not.toContain("Application error"); // the pre-16 default, gone too
+
+    // The recovery: restore the prototype method, then reset the segment.
+    await page.evaluate(() =>
+      (window as unknown as { __restoreTLS: () => void }).__restoreTLS()
+    );
+    await page.getByRole("button", { name: /Try again/i }).click();
+    await page.waitForTimeout(1500);
+    await expect(page.locator("h1", { hasText: "Explore Our Courses" })).toBeVisible();
+    // The catalog's count formatting works again (the restore survived).
+    const bodyText = await page.evaluate(() => document.body.innerText);
+    expect(bodyText).toMatch(/9 courses/);
+  });
+
+  test("the error boundary ships the second recovery path (Back to Home)", async ({ page }) => {
+    // The boundary's home link — the static contract (source-pinned in
+    // tests/error-boundary-source.test.ts; here the rendered form).
+    await page.goto("/login");
+    await page.fill("#email", "sepnetflix2023@outlook.com");
+    await page.fill("#password", "$Abcd1234");
+    await page.click('button[type="submit"]');
+    await page.waitForURL((u) => !u.pathname.endsWith("/login"));
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(800);
+
+    await page.evaluate(() => {
+      const orig = Number.prototype.toLocaleString;
+      Number.prototype.toLocaleString = function () {
+        throw new Error("injected persistent toLocaleString failure");
+      };
+      (document.querySelector('a[href="/Courses"]') as HTMLElement)!.click();
+    });
+    await page.waitForTimeout(2500);
+
+    const home = page.locator('a[href="/"]', { hasText: /Back to Home/i });
+    await expect(home).toBeVisible();
+    // The link navigates home (the boundary unmounts, the landing renders).
+    await home.click();
+    await page.waitForTimeout(1500);
+    await expect(page.locator("h1")).toContainText("Learn Skills That");
+  });
+});
+
+test.describe("session-42 parity: the network-resilience tier", () => {
+  test("a dead RSC channel falls back to browser navigation — the target page still renders", async ({ page }) => {
+    await page.goto("/login");
+    await page.fill("#email", "sepnetflix2023@outlook.com");
+    await page.fill("#password", "$Abcd1234");
+    await page.click('button[type="submit"]');
+    await page.waitForURL((u) => !u.pathname.endsWith("/login"));
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(800);
+
+    // Abort ONLY the RSC payload channel (text/x-component requests). The
+    // router logs "Failed to fetch RSC payload ... Falling back to browser
+    // navigation" and the fallback document request (not RSC-shaped) passes
+    // through — probed: the catalog renders via the fallback.
+    await page.route("**/*", (route) => {
+      const accept = route.request().headerValue("accept") ?? "";
+      if (String(accept).includes("text/x-component")) {
+        return route.abort("connectionfailed");
+      }
+      return route.continue();
+    });
+
+    await page.click('a[href="/Courses"]');
+    await page.waitForTimeout(2500);
+    // The fallback navigation completed: the catalog rendered.
+    await expect(page.locator("h1", { hasText: "Explore Our Courses" })).toBeVisible();
+    expect(page.url()).toContain("/Courses");
+  });
+
+  test("the AI-chat network failure renders the explicit Network error message (the live's perpetual Thinking is the documented variance)", async ({ page }) => {
+    await page.goto("/login");
+    await page.fill("#email", "sepnetflix2023@outlook.com");
+    await page.fill("#password", "$Abcd1234");
+    await page.click('button[type="submit"]');
+    await page.waitForURL((u) => !u.pathname.endsWith("/login"));
+    await page.goto("/AIAssistant");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1200);
+
+    // Kill the chat API and send a message.
+    await page.route("**/api/ai/chat", (route) => route.abort("failed"));
+    const composer = page.locator("textarea");
+    await composer.fill("hello");
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(2500);
+
+    // The clone's failure UX: the explicit network-error assistant message
+    // (AIAssistantChat.tsx — the catch branch). The live's platform SPA
+    // leaves the perpetual "Thinking..." bubble instead (probed).
+    const body = await page.evaluate(() => document.body.innerText);
+    expect(body).toContain("Network error — please try again.");
+  });
+});
+
+test.describe("session-42 parity: the scroll-restoration + no-SW surface", () => {
+  test("back-navigation restores the pre-nav scroll position (the live's async SPA lands at 0 — the architecture family)", async ({ page }) => {
+    await page.goto("/login");
+    await page.fill("#email", "sepnetflix2023@outlook.com");
+    await page.fill("#password", "$Abcd1234");
+    await page.click('button[type="submit"]');
+    await page.waitForURL((u) => !u.pathname.endsWith("/login"));
+    await page.waitForLoadState("networkidle");
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => window.scrollTo(0, 2000));
+    await page.waitForTimeout(600);
+    await page.goto("/Courses");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(600);
+
+    await page.goBack({ waitUntil: "load" });
+    await page.waitForTimeout(1500);
+
+    // The clone's SSR content exists at the browser's restore moment — the
+    // position comes back (~2020 observed: the reveal system's transform
+    // settling adds ~20px; the threshold tolerates reveal timing). The live
+    // lands at 0: its async client rendering grows content AFTER the
+    // browser's restore moment clamps to the top.
+    const scrollY = await page.evaluate(() => Math.round(window.scrollY));
+    expect(scrollY).toBeGreaterThanOrEqual(1500);
+    // The navigation entry is the standard back/forward form on both sites.
+    const navType = await page.evaluate(
+      () =>
+        (performance.getEntriesByType("navigation")[0] as
+          | PerformanceNavigationTiming
+          | undefined)?.type
+    );
+    expect(navType).toBe("back_forward");
+  });
+
+  test("no service worker registers on any route (the manifest-only PWA tier both sites ship)", async ({ page }) => {
+    for (const route of ["/", "/Courses", "/login"]) {
+      await page.goto(route);
+      await page.waitForLoadState("networkidle");
+      const controller = await page.evaluate(
+        () => navigator.serviceWorker?.controller ?? null
+      );
+      expect(controller, `${route} — neither site registers a service worker`).toBeNull();
+    }
   });
 });
 

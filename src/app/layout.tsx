@@ -85,13 +85,16 @@ export async function generateMetadata(): Promise<Metadata> {
       // Session 41 (finding 2 — the head census): URL-only, matching the
       // live's app-shell family (its 404 + content routes ship og:image
       // with no dimensions/alt — probed on every shape).
-      images: [{ url: "/logo.png" }],
+      // Session 42 (the render-byte census): the URL is the RENDER tier
+      // (the live's og:image serves the 630x630 contain-fit render on
+      // every shape incl. the 404 — /og-image.png mirrors its bytes).
+      images: [{ url: "/og-image.png" }],
     },
     twitter: {
       card: "summary_large_image",
       title: derivedTitle,
       description: REFERENCE_DESCRIPTION,
-      images: ["/logo.png"],
+      images: ["/og-image.png"],
     },
     // Session 38: the live's twitter:url on the 404 view too (probed —
     // it mirrors the canonical incl. the query). Rendered verbatim by the

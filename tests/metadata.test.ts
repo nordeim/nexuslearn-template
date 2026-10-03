@@ -57,11 +57,15 @@ describe("routeMetadata — per-route OG identity (session 6)", () => {
     // ship og:image/twitter:image URL-ONLY (no width/height/alt on any of
     // the 12 probed app shapes) — the dimensions were an unpinned
     // beyond-reference addition, now stripped for exact parity.
-    expect(og.images).toEqual([{ url: "/logo.png" }]);
+    // Session 42 (finding 1 — the render-byte census): the URL is the
+    // RENDER tier (/og-image.png — the live's og:image serves a 630x630
+    // contain-fit render, NOT the raw logo; the raw tier stays on
+    // rel=icon/apple-touch-icon/the manifest icons).
+    expect(og.images).toEqual([{ url: "/og-image.png" }]);
     const twitter = m.twitter as { card?: string; description?: string; images?: string[] };
     expect(twitter.card).toBe("summary_large_image");
     expect(twitter.description).toBe(REFERENCE_DESCRIPTION);
-    expect(twitter.images).toEqual(["/logo.png"]);
+    expect(twitter.images).toEqual(["/og-image.png"]);
   });
 });
 
@@ -77,13 +81,33 @@ describe("routeMetadata — the auth-shell head family (session 41)", () => {
     const og = m.openGraph as {
       images?: Array<{ url: string; width?: number; height?: number; alt?: string }>;
     };
+    // Session 42: the URL is the RENDER tier on BOTH shapes (the live's
+    // og:image render URL serves every route — app and auth alike).
     expect(og.images).toEqual([
-      { url: "/logo.png", width: 1200, height: 630, alt: "Base44 link preview" },
+      { url: "/og-image.png", width: 1200, height: 630, alt: "Base44 link preview" },
     ]);
     const twitter = m.twitter as {
       images?: Array<{ url: string; alt?: string }>;
     };
-    expect(twitter.images).toEqual([{ url: "/logo.png", alt: "Base44 link preview" }]);
+    expect(twitter.images).toEqual([{ url: "/og-image.png", alt: "Base44 link preview" }]);
+  });
+
+  it("authShell keeps the icons on the RAW tier (/logo.png — the render swap touches ONLY the image payloads)", () => {
+    // Session 42 (finding 1): the live's rel=icon/apple-touch-icon/manifest
+    // icons all serve the RAW 1024x1024 object (the clone's /logo.png is
+    // byte-identical to it) — only og:image/twitter:image move to the
+    // 630x630 render tier.
+    const auth = routeMetadata({ canonical: "/login", authShell: true }) as {
+      icons?: { icon?: string; apple?: Array<{ url: string; sizes?: string }> };
+    };
+    expect(auth.icons?.icon).toBe("/logo.png");
+    expect(auth.icons?.apple).toEqual([{ url: "/logo.png", sizes: "180x180" }]);
+    // The app shape ships no icons key at all (the layout's default applies
+    // — the s41 contract).
+    const app = routeMetadata({ title: "Courses", canonical: "/Courses" }) as {
+      icons?: unknown;
+    };
+    expect(app.icons).toBeUndefined();
   });
 
   it("the default (app) payload carries NO image dimensions or alt — the live's URL-only app shape", () => {
@@ -95,11 +119,11 @@ describe("routeMetadata — the auth-shell head family (session 41)", () => {
       const og = m.openGraph as {
         images?: Array<{ url: string; width?: number; height?: number; alt?: string }>;
       };
-      expect(og.images).toEqual([{ url: "/logo.png" }]);
+      expect(og.images).toEqual([{ url: "/og-image.png" }]);
       // Twitter's app shape is the plain-string image list (Next renders
       // <meta name="twitter:image"> only — no alt, no dims).
       const twitter = m.twitter as { images?: string[] };
-      expect(twitter.images).toEqual(["/logo.png"]);
+      expect(twitter.images).toEqual(["/og-image.png"]);
     }
   });
 

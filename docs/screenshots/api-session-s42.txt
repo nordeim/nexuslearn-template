@@ -1,0 +1,63 @@
+=== PART 1: THE OG-IMAGE RENDER TIER (the byte census — clone vs live) ===
+
+  (The head URLs stay the infra-variance family — the live's supabase
+   URLs vs the clone's own origins. The CONTRACT is the FETCHED asset:
+   content-type + dimensions + the raw tier's byte identity.)
+
+  clone /      og:image -> image/png 630x630 452632B md5=cf0578925e4f
+               url=http://localhost:3000/og-image.png
+  live /       og:image -> image/png 630x630 452632B md5=cf0578925e4f
+               url=https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/render/image/public/base44-prod/public/69907fffbf28e4c28d3
+  clone /login og:image -> image/png 630x630 452632B md5=cf0578925e4f
+               url=http://localhost:3000/og-image.png
+  live /login  og:image -> image/png 630x630 452632B md5=cf0578925e4f
+               url=https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/render/image/public/base44-prod/public/69907fffbf28e4c28d3
+  clone 404    og:image -> image/png 630x630 452632B md5=cf0578925e4f
+               url=http://localhost:3000/og-image.png
+  live 404     og:image -> image/png 630x630 452632B md5=cf0578925e4f
+               url=https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/render/image/public/base44-prod/public/69907fffbf28e4c28d3
+
+  RAW TIER: clone /logo.png 1024x1024 1123244B md5=f2d0170f0c91
+           live raw object 1024x1024 1123244B md5=f2d0170f0c91
+  -> MATCH (byte-identical — the raw tier the icon family serves)
+  RENDER TIER: clone /og-image.png 630x630 452632B md5=cf0578925e4f
+              live render url 630x630 452632B md5=cf0578925e4f
+  -> MATCH (the committed mirror is byte-identical to the live's render)
+  clone icon=/logo.png apple=/logo.png (the RAW tier kept for the icon family)
+
+=== PART 2: THE CRASH MATRIX (the forced persistent render error) ===
+
+  live   crash UX: body="" children=1
+  clone  crash UX: body="500 | Something went wrong |  | An unexpected error occurred while loading this page. Your progress " children=6
+  -> live: the BLANK WHITE SCREEN (no boundary, no recovery — platform artifact)
+  -> clone: the explicit on-brand boundary (500 + Something went wrong +
+     Try again + Back to Home — the deliberate-better, replacing Next 16's)
+     version-dependent default. Recovery verified by the e2e spec.
+
+=== PART 3: THE NETWORK-RESILIENCE MATRIX ===
+
+  RSC-abort fallback (clone): h1="Explore Our Courses" (the fallback browser navigation renders the page)
+  AI-chat abort (live): the perpetual Thinking bubble
+  AI-chat abort (clone): the explicit Network error message
+
+=== PART 4: THE SCROLL-RESTORATION + NO-SW + BFCACHE CENSUS ===
+
+  live   back-nav: scrollY=0 navType=back_forward swController=false pageshowPersisted=[false]
+  clone  back-nav: scrollY=2020 navType=back_forward swController=false pageshowPersisted=[false]
+  -> the scroll restoration: the live's async SPA lands at 0 (content
+     absent at the browser's restore moment); the clone's SSR restores
+     ~2020 — the deliberate-better (the s16 architecture family).
+  -> no service worker on either site (the manifest-only PWA tier).
+  -> bfcache never serves in the probe context (persisted=false —
+     Playwright's Chromium; documented, not app-controllable).
+
+=== PART 5: THE ENV CONTRACT + THE GATE SUMMARY ===
+
+  .env == .env.example: IDENTICAL
+  DATABASE_URL: file:../db/custom.db
+  db/custom.db at the repo root: present
+
+  GATES: lint OK | typecheck OK | 290/290 unit | build OK | 369/369 e2e
+         = 659 total (279->290 unit: +11; 360->369 e2e: +9)
+  STANDING PARITY re-run: heights/innerText 18/18 byte-exact,
+         mobile battery IDENTICAL (no Tailwind v4 bug), console 13/13 clean.

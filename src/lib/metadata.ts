@@ -104,15 +104,25 @@ export function routeMetadata({
       // Session 41: URL-only on the app routes (the live's app-shell shape —
       // probed on all 12 app route shapes: no width/height/alt anywhere);
       // the auth routes carry the live's auth-shell dimensions + alt.
+      //
+      // Session 42 (the render-byte census): the URL is the RENDER tier on
+      // BOTH shapes — the live's og:image/twitter:image actually serve a
+      // 630x630 contain-fit PNG render (452,632 bytes, deterministic), NOT
+      // the raw 1024x1024 logo its icon family serves. public/og-image.png
+      // mirrors the render bytes verbatim (the raw-logo precedent); the
+      // icon/apple-touch-icon/manifest stay on /logo.png (the raw tier —
+      // the clone's /logo.png is byte-identical to the live's raw object).
       images: authShell
-        ? [{ url: "/logo.png", width: 1200, height: 630, alt: "Base44 link preview" }]
-        : [{ url: "/logo.png" }],
+        ? [{ url: "/og-image.png", width: 1200, height: 630, alt: "Base44 link preview" }]
+        : [{ url: "/og-image.png" }],
     },
     twitter: {
       card: "summary_large_image",
       title: resolvedTitle,
       description: REFERENCE_DESCRIPTION,
-      images: authShell ? [{ url: "/logo.png", alt: "Base44 link preview" }] : ["/logo.png"],
+      images: authShell
+        ? [{ url: "/og-image.png", alt: "Base44 link preview" }]
+        : ["/og-image.png"],
     },
     // Session 41: the auth shell's apple-touch-icon (the live's sizes
     // attribute probed verbatim). The page-level icons key REPLACES the
