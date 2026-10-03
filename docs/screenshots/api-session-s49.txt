@@ -1,0 +1,170 @@
+==================================================================
+SESSION 49 PROOF MATRIX — the credentials/WebAuthn + Web-Speech + Bluetooth/Serial/USB pass
+==================================================================
+
+PART 1 — THE CREDENTIALS / WEBAUTHN CENSUS (the password-adjacent family)
+  Census: the API-surface reads (navigator.credentials per-method typeof +
+  PublicKeyCredential statics), the instrumented call counters (create/get/
+  store/preventSilentAccess + isUserVerifyingPlatformAuthenticatorAvailable +
+  isConditionalMediationAvailable, all overridden before load), the
+  parenthesized passkey/biometric/fingerprint-labeled UI sweep — both sites,
+  9 routes signed in + the auth routes.
+
+  clone: api={"credentials":true,"create":"function","store":"function",
+               "preventSilentAccess":"function","PublicKeyCredential":
+               "function","isUVPAA":"function","isCMA":"function"}
+         calls=0(9 routes) credUI=0
+  live:  api={"credentials":true,"create":"function","store":"function",
+               "preventSilentAccess":"function","PublicKeyCredential":
+               "function","isUVPAA":"function","isCMA":"function"}
+         calls=0(9 routes) credUI=0
+  FINDING: the ZERO-passkey surface on both sites — the FULL Credential
+  Management + WebAuthn family is PRESENT in the shared headless context
+  (identical shape on both) but zero app-level calls fire anywhere: no
+  credentials.create/get/store, no platform-authenticator availability probe,
+  no conditional-mediation opt-in, no passkey/biometric/fingerprint-labeled
+  UI on either site.
+
+PART 2 — THE WEB-SPEECH CENSUS (speechSynthesis + SpeechRecognition)
+
+  clone: api={"speechSynthesis":"object","getVoices":"function",
+               "speak":"function","SpeechRecognition":"function",
+               "webkitSpeechRecognition":"function"}
+         speak=0 cancel=0 getVoices=0 recognitionCtor=0(9 routes) voiceUI=0
+         speechCSSOM=0
+  live:  api={"speechSynthesis":"object","getVoices":"function",
+               "speak":"function","SpeechRecognition":"function",
+               "webkitSpeechRecognition":"function"}
+         speak=0 cancel=0 getVoices=0 recognitionCtor=0(9 routes) voiceUI=0
+         speechCSSOM=0
+  FINDING: the ZERO-voice surface on both sites — the tier is present in the
+  shared context (the e2e Chromium exposes BOTH the synthesis half and the
+  SpeechRecognition constructor, identical on both) but zero instrumented
+  calls, zero recognition constructions, zero speech/voice/mic-labeled UI,
+  zero speech-family CSSOM rules on either site.
+
+PART 3 — THE BLUETOOTH / SERIAL / USB CENSUS (the niche connectivity tier)
+
+  clone: api={"bluetooth":ABSENT,"serial":{"requestPort":"function",
+               "getPorts":"function"},"usb":{"requestDevice":"function",
+               "getDevices":"function"}}
+         requestDevice=0 requestPort=0 getPorts=0 getDevices=0(9 routes)
+         pairingUI=0
+  live:  api={"bluetooth":ABSENT,"serial":{"requestPort":"function",
+               "getPorts":"function"},"usb":{"requestDevice":"function",
+               "getDevices":"function"}}
+         requestDevice=0 requestPort=0 getPorts=0 getDevices=0(9 routes)
+         pairingUI=0
+  FINDING: the ZERO-connectivity surface on both sites — navigator.bluetooth
+  is ABSENT in the shared headless context on BOTH (the s47 navigator.share
+  ABSENT case's mirror — headless Chromium without the experimental flag),
+  while navigator.serial + navigator.usb are present with IDENTICAL shape;
+  zero instrumented calls, zero bluetooth/serial/pairing-labeled UI on
+  either site.
+
+PART 4 — THE NEXT.JS RUNTIME ERROR-LISTENER FAMILY (the s49 discovery)
+
+  The addEventListener("error") census (instrumented before load, both
+  sites, 9 routes, target-level attribution):
+    live  registers 56: 37 img (its React's image error handling) +
+          9 div#root (its platform React's root container) + 4 span +
+          4 DocumentFragment + 2 body.
+    clone registers 130: the IDENTICAL img family (37 = 37 — the same image
+          set) + 4 span + 4 DocumentFragment + 2 body, PLUS its Next.js 16
+          runtime's own: 56 script[has-src] (one per loaded script tag — the
+          runtime's script-load monitoring), 9 document + 9 window (React
+          19.3's root registration), 9 div#__next-route-announcer__ (the
+          built-in a11y route announcer).
+  FINDING: the LISTENER-TIER analogue of the s48 fullscreenchange discovery
+  — the clone's newer Next/React runtime registers a richer framework-
+  internal error-monitoring set than the live's older platform React. ALL
+  INERT: zero app-level handlers on either site (the app code never
+  registers an "error" listener), no render impact (the standing battery is
+  the render proof, byte-identical), the img family EQUAL at 37 = 37 (the
+  same images get the same treatment on both). Deliberately NOT pinned as a
+  zero-listener assertion — the framework's own registrations are legitimate
+  surface; the durable contracts are the zero APP-level registrations + the
+  src/ zero-stance.
+
+PART 5 — THE STANDING-STATE QUALIFICATION NOTES
+
+  (a) THE CONTEXT-COORDINATE RULE: this session's battery reads the mobile
+  trigger at (319,12) and the panel at 375x405 (the s48 log read (333,12)
+  and 389x405) — a VIEWPORT-SCROLLBAR + context-width delta in this
+  session's probe (375px viewport with the 15px classic scrollbar), NOT a
+  regression: the LIVE and the CLONE agree byte-for-byte at the same
+  coordinates in the SAME context, which is the parity contract. The member
+  geometry is identical at both readings (y=81/129/177/225/273/321/369 +
+  the CTA pair at 417).
+  (b) THE DEV-SERVER TRACKED-PAIR RE-SHOOT: from `next dev` the pair diffs
+  0.18%/1.48% (the Next dev-tools badge bottom-left + dev-rendering
+  artifacts — dev-only surface); from the STANDALONE production server the
+  pair re-shoots BYTE-IDENTICAL (0/6220800 + 0/750375) after the canonical
+  state restore — the state + the render are exactly the tracked set.
+
+PART 6 — THE ENV CONTRACT + THE GATE SUMMARY
+
+  .env == .env.example: byte-identical (tracked, matching the codebase —
+             every knob the src/ + prisma/ + next.config.ts consume; no new
+             knobs this session)
+  DATABASE_URL: file:../db/custom.db (db/ at the repo root: custom.db + e2e.db,
+             created by db:push + db:seed; the prisma/db-url.ts resolution +
+             the shell-pollution guard re-verified green at baseline)
+  skills/ excluded: tsconfig exclude + eslint ignores + vitest include
+             (src/tests only) + playwright testDir ./tests/e2e — re-verified
+  vitest + playwright: both configs exercised green this session (the unit
+             layer 325/325, the e2e layer 403/403 — the configs need no
+             change; every finding rides the existing suites)
+
+  GATE (the session-49 GUARD, in the required order):
+    lint ......... clean
+    typecheck .... clean (one draft iteration: the connectivity api-read
+                   cast — fixed to the Record<string, Record<string,
+                   unknown> | undefined> form)
+    unit ......... 325/325 (322 -> 325: +3 platform-surface source pins —
+                   credentials/WebAuthn / Web-Speech / Bluetooth-Serial-USB
+                   zero-stance)
+    build ........ clean (standalone)
+    e2e .......... 403/403 (400 -> 403: +3 session-49 census pins; the run
+                   split for the tool-timeout — 14 mobile-nav + 378
+                   grep-invert + 25 session-4[4-9] tail, the burst spec
+                   ordering constraint held)
+    TOTAL ........ 728 (was 722) — zero regressions
+
+  STANDING PARITY BATTERY (re-run after the additions):
+    heights x9 routes x2 viewports ... 18/18 byte-exact (the live's own
+                                      CourseDetail id rediscovered from its
+                                      /Courses card walk: 699081e752032065
+                                      b878129d, stable since s48)
+    innerText ........................ 5/5 identical (/, /Courses,
+                                      /CourseDetail, /Dashboard, /login —
+                                      0 diffs on 214/96/789/15/9 lines)
+    mobile battery .................. IDENTICAL — NO Tailwind v4 bug (trigger
+                                      byte-identical BUTTON md:hidden p-2
+                                      rounded-lg text-white/80 40x40 @(319,12)
+                                      in this session's context; panel
+                                      375x405 @ y=64; all 9 members at
+                                      identical geometry)
+    console sweep ................... 0 errors on BOTH sites (the live's
+                                      429s + its cdn.tailwindcss.com warning +
+                                      its socket.io WebSocket = its platform
+                                      families)
+
+  TDD: +3 unit source pins (tests/platform-surface-source.test.ts, RED-
+  verified honestly with a temp offender file — all 3 fail with the offender
+  present, the s47/s48 pins stay green, then GREEN after deletion) + 3 e2e
+  census pins (the credentials single, the speech single, the connectivity
+  single — all 3 green against the current tree before the GUARD, 41.2s).
+  NO source change shipped — the pins are the deliverable (the s44/s46/s47/
+  s48 precedent).
+
+  SCREENSHOTS: the 13-capture DEV-SERVER matrix (the owner's standing ask —
+  next dev on :3000 with db/custom.db + the canonical demo state restored
+  via the REAL API: 3 enrollments seed-1 + seed-3 + seed-5 with seed-5's
+  Lesson 1 complete = 1% — the progress API takes enrollmentId, not
+  courseId; every context carries the session cookie — the first capture
+  pass's signed-out dashboards were the methodology lesson), 10 routes x
+  desktop + landing/dashboard mobile + THE MOBILE MENU OPEN (the Tailwind v4
+  surface, panel verified open by pixel sampling: white panel + the gradient
+  CTA), + the tracked dashboard pair re-shot from the standalone
+  BYTE-IDENTICAL (0/6220800 + 0/750375 bytes changed vs the tracked set).

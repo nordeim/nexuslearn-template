@@ -115,6 +115,88 @@ const GAMEPAD_HID_APIS = [
   "navigator.hid",
 ] as const;
 
+/** The credentials / WebAuthn surface (the s49 family A census definition —
+ * the password-adjacent API family: the Credential Management API + the
+ * WebAuthn statics). */
+const CREDENTIALS_WEBAUTHN_APIS = [
+  "navigator.credentials",
+  "PublicKeyCredential",
+  "isUserVerifyingPlatformAuthenticatorAvailable",
+  "isConditionalMediationAvailable",
+] as const;
+
+/** The Web-Speech surface (the s49 family B census definition — the
+ * synthesis + recognition halves of the tier). */
+const WEB_SPEECH_APIS = [
+  "speechSynthesis",
+  "SpeechRecognition",
+  "getVoices",
+] as const;
+
+/** The Bluetooth / Serial / USB surface (the s49 family C census
+ * definition — the niche connectivity tier). */
+const CONNECTIVITY_APIS = [
+  "navigator.bluetooth",
+  "navigator.serial",
+  "navigator.usb",
+  "requestDevice",
+] as const;
+
+describe("session-49: the platform-surface source census", () => {
+  it("ZERO credentials / WebAuthn references anywhere in src/ (the family A zero-stance)", () => {
+    // The pin: the clone ships no passkey surface — no navigator.credentials
+    // create/get/store call (the Credential Management API), no
+    // PublicKeyCredential creation (WebAuthn), no platform-authenticator
+    // availability probe, no conditional-mediation opt-in. The probed
+    // parity: the API family is FULLY PRESENT in the shared context on BOTH
+    // sites (navigator.credentials with create/get/store/
+    // preventSilentAccess + PublicKeyCredential with both statics) but the
+    // app surface is ZERO on both — zero instrumented calls, zero
+    // passkey/biometric/fingerprint-labeled UI, zero app registrations.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of CREDENTIALS_WEBAUTHN_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("ZERO Web-Speech references anywhere in src/ (the family B zero-stance)", () => {
+    // The pin: the clone ships no voice surface — no speechSynthesis.speak
+    // (no TTS), no SpeechRecognition construction (no dictation), no
+    // getVoices enumeration. The probed parity: the tier is present in the
+    // shared context on BOTH sites (speechSynthesis + SpeechRecognition
+    // both exposed by the e2e Chromium) but ZERO app surface on either —
+    // zero instrumented calls, zero speech/voice/mic-labeled UI, zero
+    // speech-family CSSOM rules.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of WEB_SPEECH_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("ZERO Bluetooth / Serial / USB references anywhere in src/ (the family C zero-stance)", () => {
+    // The pin: the clone ships no niche-connectivity surface — no
+    // navigator.bluetooth.requestDevice, no navigator.serial.requestPort,
+    // no navigator.usb.requestDevice, no port/device enumeration. The
+    // probed parity: navigator.bluetooth is ABSENT in the shared headless
+    // context on BOTH sites (the s47 navigator.share ABSENT case's mirror);
+    // serial + usb are present with identical shape but ZERO instrumented
+    // calls on either site; zero bluetooth/serial/pairing-labeled UI.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of CONNECTIVITY_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("session-48: the platform-surface source census", () => {
   it("ZERO clipboard-API references anywhere in src/ (the family A zero-stance)", () => {
     // The pin: the clone ships no clipboard surface — no async

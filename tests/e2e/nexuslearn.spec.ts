@@ -7514,6 +7514,222 @@ test.describe("session-48 parity: the gamepad / WebHID census", () => {
 });
 
 
+test.describe("session-49 parity: the credentials / WebAuthn census", () => {
+  // The s49 credentials/WebAuthn census (both sites, all 9 routes + the
+  // auth routes, the session_109 direction (a)): the ZERO-passkey surface —
+  // the password-adjacent API family is FULLY PRESENT in the shared context
+  // (navigator.credentials with create/get/store/preventSilentAccess +
+  // PublicKeyCredential with both statics, identical shape on both sites)
+  // but zero instrumented calls, zero passkey/biometric/fingerprint-labeled
+  // UI, zero app-level registrations of the family's events. The error
+  // listeners the clone's Next.js runtime registers (script/document/window
+  // tiers + the route announcer) are framework surface (the s49
+  // framework-internal listener family), not app handlers. This spec
+  // freezes the clone's public-route contract (the source tier is pinned
+  // by tests/platform-surface-source.test.ts).
+
+  test("no credentials/WebAuthn surface: APIs present, zero calls, zero passkey UI", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s49cred: { calls: string[] } };
+      w.__s49cred = { calls: [] };
+      if (navigator.credentials) {
+        for (const m of ["create", "get", "store", "preventSilentAccess"] as const) {
+          const anyCred = navigator.credentials as unknown as Record<string, unknown>;
+          if (typeof anyCred[m] === "function") {
+            const orig = (anyCred[m] as (...a: unknown[]) => Promise<unknown>).bind(navigator.credentials);
+            anyCred[m] = (...a: unknown[]) => {
+              w.__s49cred.calls.push(`${m}@${location.pathname}`);
+              return orig(...a);
+            };
+          }
+        }
+      }
+      const PKC = (window as unknown as { PublicKeyCredential?: Record<string, unknown> }).PublicKeyCredential;
+      if (PKC) {
+        for (const m of ["isUserVerifyingPlatformAuthenticatorAvailable", "isConditionalMediationAvailable"] as const) {
+          if (typeof PKC[m] === "function") {
+            const orig = (PKC[m] as (...a: unknown[]) => Promise<boolean>).bind(PKC);
+            PKC[m] = (...a: unknown[]) => {
+              w.__s49cred.calls.push(`${m}@${location.pathname}`);
+              return orig(...a);
+            };
+          }
+        }
+      }
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e headless-Chromium context — the same
+    // context the probe censused; a Playwright bump that changes the
+    // headless surface re-baselines this read, while the zero-CALL census
+    // stays the durable contract).
+    const api = await page.evaluate(() => ({
+      credentials: !!navigator.credentials,
+      create: typeof navigator.credentials?.create,
+      pkc: typeof (window as unknown as { PublicKeyCredential?: unknown }).PublicKeyCredential,
+      uvpaa: typeof (window as unknown as { PublicKeyCredential?: { isUserVerifyingPlatformAuthenticatorAvailable?: unknown } }).PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable,
+    }));
+    expect(api.credentials).toBe(true);
+    expect(api.create).toBe("function");
+    expect(api.pkc).toBe("function");
+    expect(api.uvpaa).toBe("function");
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s49cred?: { calls: string[] } };
+        const credUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label], [title], h1, h2, h3, label"))) {
+          const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim().toLowerCase();
+          if (/passkey|webauthn|biometric|fingerprint|face\s?id|touch\s?id|authenticator\s?key/.test(label)) credUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        return { calls: w.__s49cred?.calls ?? [], credUi };
+      });
+      expect(census.calls, `${route} never calls the credentials/WebAuthn APIs`).toEqual([]);
+      expect(census.credUi, `${route} ships no passkey-labeled UI`).toEqual([]);
+    }
+  });
+});
+
+
+test.describe("session-49 parity: the Web-Speech census", () => {
+  // The s49 Web-Speech census (both sites, all 9 routes + the auth routes,
+  // the session_109 direction (b)): the ZERO-voice surface — the tier is
+  // PRESENT in the shared context (speechSynthesis + SpeechRecognition,
+  // both exposed by the e2e Chromium, identical on both sites) but zero
+  // instrumented speak/cancel/getVoices calls, zero SpeechRecognition
+  // constructions, zero speech/voice/mic-labeled UI, zero speech-family
+  // CSSOM rules. This spec freezes the clone's public-route contract (the
+  // source tier is pinned by tests/platform-surface-source.test.ts).
+
+  test("no speech surface: API present, zero calls, zero voice UI", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s49speech: { calls: string[]; ctor: number } };
+      w.__s49speech = { calls: [], ctor: 0 };
+      if (window.speechSynthesis) {
+        for (const m of ["speak", "cancel", "getVoices"] as const) {
+          const synth = window.speechSynthesis as unknown as Record<string, unknown>;
+          if (typeof synth[m] === "function") {
+            const orig = (synth[m] as (...a: unknown[]) => unknown).bind(window.speechSynthesis);
+            synth[m] = (...a: unknown[]) => {
+              w.__s49speech.calls.push(`${m}@${location.pathname}`);
+              return orig(...a);
+            };
+          }
+        }
+      }
+      const w2 = window as unknown as Record<string, unknown>;
+      const SR = (w2.SpeechRecognition || w2.webkitSpeechRecognition) as (new (...a: unknown[]) => unknown) | undefined;
+      if (SR) {
+        const OrigSR = SR;
+        function PatchedSR(this: unknown, ...a: unknown[]) {
+          w.__s49speech.ctor++;
+          return new (OrigSR as new (...a: unknown[]) => unknown)(...a);
+        }
+        PatchedSR.prototype = (OrigSR as unknown as { prototype: unknown }).prototype;
+        const key = w2.SpeechRecognition ? "SpeechRecognition" : "webkitSpeechRecognition";
+        w2[key] = PatchedSR;
+      }
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e headless-Chromium context).
+    const api = await page.evaluate(() => ({
+      synth: typeof window.speechSynthesis,
+      speak: typeof window.speechSynthesis?.speak,
+      recognition: typeof (window as unknown as { SpeechRecognition?: unknown }).SpeechRecognition,
+    }));
+    expect(api.synth).toBe("object");
+    expect(api.speak).toBe("function");
+    expect(api.recognition).toBe("function");
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s49speech?: { calls: string[]; ctor: number } };
+        const voiceUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label], [title], h1, h2, h3, label"))) {
+          const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim().toLowerCase();
+          if (/speak|listen|voice|microphone|speech|dictat/.test(label)) voiceUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        return { calls: w.__s49speech?.calls ?? [], ctor: w.__s49speech?.ctor ?? 0, voiceUi };
+      });
+      expect(census.calls, `${route} never calls the speech APIs`).toEqual([]);
+      expect(census.ctor, `${route} never constructs a SpeechRecognition`).toBe(0);
+      expect(census.voiceUi, `${route} ships no voice-labeled UI`).toEqual([]);
+    }
+  });
+});
+
+
+test.describe("session-49 parity: the Bluetooth / Serial / USB census", () => {
+  // The s49 Bluetooth/Serial/USB census (both sites, all 9 routes + the
+  // auth routes, the session_109 direction (c)): the ZERO-connectivity
+  // surface — navigator.bluetooth is ABSENT in the shared headless context
+  // on BOTH sites (the s47 navigator.share ABSENT case's mirror — the
+  // headless flag), while navigator.serial + navigator.usb are present
+  // with identical shape; but zero instrumented requestDevice/requestPort/
+  // getPorts/getDevices calls, zero bluetooth/serial/pairing-labeled UI.
+  // This spec freezes the clone's public-route contract (the source tier
+  // is pinned by tests/platform-surface-source.test.ts).
+
+  test("no connectivity surface: APIs present, zero calls, zero pairing UI", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s49conn: { calls: string[] } };
+      w.__s49conn = { calls: [] };
+      const nav = navigator as unknown as Record<string, Record<string, unknown> | undefined>;
+      for (const [iface, method] of [
+        ["serial", "requestPort"],
+        ["serial", "getPorts"],
+        ["usb", "requestDevice"],
+        ["usb", "getDevices"],
+        ["bluetooth", "requestDevice"],
+      ] as const) {
+        const obj = nav[iface];
+        if (obj && typeof obj[method] === "function") {
+          const orig = (obj[method] as (...a: unknown[]) => Promise<unknown>).bind(obj);
+          obj[method] = (...a: unknown[]) => {
+            w.__s49conn.calls.push(`${iface}.${method}@${location.pathname}`);
+            return orig(...a);
+          };
+        }
+      }
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e headless-Chromium context — serial +
+    // usb present, bluetooth ABSENT: the headless flag, documented as
+    // context-bound like the s47 navigator.share note).
+    const api = await page.evaluate(() => {
+      const nav = navigator as unknown as Record<string, Record<string, unknown> | undefined>;
+      return {
+        serial: typeof nav.serial?.requestPort === "function",
+        usb: typeof nav.usb?.requestDevice === "function",
+        bluetooth: typeof nav.bluetooth?.requestDevice,
+      };
+    });
+    expect(api.serial).toBe(true);
+    expect(api.usb).toBe(true);
+    expect(api.bluetooth).toBe("undefined");
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s49conn?: { calls: string[] } };
+        const connUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label], [title], h1, h2, h3, label"))) {
+          const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim().toLowerCase();
+          if (/bluetooth|pair\s?device|serial\s?port|usb\s?device|connect\s?device/.test(label)) connUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        return { calls: w.__s49conn?.calls ?? [], connUi };
+      });
+      expect(census.calls, `${route} never calls the connectivity APIs`).toEqual([]);
+      expect(census.connUi, `${route} ships no pairing-labeled UI`).toEqual([]);
+    }
+  });
+});
+
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a
