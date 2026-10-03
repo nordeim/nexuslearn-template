@@ -7086,6 +7086,224 @@ test.describe("session-46 parity: the multi-window + opener census", () => {
 });
 
 
+test.describe("session-47 parity: the new CSS media tiers (prefers-contrast + prefers-reduced-transparency)", () => {
+  // The s47 media-tier census (both sites — the app routes signed in, the
+  // auth routes signed out, the session_104 direction (a)): ZERO
+  // prefers-contrast + ZERO prefers-reduced-transparency rules on EITHER
+  // site's app routes, and emulating either tier (plus both at once)
+  // changes NOTHING — no heights, no computed styles (the s22
+  // no-adaptation contract extended to the two newer media features). The
+  // LIVE's auth routes carry platform-sheet rules the clone does not: 2
+  // prefers-contrast rules that are the GOOGLE IDENTITY SERVICES button
+  // chrome (the injected googleidentityservice_button_styles sheet — s43
+  // counted them, s47 identified the owner) + 8 prefers-reduced-motion
+  // rules (the auth-shell bundle's motion-safe/motion-reduce
+  // view-transition/toast utilities) — ALL INERT (the render tier is
+  // byte-identical under contrast:more and reduced-motion:reduce; the
+  // platform-chrome documentation family, like the s43 43-keyframes + the
+  // s46 message listener). The census-methodology note: the s43 walker
+  // never recursed into @layer blocks (Tailwind v4 emits ALL utilities
+  // inside @layer), so the clone's 1 forced-colors rule per route —
+  // Tailwind v4's own .outline-hidden accessibility helper (a transparent
+  // outline, renders nothing; v3 has no such utility, so the live ships
+  // 0) — escaped it. These specs freeze the clone's no-adaptation contract
+  // on the public routes (the source tier is pinned by
+  // tests/platform-surface-source.test.ts).
+
+  test("the render tier adapts nothing under either emulated media tier", async ({ page }) => {
+    // The two newer media features ride CDP's Emulation.setEmulatedMedia
+    // (Playwright's emulateMedia option set covers contrast natively but
+    // not reduced-transparency; one mechanism for all four states avoids
+    // composition concerns). The emulation persists across navigations.
+    const cdp = await page.context().newCDPSession(page);
+    const setFeatures = (features: { name: string; value: string }[]) =>
+      cdp.send("Emulation.setEmulatedMedia", { features });
+
+    for (const route of ["/", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(800);
+
+      const probe = () => page.evaluate(() => ({
+        height: document.documentElement.scrollHeight,
+        bodyBg: getComputedStyle(document.body).backgroundColor,
+        bodyColor: getComputedStyle(document.body).color,
+        h1: (() => {
+          const el = document.querySelector("h1");
+          if (!el) return null;
+          const cs = getComputedStyle(el);
+          return `${cs.color}|${cs.fontSize}|${cs.letterSpacing}`;
+        })(),
+        nav: (() => {
+          const el = document.querySelector("nav");
+          return el ? getComputedStyle(el).backgroundColor : null;
+        })(),
+      }));
+
+      // Baseline: no emulation
+      await setFeatures([]);
+      await page.waitForTimeout(200);
+      const baseline = await probe();
+      // The emulation proof: the reads are OFF before, ON under each tier.
+      expect(await page.evaluate(() => matchMedia("(prefers-contrast: more)").matches)).toBe(false);
+      expect(await page.evaluate(() => matchMedia("(prefers-reduced-transparency: reduce)").matches)).toBe(false);
+
+      await setFeatures([{ name: "prefers-contrast", value: "more" }]);
+      await page.waitForTimeout(200);
+      expect(await page.evaluate(() => matchMedia("(prefers-contrast: more)").matches)).toBe(true);
+      const contrast = await probe();
+
+      await setFeatures([{ name: "prefers-reduced-transparency", value: "reduce" }]);
+      await page.waitForTimeout(200);
+      expect(await page.evaluate(() => matchMedia("(prefers-reduced-transparency: reduce)").matches)).toBe(true);
+      const transparency = await probe();
+
+      // Both tiers at once (the maximal-adaptation tier)
+      await setFeatures([
+        { name: "prefers-contrast", value: "more" },
+        { name: "prefers-reduced-transparency", value: "reduce" },
+      ]);
+      await page.waitForTimeout(200);
+      const both = await probe();
+
+      expect(contrast, `${route}: nothing adapts under prefers-contrast: more`).toEqual(baseline);
+      expect(transparency, `${route}: nothing adapts under prefers-reduced-transparency: reduce`).toEqual(baseline);
+      expect(both, `${route}: nothing adapts under both tiers at once`).toEqual(baseline);
+    }
+    // Reset (leave the page unemulated for the rest of the suite)
+    await setFeatures([]);
+    await cdp.detach();
+  });
+
+  test("the layer-aware CSSOM census: no app-level prefers-* rules; forced-colors stays the framework helper", async ({ page }) => {
+    for (const route of ["/", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(800);
+      // The LAYER-AWARE walk (the s43 correction — recursing into
+      // @layer/@media/@supports, not just top-level media rules).
+      const census = await page.evaluate(() => {
+        const families: Record<string, string[]> = {
+          "prefers-contrast": [],
+          "prefers-reduced-transparency": [],
+          "prefers-reduced-motion": [],
+          "prefers-color-scheme": [],
+          "forced-colors": [],
+        };
+        const walk = (rules: CSSRuleList) => {
+          for (const rule of Array.from(rules)) {
+            const media = (rule as CSSMediaRule).media;
+            if (media) {
+              const text = media.mediaText;
+              for (const fam of Object.keys(families)) {
+                if (text.includes(fam)) families[fam].push(rule.cssText.slice(0, 150));
+              }
+            }
+            if ((rule as { cssRules?: CSSRuleList }).cssRules) {
+              try { walk((rule as CSSMediaRule).cssRules); } catch { /* cross-origin or detached */ }
+            }
+          }
+        };
+        for (const sheet of Array.from(document.styleSheets)) {
+          try { walk(sheet.cssRules); } catch { /* cross-origin */ }
+        }
+        return families;
+      });
+      expect(census["prefers-contrast"], `${route}: no prefers-contrast rules`).toEqual([]);
+      expect(census["prefers-reduced-transparency"], `${route}: no prefers-reduced-transparency rules`).toEqual([]);
+      expect(census["prefers-reduced-motion"], `${route}: no prefers-reduced-motion rules`).toEqual([]);
+      expect(census["prefers-color-scheme"], `${route}: no prefers-color-scheme rules`).toEqual([]);
+      // The framework containment: every forced-colors rule is Tailwind
+      // v4's own .outline-hidden accessibility helper (a transparent
+      // outline — renders nothing; the select primitive's shadcn class
+      // carries the utility). A future app-level forced-colors adaptation
+      // fails this containment instead of drifting silently.
+      for (const rule of census["forced-colors"]) {
+        expect(rule.includes("outline-hidden"), `${route}: forced-colors stays framework-only (the outline-hidden helper)`).toBe(true);
+      }
+    }
+  });
+});
+
+
+test.describe("session-47 parity: the Web-Share census", () => {
+  // The s47 web-share census (both sites, all 9 routes, the session_104
+  // direction (b)): the ZERO-share surface — the API absent in the shared
+  // probe context, zero instrumented calls (share/canShare overridden
+  // before load), zero share-labeled UI elements, no share_target in
+  // either manifest (the clone 200 / the live 302 — the s24
+  // platform-redirect family). Neither site ships ANY Web-Share surface.
+  // This spec freezes the clone's public-route contract (the source tier
+  // is pinned by tests/platform-surface-source.test.ts).
+
+  test("no navigator.share surface: API absent, zero share UI, no manifest share_target", async ({ page, request }) => {
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e headless-Chromium context — the same
+    // context the probe censused; a Playwright bump that exposes the API
+    // re-baselines this read, while the API-USE census stays the durable
+    // contract).
+    const api = await page.evaluate(() => ({
+      share: typeof navigator.share,
+      canShare: typeof navigator.canShare,
+    }));
+    expect(api.share).toBe("undefined");
+    expect(api.canShare).toBe("undefined");
+
+    // The UI census across the public routes (share-labeled buttons,
+    // links, aria-labels and class names)
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const shareUi = await page.evaluate(() => {
+        const found: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label]"))) {
+          const label = (el.getAttribute("aria-label") || el.textContent || "").trim().toLowerCase();
+          const cls = typeof el.className === "string" ? el.className.toLowerCase() : "";
+          if (/share|telegram|whatsapp/.test(label) || /share/.test(cls)) {
+            found.push(`${el.tagName}:${label.slice(0, 40)}`);
+          }
+        }
+        return found;
+      });
+      expect(shareUi, `${route} ships no share UI`).toEqual([]);
+    }
+
+    // The manifest share_target tier (the PWA share-target surface)
+    const res = await request.get("/manifest.json");
+    expect(res.status()).toBe(200);
+    expect((await res.text()).includes("share_target"), "the manifest declares no share target").toBe(false);
+  });
+});
+
+
+test.describe("session-47 parity: the idle-tier census", () => {
+  // The s47 idle census (both sites, all 9 routes, instrumented + a 3s
+  // settle, the session_104 direction (c)): the ZERO-idle surface — the
+  // APIs EXIST in the shared context (requestIdleCallback, IdleDetector,
+  // navigator.scheduling) but ZERO registrations fire anywhere on either
+  // site. This spec freezes the clone's public-route zero-registration
+  // contract (the source tier is pinned by
+  // tests/platform-surface-source.test.ts).
+
+  test("zero requestIdleCallback registrations on the public routes", async ({ page }) => {
+    await page.addInitScript(() => {
+      (window as unknown as { __s47idle: number }).__s47idle = 0;
+      if (window.requestIdleCallback) {
+        const orig = window.requestIdleCallback.bind(window);
+        window.requestIdleCallback = (cb: IdleRequestCallback, opts?: IdleRequestOptions) => {
+          (window as unknown as { __s47idle: number }).__s47idle++;
+          return orig(cb, opts);
+        };
+      }
+    });
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(1000); // idle callbacks fire once the main thread goes quiet
+      const count = await page.evaluate(() => (window as unknown as { __s47idle?: number }).__s47idle || 0);
+      expect(count, `${route} schedules no idle work`).toBe(0);
+    }
+  });
+});
+
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a

@@ -1,0 +1,80 @@
+==================================================================
+SESSION 47 PROOF MATRIX — the new-media-tier + web-share + idle pass
+==================================================================
+
+PART 1 — THE NEW CSS MEDIA TIERS (prefers-contrast + prefers-reduced-transparency)
+  Census: the layer-aware CSSOM walk (recursing into @layer — the s43 correction);
+  render: CDP Emulation.setEmulatedMedia per tier, diffed against baseline.
+
+  The CSSOM census (per-route prefers/forced family counts, layer-aware):
+    /                  clone={"forced-colors":1}
+                       live ={}
+    /Courses           clone={"forced-colors":1}
+                       live ={}
+    /Pricing           clone={"forced-colors":1}
+                       live ={}
+    /Dashboard         clone={"forced-colors":1}
+                       live ={}
+    /login             clone={"forced-colors":1}
+                       live ={"prefers-reduced-motion":8,"prefers-contrast":2}
+    /reset-password    clone={"forced-colors":1}
+                       live ={"prefers-reduced-motion":8,"prefers-contrast":2}
+
+  FINDINGS: zero prefers-contrast + zero prefers-reduced-transparency rules on
+  EITHER site's app routes. The live's AUTH routes carry the platform sheets:
+  2 prefers-contrast rules = the GOOGLE IDENTITY SERVICES button chrome
+  (googleidentityservice_button_styles), 8 prefers-reduced-motion rules = the
+  auth-shell bundle's motion-safe/motion-reduce utilities + the sonner toast
+  sheet — ALL INERT (render byte-identical under emulation). The clone's 1
+  forced-colors rule per route = Tailwind v4's .outline-hidden helper (renders
+  nothing; v3 has no such utility, so the live ships 0). The s43 census walker
+  never recursed into @layer blocks — its counts were the under-count.
+
+  The render tier (heights + sampled computed styles at each emulated state):
+    clone /        base h=7683 | contrast:identical | transparency:identical
+    clone /login   base h=800 | contrast:identical | transparency:identical
+    live  /        base h=7683 | contrast:identical | transparency:identical
+    live  /login   base h=800 | contrast:identical | transparency:identical
+
+PART 2 — THE WEB-SHARE CENSUS (navigator.share / canShare / share_target)
+
+  clone: api={"share":"undefined","canShare":"undefined"} surface=0 manifest={"status":200,"shareTarget":false}
+  live:  api={"share":"undefined","canShare":"undefined"} surface=0 manifest={"status":302,"shareTarget":false}
+  FINDING: the ZERO-share surface on both sites (API absent in the shared context,
+  zero calls, zero share UI, no share_target in either manifest — the live's 302
+  is the documented s24 platform-redirect family).
+
+PART 3 — THE IDLE-TIER CENSUS (requestIdleCallback + IdleDetector)
+
+  clone: api={"rIC":"function","idleDetector":"function","scheduling":"object"} registrations(8 routes)=0
+  live:  api={"rIC":"function","idleDetector":"function","scheduling":"object"} registrations(8 routes)=0
+  FINDING: the ZERO-idle surface on both sites — the APIs exist in the shared
+  context but zero registrations fire anywhere on either site.
+
+PART 4 — THE ENV CONTRACT + THE GATE SUMMARY
+
+  .env == .env.example: byte-identical
+  DATABASE_URL: file:../db/custom.db (db/ at the repo root: custom.db + e2e.db)
+  skills/ excluded: tsconfig exclude + eslint ignores + vitest include (src/tests only)
+                    + playwright testDir ./tests/e2e
+
+  GATE (the session-47 GUARD, in the required order):
+    lint ......... clean
+    typecheck .... clean
+    unit ......... 319/319 (315 -> 319: +4 platform-surface source pins)
+    build ........ clean (standalone)
+    e2e .......... 397/397 (393 -> 397: +4 session-47 pins; the run split into
+                   three invocations for the tool-timeout — 14 mobile-nav + 364
+                   pre-s44 + 19 s44-s47, the burst spec ordering constraint held)
+    TOTAL ........ 716 (was 708) — zero regressions
+
+  STANDING PARITY BATTERY (re-run after the additions):
+    heights x9 routes x2 viewports ... 18/18 byte-exact
+    mobile battery .................. IDENTICAL (no Tailwind v4 bug;
+                                      trigger byte-identical, panel 389x405 @ y=64)
+    console sweep ................... 13/13 clean
+
+  TDD: +4 unit source pins (tests/platform-surface-source.test.ts) + 4 e2e pins
+  (the media-tier render + CSSOM census pair, the web-share single, the idle
+  single). NO source change shipped — the pins are the deliverable (the s44/s46
+  precedent).
