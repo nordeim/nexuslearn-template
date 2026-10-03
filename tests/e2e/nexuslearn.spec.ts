@@ -6253,6 +6253,340 @@ test.describe("session-42 parity: the scroll-restoration + no-SW surface", () =>
 });
 
 
+test.describe("session-43 parity: the global-error boundary (the root-crash tier)", () => {
+  // The s42 pass shipped src/app/error.tsx (the page-segment boundary); the
+  // ROOT tier was still the framework default — a root-segment client error
+  // (the scroll normalizer's effect + the router's own components) escaped
+  // every error.tsx boundary. Probed: the default boundary renders "This
+  // page couldn't load" chrome AND strips the replacement document (an
+  // <html> with only an id — no lang, no design classes). The live's
+  // equivalent tier ships no recovery UI at all (frozen shell/blank).
+  // Injection: the ONE-SHOT first-registration sabotage. Next's production
+  // tree wraps the root layout's tree (the RootLayoutBoundary) in the USER's
+  // global-error boundary, while the router's own history registration lives
+  // OUTSIDE it (under the outermost BUILT-IN boundary). Exactly two
+  // registrations happen at hydration — ScrollRestoreNormalizer's FIRST (the
+  // root layout's own client component), the router's SECOND (probed). The
+  // sabotage throws on the FIRST registration only: the error lands INSIDE
+  // the root layout's tree, which is the one class of crash the user's
+  // global-error boundary owns (throwing on the router's registration shows
+  // the built-in framework tier — the probed default).
+  test("a root-tier client error renders the on-brand boundary, and Try again recovers", async ({ page }) => {
+    await page.addInitScript(`
+      const orig = Window.prototype.addEventListener;
+      let armed = true;
+      window.__restoreAEL = () => { armed = false; };
+      Window.prototype.addEventListener = function (type, ...rest) {
+        if (type === "popstate" && armed) {
+          armed = false;
+          throw new Error("injected root-tier history-listener failure");
+        }
+        return orig.call(this, type, ...rest);
+      };
+    `);
+    await page.goto("/");
+    await page.waitForTimeout(3000); // hydration commit + boundary settle
+
+    // The boundary — NOT the framework default, NOT a blank document. The
+    // error.tsx design language, one tier up: h1 "500" + h2.
+    await expect(page.locator("h1", { hasText: "500" })).toBeVisible();
+    await expect(page.locator("h2", { hasText: "Something went wrong" })).toBeVisible();
+    const body = await page.evaluate(() => document.body.innerText);
+    expect(body).toContain("Try again");
+    expect(body).toContain("Back to Home");
+    expect(body).not.toContain("This page couldn’t load"); // the Next 16 default replaced
+    expect(body).not.toContain("Application error"); // the pre-16 default, gone too
+
+    // The crash-time a11y contract: the document language survives the crash
+    // (the probed default boundary stripped EVERY html attribute but id).
+    expect(await page.evaluate(() => document.documentElement.lang)).toBe("en");
+    // The root layout's document shape survives too.
+    expect(await page.evaluate(() => document.documentElement.dataset.scrollBehavior)).toBe("smooth");
+
+    // The recovery: restore the prototype method, then reset the root.
+    await page.evaluate("() => window.__restoreAEL()");
+    await page.getByRole("button", { name: /Try again/i }).click();
+    await page.waitForTimeout(2000);
+    await expect(
+      page.getByRole("heading", { level: 1 }).first()
+    ).toContainText("Learn Skills That");
+  });
+
+  test("the Back to Home anchor fully reloads the landing (the second recovery path)", async ({ page }) => {
+    // The sessionStorage flag is SPEC-SIDE instrumentation (an isolated
+    // context — not app persistence, which the s22 zero-storage pins govern):
+    // a real root-layout defect would crash every reload, so the spec models
+    // the TRANSIENT defect (the s42 restore-then-recover pattern adapted to
+    // the document tier — the disarm must survive the full document load).
+    await page.addInitScript(`
+      if (!sessionStorage.getItem("s43RootDefectCleared")) {
+        const orig = Window.prototype.addEventListener;
+        Window.prototype.addEventListener = function (type, ...rest) {
+          if (type === "popstate" && !this.__s43Disarmed) {
+            this.__s43Disarmed = true;
+            throw new Error("injected root-tier history-listener failure");
+          }
+          return orig.call(this, type, ...rest);
+        };
+      }
+    `);
+    await page.goto("/");
+    await page.waitForTimeout(3000);
+
+    // The boundary's home link — a PLAIN anchor (no router dependency at the
+    // crashed-root tier; source-pinned in tests/global-error-source.test.ts).
+    const home = page.locator('a[href="/"]', { hasText: /Back to Home/i });
+    await expect(home).toBeVisible();
+
+    // The transient defect clears, then the anchor's full document load
+    // recovers the landing (the same recovery a manual reload gives the
+    // visitor once the fault is gone).
+    await page.evaluate(() => sessionStorage.setItem("s43RootDefectCleared", "1"));
+    await home.click();
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(2500);
+    await expect(
+      page.getByRole("heading", { level: 1 }).first()
+    ).toContainText("Learn Skills That");
+  });
+});
+
+test.describe("session-43 parity: the /login zinc theme under every color scheme", () => {
+  // The s18 zinc block shipped wrapped in a light-scheme media query, but the
+  // live's runtime zinc sheet carries NO wrapper — under a dark-scheme
+  // visitor the live kept zinc (rgb(9,9,11)) while the clone deactivated the
+  // block (neutral rgb(10,10,10)). The block now applies under every scheme.
+  test("the zinc ring survives prefers-color-scheme: dark (the live's runtime sheet has no media wrapper)", async ({ page }) => {
+    await page.goto("/login");
+
+    // Light control: zinc active (the s18 contract, unchanged).
+    expect(
+      await page.evaluate(() => getComputedStyle(document.body).getPropertyValue("--ring").trim())
+    ).toBe("#09090b");
+
+    // Dark: the block must STAY active — the live keeps zinc under dark.
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.waitForTimeout(300);
+    expect(
+      await page.evaluate(() => getComputedStyle(document.body).getPropertyValue("--ring").trim())
+    ).toBe("#09090b");
+
+    // The focused Sign-in ring slot renders the zinc near-black under dark
+    // (transition-all 200ms — wait out the transition before reading slots).
+    const btn = page.getByRole("button", { name: "Sign in" });
+    await btn.focus();
+    await page.waitForTimeout(450);
+    const shadow = await btn.evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(shadow).toContain("rgb(9, 9, 11) 0px 0px 0px 4px");
+
+    // GUARD: every other route keeps the neutral ring under dark (the
+    // body:has() scope — the s18 GUARD extended to the dark tier).
+    await page.goto("/Courses");
+    expect(
+      await page.evaluate(() => getComputedStyle(document.body).getPropertyValue("--ring").trim())
+    ).toBe("#0a0a0a");
+  });
+});
+
+test.describe("session-43 parity: the intermediate-viewport breakpoint boundaries", () => {
+  // The standing heights battery covers 1920 and 375 only; the probe verified
+  // 45/45 route-viewport cells byte-exact across md-768/iPad-834/lg-1024/
+  // xl-1280/landscape-667. These pins freeze the structural breakpoint
+  // contracts (font-metric-independent): the md nav boundary at exactly 768,
+  // the catalog column counts, and the landscape mobile-menu geometry.
+  test("the md boundary is exactly 768: desktop nav + 2-column catalog at 768; mobile trigger at 767", async ({ page }) => {
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await page.goto("/Courses");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1500);
+
+    const at768 = await page.evaluate(() => {
+      const nav = document.querySelector("nav");
+      const desktopRow = nav?.querySelector("div.hidden") ?? null; // hidden md:flex
+      const trigger = [...(nav?.querySelectorAll("button") ?? [])].find((b) =>
+        b.className.includes("md:hidden")
+      );
+      const grid = document.querySelector("main .grid");
+      const cards = grid ? [...grid.children].slice(0, 3).map((c) => Math.round(c.getBoundingClientRect().y)) : [];
+      return {
+        desktopRowVisible: desktopRow ? (desktopRow as HTMLElement).offsetParent !== null : false,
+        triggerVisible: trigger ? trigger.offsetParent !== null : false,
+        firstThreeCardYs: cards,
+      };
+    });
+    expect(at768.desktopRowVisible).toBe(true);
+    expect(at768.triggerVisible).toBe(false);
+    // 2 columns at md: the first two cards share a row, the third wraps.
+    expect(at768.firstThreeCardYs[0]).toBe(at768.firstThreeCardYs[1]);
+    expect(at768.firstThreeCardYs[2]).toBeGreaterThan(at768.firstThreeCardYs[1]);
+
+    // One pixel below the boundary: the mobile chrome takes over.
+    await page.setViewportSize({ width: 767, height: 1024 });
+    await page.waitForTimeout(600);
+    const at767 = await page.evaluate(() => {
+      const nav = document.querySelector("nav");
+      const desktopRow = nav?.querySelector("div.hidden") ?? null;
+      const trigger = [...(nav?.querySelectorAll("button") ?? [])].find((b) =>
+        b.className.includes("md:hidden")
+      );
+      return {
+        desktopRowVisible: desktopRow ? (desktopRow as HTMLElement).offsetParent !== null : false,
+        triggerVisible: trigger ? trigger.offsetParent !== null : false,
+      };
+    });
+    expect(at767.desktopRowVisible).toBe(false);
+    expect(at767.triggerVisible).toBe(true);
+  });
+
+  test("the lg boundary: the catalog renders 3 columns at 1024 (1 column at 375)", async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.goto("/Courses");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1500);
+
+    const ysAt1024 = await page.evaluate(() => {
+      const grid = document.querySelector("main .grid");
+      return grid ? [...grid.children].slice(0, 3).map((c) => Math.round(c.getBoundingClientRect().y)) : [];
+    });
+    // 3 columns at lg: the first three cards share one row.
+    expect(ysAt1024[0]).toBe(ysAt1024[1]);
+    expect(ysAt1024[1]).toBe(ysAt1024[2]);
+
+    // The mobile portrait tier: 1 column (the standing battery's viewport).
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.waitForTimeout(600);
+    const ysAt375 = await page.evaluate(() => {
+      const grid = document.querySelector("main .grid");
+      return grid ? [...grid.children].slice(0, 2).map((c) => Math.round(c.getBoundingClientRect().y)) : [];
+    });
+    expect(ysAt375[1]).toBeGreaterThan(ysAt375[0]);
+  });
+
+  test("the landscape mobile menu (667×375): the trigger + the full-width panel", async ({ page }) => {
+    // The owner-asked mobile-nav comparison on the landscape tier (probed
+    // IDENTICAL live-vs-clone: trigger 40×40 at (603,12), panel 667×405 at
+    // y=64 — the md boundary holds below 768 on both engines).
+    await page.setViewportSize({ width: 667, height: 375 });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(2000);
+
+    const trigger = await page.evaluate(() => {
+      const nav = document.querySelector("nav");
+      const t = [...(nav?.querySelectorAll("button") ?? [])].find((b) => b.className.includes("md:hidden"));
+      if (!t) return null;
+      const r = t.getBoundingClientRect();
+      t.click();
+      return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
+    });
+    expect(trigger).toEqual({ x: 603, y: 12, w: 40, h: 40 });
+    await page.waitForTimeout(1100); // the open animation settles
+
+    const panel = await page.evaluate(() => {
+      const nav = document.querySelector("nav");
+      const candidates = [...(nav?.querySelectorAll("div") ?? [])].filter(
+        (d) => d.className.includes("md:hidden") && d.className.includes("bg-white")
+      );
+      const p = candidates.find((d) => d.querySelectorAll("a, button").length > 0);
+      if (!p) return null;
+      const r = p.getBoundingClientRect();
+      return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
+    });
+    expect(panel).toEqual({ x: 0, y: 64, w: 667, h: 405 });
+  });
+});
+
+test.describe("session-43 parity: the color-scheme rendering tiers", () => {
+  test("emulated dark changes NOTHING (no dark styles — heights + colors identical)", async ({ page }) => {
+    // The s22 palette-stability pin extended to the geometry tier: neither
+    // site ships dark styles, so the dark-scheme rendering is byte-identical
+    // to the light tier (probed 9/9 routes byte-exact live-vs-clone).
+    for (const route of ["/", "/Courses"]) {
+      await page.goto(route);
+      await page.waitForLoadState("networkidle");
+      await page.waitForTimeout(1500);
+      const light = await page.evaluate(() => {
+        const nav = document.querySelector("nav");
+        return {
+          h: document.documentElement.scrollHeight,
+          bg: getComputedStyle(document.body).backgroundColor,
+          color: getComputedStyle(document.body).color,
+          navBg: nav ? getComputedStyle(nav).backgroundColor : "",
+        };
+      });
+
+      await page.emulateMedia({ colorScheme: "dark" });
+      await page.waitForTimeout(400);
+      const dark = await page.evaluate(() => {
+        const nav = document.querySelector("nav");
+        return {
+          h: document.documentElement.scrollHeight,
+          bg: getComputedStyle(document.body).backgroundColor,
+          color: getComputedStyle(document.body).color,
+          navBg: nav ? getComputedStyle(nav).backgroundColor : "",
+        };
+      });
+      expect(dark, `${route} — dark changes nothing`).toEqual(light);
+      await page.emulateMedia({ colorScheme: null });
+    }
+  });
+
+  test("forced-colors renders the UA forced palette + unchanged geometry", async ({ page }) => {
+    // The Windows-High-Contrast tier (never probed before s43): neither site
+    // ships forced-colors overrides, so the UA forced palette applies
+    // identically on both (probed: every sampled surface forced the same,
+    // the landing height unchanged at 7949).
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1500);
+    const normalHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+
+    await page.emulateMedia({ forcedColors: "active" });
+    await page.waitForTimeout(400);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(normalHeight);
+    expect(await page.evaluate(() => getComputedStyle(document.body).color)).toBe("rgb(0, 0, 0)");
+    await expect(
+      page.getByRole("heading", { level: 1 }).first()
+    ).toContainText("Learn Skills That");
+    await page.emulateMedia({ forcedColors: null });
+  });
+});
+
+test.describe("session-43 parity: the long-run stability tier", () => {
+  test("10 search cycles return the DOM to the exact baseline (no observer accumulation)", async ({ page }) => {
+    // The probe ran 30 cycles + 24 navigations on both sites: zero node
+    // drift, deterministic counts, zero console errors. The e2e pins the
+    // clone's non-accumulation contract (the RevealController's observer
+    // re-observes every filter cycle — an accumulation bug would leak).
+    const errors: string[] = [];
+    page.on("console", (m) => {
+      if (m.type() === "error") errors.push(m.text());
+    });
+    page.on("pageerror", (e) => errors.push(String(e)));
+
+    await page.goto("/login");
+    await page.fill("#email", "sepnetflix2023@outlook.com");
+    await page.fill("#password", "$Abcd1234");
+    await page.click('button[type="submit"]');
+    await page.waitForURL((u) => !u.pathname.endsWith("/login"));
+    await page.goto("/Courses");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1500);
+
+    const baseline = await page.evaluate(() => document.getElementsByTagName("*").length);
+    for (let i = 0; i < 10; i++) {
+      await page.fill('input[aria-label="Search courses"]', "data");
+      await page.waitForTimeout(300);
+      await page.fill('input[aria-label="Search courses"]', "");
+      await page.waitForTimeout(300);
+    }
+    const after = await page.evaluate(() => document.getElementsByTagName("*").length);
+    expect(after).toBe(baseline);
+    expect(errors).toEqual([]);
+  });
+});
+
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a

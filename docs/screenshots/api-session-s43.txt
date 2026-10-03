@@ -1,0 +1,128 @@
+================================================================
+NexusLearn — Session 43 Proof Matrix (the root-crash tier + the
+color-scheme tiers + the intermediate viewports + the stability run)
+Generated: 2026-10-03T02:56:32.724Z
+Clone prod: http://localhost:3100  ·  Clone dev: http://localhost:3000  ·  Live: https://nexuslearn-template.base44.app
+================================================================
+
+----------------------------------------------------------------
+PART 1 — THE ROOT-CRASH MATRIX (fresh-eyes family A)
+  The one-shot first-registration sabotage throws inside the root
+  layout's own client tree (ScrollRestoreNormalizer's effect — the
+  FIRST of exactly two history-listener registrations at hydration);
+  the all-registrations sabotage additionally kills the ROUTER's own
+  registration, which lives OUTSIDE the user's boundary (the built-in
+  framework tier — the two-tier discovery of this session).
+----------------------------------------------------------------
+A. THE SHIPPED BOUNDARY (the user's root-layout tree error):
+   h1="500"  h2="Something went wrong"
+   lang="en"  htmlAttrs="lang,data-scroll-behavior"
+   body: 500 | Something went wrong |  | An unexpected error occurred while loading this page. Your progress is safe — try again, or he
+   actions: ["Try again","Back to Home"]  pageErrors=0
+   VERDICT: PASS — the on-brand boundary, the document language preserved
+
+B. THE BUILT-IN FRAMEWORK TIER (the router's own registration killed —
+   OUTSIDE the user's boundary; the tier our boundary cannot own):
+   h1="This page couldn’t load"  lang=""  htmlAttrs="id"
+   body: This page couldn’t load |  | Reload to try again, or go back. |  | Reload | Back
+   VERDICT: the documented framework tier — Next 16's version-dependent
+   default, which STRIPS the document (lang gone, html carries only id).
+
+C. THE LIVE's ROOT-CRASH TIER (the armed element-factory sabotage):
+   h1="NexusLearn"  body: NexusLearn |  | SkillSphere is a dynamic online learning platform offering a wide range of courses, structured learning path
+   VERDICT: the frozen boot shell — NO recovery UI (the platform variance)
+
+D. THE CONTROL (no sabotage): h1="Learn Skills That
+Shape Your Future" — the crash was sabotage-caused.
+
+----------------------------------------------------------------
+PART 2 — THE ZINC COLOR-SCHEME MATRIX (fresh-eyes family B)
+  The s18 zinc block was wrapped in a light-scheme media query; the
+  live's runtime zinc sheet carries NO wrapper (census: 0 color-scheme
+  media rules on the live). The block now applies under every scheme.
+----------------------------------------------------------------
+LIGHT  /login  live --ring="240 10% 3.9%" (rgb(9, 9, 11) 0px 0px 0px 4px)  clone --ring="#09090b" (rgb(9, 9, 11) 0px 0px 0px 4px)
+      VERDICT: MATCH — the focused ring slot renders rgb(9, 9, 11) on both sites
+DARK  /login  live --ring="240 10% 3.9%" (rgb(9, 9, 11) 0px 0px 0px 4px)  clone --ring="#09090b" (rgb(9, 9, 11) 0px 0px 0px 4px)
+      VERDICT: MATCH — the focused ring slot renders rgb(9, 9, 11) on both sites
+DARK  /Courses (the GUARD)  live --ring="0 0% 3.9%"  clone --ring="#0a0a0a"
+      VERDICT: MATCH — every other route keeps the neutral ring under dark (the body:has() scope)
+
+----------------------------------------------------------------
+PART 3 — THE COLOR-SCHEME RENDERING TIERS (the census + forced-colors)
+----------------------------------------------------------------
+The media-rule census (no declaration on either side; the live's /login
+platform chrome carries 2 prefers-contrast rules — the platform family):
+  live  /        : {"prefersColorSchemeRules":0,"forcedColorsRules":0,"prefersContrastRules":0,"metaColorScheme":null,"colorSchemeProp":"normal"}
+  live  /login   : {"prefersColorSchemeRules":0,"forcedColorsRules":0,"prefersContrastRules":2,"metaColorScheme":null,"colorSchemeProp":"normal"}
+  clone /        : {"prefersColorSchemeRules":0,"forcedColorsRules":0,"prefersContrastRules":0,"metaColorScheme":null,"colorSchemeProp":"normal"}
+  clone /login   : {"prefersColorSchemeRules":0,"forcedColorsRules":0,"prefersContrastRules":0,"metaColorScheme":null,"colorSchemeProp":"normal"}
+
+The forced-colors tier (Windows High Contrast emulation):
+  live : {"h":7949,"bodyColor":"rgb(0, 0, 0)","navColor":"rgb(0, 0, 0)"}
+  clone: {"h":7949,"bodyColor":"rgb(0, 0, 0)","navColor":"rgb(0, 0, 0)"}
+  VERDICT: MATCH — the UA forced palette applies identically; the geometry unchanged
+
+The dark no-adaptation proof (the clone, same page, two schemes):
+  /: light h=7949 dark h=7949 — IDENTICAL (no dark styles — the s22 contract at the geometry tier)
+  /Courses: light h=2521 dark h=2521 — IDENTICAL (no dark styles — the s22 contract at the geometry tier)
+  (the full 9-route dark battery ran byte-exact 9/9 live-vs-clone in the
+   fresh-eyes probe — s43-probe-color-tiers.js, this session)
+
+----------------------------------------------------------------
+PART 4 — THE INTERMEDIATE-VIEWPORT TIERS (fresh-eyes family C)
+  Measured by s43-probe-viewports.js this session — heights + innerText
+  x 9 routes x 5 viewports, live-vs-clone: 45/45 BYTE-EXACT. The v4
+  rem-based breakpoints render identically to the live's px breakpoints
+  at every intermediate width (the s25 media-rem rule verified at the
+  LAYOUT tier). Key cells (live h == clone h):
+----------------------------------------------------------------
+  md-768x1024    : / 11334 · /Courses 3656 · /CourseDetail 35405 · /Pricing 2733 · /About 3154 · /Contact 2067 · /BI 3131 · /AI 1737 · /Dash 1803
+  ipad-834x1194  : / 11478 · /Courses 3687 · /CourseDetail 35430 · /Pricing 2675 · /About 3145 · /Contact 2055 · /BI 3119 · /AI 1895 · /Dash 1895
+  lg-1024x768    : / 7816 · /Courses 2436 · /CourseDetail 34215 · /Pricing 2392 · /About 2256 · /Contact 1366 · /BI 2552 · /AI 1411 · /Dash 1424
+  xl-1280x800    : / 7683 · /Courses 2521 · /CourseDetail 34240 · /Pricing 2369 · /About 2197 · /Contact 1343 · /BI 2477 · /AI 1388 · /Dash 1401
+  landscape-667  : / 14561 · /Courses 7277 · /CourseDetail 35779 · /Pricing 4045 · /About 4003 · /Contact 2489 · /BI 4119 · /AI 2038 · /Dash 2189
+  THE LANDSCAPE MOBILE MENU (667x375): IDENTICAL — trigger 40x40 @ (603,12);
+  panel 667x405 @ y=64 on BOTH sites (the md boundary holds below 768 on
+  both engines — the owner-asked mobile-nav comparison, landscape tier).
+  Pinned e2e: the md boundary at exactly 768 (nav visibility + 2-col grid),
+  the lg 3-col tier, the landscape menu geometry.
+
+----------------------------------------------------------------
+PART 5 — THE LONG-RUN STABILITY TIERS (fresh-eyes family D)
+  Measured by s43-probe-stability.js this session — 30 search-filter
+  cycles on /Courses + 3 rounds of the 8-route navigation loop, one
+  context per site:
+----------------------------------------------------------------
+  CLONE: nodes 508 -> 508 across ALL 30 filter cycles (ZERO drift — the
+         RevealController MutationObserver does not accumulate); nav
+         rounds 207/207/207 (deterministic); console errors 0.
+  LIVE : nodes 458 -> 458 (zero drift); nav rounds 175/175/175; console
+         errors 0 (at 1.8s pacing — the platform edge 429'd a 1.3s/load
+         burst pattern, the platform-wall family).
+  Heap: quantized readings (performance.memory without the precise flag)
+         — live ~23.4MB vs clone ~20.7MB (the in-bundle SPA vs SSR — the
+         architecture fact, informational).
+  Pinned e2e: the 10-cycle node-count-returns-to-baseline contract + the
+  zero-console-errors contract.
+
+----------------------------------------------------------------
+PART 6 — THE ENV CONTRACT + THE GATE SUMMARY
+----------------------------------------------------------------
+  .env == .env.example: IDENTICAL (byte-verified)
+  DATABASE_URL: file:../db/custom.db (db/ at the repo root: custom.db + e2e.db)
+  skills/ excluded: tsconfig exclude + eslint ignores + vitest include
+                  (src+tests *.test.ts only) + playwright testDir ./tests/e2e
+  GATES: lint OK · typecheck OK · unit 307/307 (+17: the global-error
+         source battery 14 + the zinc-scheme source pins 3) · build OK ·
+         e2e 378/378 (+9: the root-crash pair, the zinc dark tier, the
+         3 breakpoint boundaries, the 2 color tiers, the stability) =
+         685 TOTAL (from 659 — zero regressions).
+  STANDING BATTERY (post-change): heights 18/18 byte-exact · mobile
+         battery IDENTICAL (no Tailwind v4 bug) · console 13/13 clean ·
+         the zinc light-tier controls intact (/login #09090b, /Courses
+         #0a0a0a).
+
+================================================================
+END OF SESSION-43 PROOF MATRIX
+================================================================

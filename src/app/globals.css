@@ -428,28 +428,37 @@ html[data-scroll-restore] * {
  * body:has() scopes the block to the login page's <main data-login-theme>
  * marker: body-level custom properties inherit into the navbar, the card
  * and the footer alike — the same document-level reach as the live's
- * runtime <style> sheet. The media wrapper keeps the dark-scheme :root
- * block untouched (dark mode was never a parity surface).
+ * runtime <style> sheet.
+ *
+ * Session 43 (fresh-eyes family B — the color-scheme media census): the
+ * block is NOT wrapped in a color-scheme media query. The live's runtime
+ * zinc sheet carries no media wrapper (census: zero color-scheme media
+ * rules on the live), so under a dark-scheme visitor the live KEEPS zinc
+ * (the focused ring stays rgb(9,9,11), identical to its light tier). The
+ * previous light-scheme wrapper deactivated this block under dark —
+ * drifting the ring to the neutral rgb(10,10,10) exactly where the live
+ * keeps zinc. The block now applies under EVERY scheme: the live adapts
+ * nothing under dark, including its zinc (the s22 no-adaptation contract
+ * applied to the zinc tier). Pinned by tests/zinc-scheme-source.test.ts +
+ * the session-43 dark-scheme e2e spec.
  * ------------------------------------------------------------------------- */
-@media (prefers-color-scheme: light) {
-  body:has(main[data-login-theme]) {
-    --background: #ffffff;
-    --foreground: #09090b; /* hsl(240 10% 3.9%) — zinc-950 */
-    --card: #ffffff;
-    --card-foreground: #09090b;
-    --popover: #ffffff;
-    --popover-foreground: #09090b;
-    --primary: #18181b; /* hsl(240 5.9% 10%) — zinc-900 */
-    --primary-foreground: #fafafa; /* hsl(0 0% 98%) */
-    --secondary: #f4f4f5; /* hsl(240 4.8% 95.9%) — zinc-100 */
-    --secondary-foreground: #18181b;
-    --muted: #f4f4f5;
-    --muted-foreground: #71717a; /* hsl(240 3.8% 46.1%) — zinc-500 */
-    --accent: #f4f4f5;
-    --accent-foreground: #18181b;
-    --destructive: #ef4444; /* hsl(0 84.2% 60.2%) */
-    --border: #e4e4e7; /* hsl(240 5.9% 90%) — zinc-200 */
-    --input: #e4e4e7;
-    --ring: #09090b; /* hsl(240 10% 3.9%) — zinc-950 */
-  }
+body:has(main[data-login-theme]) {
+  --background: #ffffff;
+  --foreground: #09090b; /* hsl(240 10% 3.9%) — zinc-950 */
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --popover: #ffffff;
+  --popover-foreground: #09090b;
+  --primary: #18181b; /* hsl(240 5.9% 10%) — zinc-900 */
+  --primary-foreground: #fafafa; /* hsl(0 0% 98%) */
+  --secondary: #f4f4f5; /* hsl(240 4.8% 95.9%) — zinc-100 */
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a; /* hsl(240 3.8% 46.1%) — zinc-500 */
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #ef4444; /* hsl(0 84.2% 60.2%) */
+  --border: #e4e4e7; /* hsl(240 5.9% 90%) — zinc-200 */
+  --input: #e4e4e7;
+  --ring: #09090b; /* hsl(240 10% 3.9%) — zinc-950 */
 }
