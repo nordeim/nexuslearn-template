@@ -6946,6 +6946,146 @@ test.describe("session-45 parity: the session-lapse flip (the server-truth contr
 });
 
 
+test.describe("session-46 parity: the print-dialog header/footer + margin tier", () => {
+  // The s45 print census pinned the BARE page.pdf() model (no headers,
+  // no margins). The Chrome print dialog's DEFAULT model — headers/footers
+  // ON + the default margins — was never probed. The s46 census (both
+  // sites): the MARGIN tier re-fragments every route IDENTICALLY (landing
+  // 11->17, courses 4->10, pricing 3->5, contact 2->3, aiassistant 2->3 at
+  // 0.6in top/bottom + 0.4in sides), and the header/footer stamps ride
+  // INSIDE the margin box — the hf page count EQUALS the margins-only count
+  // on every route with both custom and Chrome-default templates: only the
+  // MARGINS change pagination, never the header/footer overlay itself.
+  const countPdfPages = (buf: Buffer): number => {
+    const s = buf.toString("latin1");
+    return (s.match(/\/Type\s*\/Page[^s]/g) || []).length;
+  };
+  const DIALOG_MARGINS = {
+    top: "0.6in",
+    bottom: "0.6in",
+    left: "0.4in",
+    right: "0.4in",
+  };
+
+  test("the Chrome-default-margin pagination census (the post-scroll full-ink model)", async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    const expected: [string, number][] = [
+      ["/", 17],
+      ["/Courses", 10],
+      ["/Pricing", 5],
+    ];
+    for (const [route, pages] of expected) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(2000);
+      // the full scroll first — the s45 reveal-in-print contract: the
+      // post-scroll model is the full-ink one the dialog tier rides on.
+      await page.evaluate(async () => {
+        for (let y = 0; y <= document.documentElement.scrollHeight; y += 600) {
+          window.scrollTo(0, y);
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        window.scrollTo(0, 0);
+      });
+      await page.waitForTimeout(1500);
+      const pdf = await page.pdf({ format: "A4", margin: DIALOG_MARGINS });
+      expect(countPdfPages(pdf), `${route} re-fragments to ${pages} pages at the dialog margins`).toBe(pages);
+    }
+  });
+
+  test("the header/footer overlay never changes pagination (the stamps ride inside the margin box)", async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.goto("/Courses", { waitUntil: "networkidle" });
+    await page.waitForTimeout(2000);
+    const marginsOnly = await page.pdf({ format: "A4", margin: DIALOG_MARGINS });
+    const withFooter = await page.pdf({
+      format: "A4",
+      margin: DIALOG_MARGINS,
+      displayHeaderFooter: true,
+      headerTemplate: "<div></div>",
+      footerTemplate:
+        '<div style="font-size:9px; width:100%; text-align:center;"><span class="pageNumber"></span>/<span class="totalPages"></span></div>',
+    });
+    expect(countPdfPages(marginsOnly)).toBe(10);
+    expect(countPdfPages(withFooter), "the overlay adds ink, not pages").toBe(countPdfPages(marginsOnly));
+  });
+});
+
+test.describe("session-46 parity: the file-download + Content-Disposition census", () => {
+  // The s46 download census (both sites): NOTHING is downloadable anywhere —
+  // Content-Disposition is absent on every asset class, zero [download]
+  // attributes ship on any route, no download event fires on asset
+  // navigation (everything renders inline). The clone's raw-path contract:
+  // real PNGs same-origin at /logo.png + /og-image.png, the JSON/XML/TXT
+  // metadata files with their explicit content types. The live's binary
+  // raw-paths return its SPA shell (its assets are CDN-hosted — the s24
+  // family) and its /favicon.ico 302s to its supabase logo; the clone 404s
+  // it (no favicon.ico ships — the documented s41 platform-chrome variance).
+
+  test("the public-asset header contract (inline everywhere, nothing downloadable)", async ({ request }) => {
+    const expected: [string, RegExp][] = [
+      ["/logo.png", /^image\/png/],
+      ["/manifest.json", /^application\/json/],
+      ["/og-image.png", /^image\/png/],
+      ["/sitemap.xml", /^application\/xml/],
+      ["/robots.txt", /^text\/plain/],
+    ];
+    for (const [path, type] of expected) {
+      const res = await request.get(path);
+      expect(res.status(), `${path} serves 200`).toBe(200);
+      expect(res.headers()["content-type"] || "", `${path} carries its type`).toMatch(type);
+      expect(res.headers()["content-disposition"] || "", `${path} is inline (no disposition header)`).toBe("");
+    }
+  });
+
+  test("zero download attributes + the favicon.ico raw-path variance", async ({ page }) => {
+    for (const route of ["/", "/Courses", "/Pricing", "/Contact"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(800);
+      const downloads = await page.evaluate(() =>
+        Array.from(document.querySelectorAll("[download]")).map((el) => el.tagName)
+      );
+      expect(downloads, `${route} ships no download attributes`).toEqual([]);
+    }
+    // the documented platform-chrome variance: no favicon.ico file ships —
+    // the live's 302-to-CDN is its platform family (the s41 record).
+    const fav = await page.request.get("/favicon.ico");
+    expect(fav.status()).toBe(404);
+  });
+});
+
+test.describe("session-46 parity: the multi-window + opener census", () => {
+  // The s46 multi-window census (both sites, all 9 routes signed in): the
+  // ZERO-multi-window surface — no element carries a target attribute, no
+  // window.open call executes, no postMessage ships, no rel=noopener
+  // appears, window.opener is null. Neither site opens popups or named
+  // windows anywhere. The one divide: the live's platform registers 1
+  // message listener per route (its own chrome — the s44 census extended);
+  // the clone's zero-listener stance is guarded by the s44 exact-set source
+  // pin. This spec freezes the DOM-side zero-target contract on the public
+  // routes (the chrome is auth-invariant — the navbar/footer link sets are
+  // identical signed in and out; the probe verified the signed-in census).
+
+  test("no target attributes, no noopener rels, no opener anywhere", async ({ page }) => {
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(800);
+      const census = await page.evaluate(() => ({
+        targets: Array.from(document.querySelectorAll("a, area, form, button"))
+          .filter((el) => el.getAttribute("target"))
+          .map((el) => `${el.tagName}:${el.getAttribute("target")}`),
+        noopenerRels: Array.from(document.querySelectorAll("[rel]"))
+          .map((el) => el.getAttribute("rel") || "")
+          .filter((r) => /noopener|noreferrer|opener/.test(r)),
+        hasOpener: !!window.opener,
+      }));
+      expect(census.targets, `${route} ships no target attributes`).toEqual([]);
+      expect(census.noopenerRels, `${route} ships no noopener family rels`).toEqual([]);
+      expect(census.hasOpener, `${route} has no opener`).toBe(false);
+    }
+  });
+});
+
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a

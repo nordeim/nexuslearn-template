@@ -1,0 +1,67 @@
+==================================================================
+SESSION 46 PROOF MATRIX — the print-dialog + download + multi-window pass
+==================================================================
+
+PART 1 — THE PRINT-DIALOG HEADER/FOOTER + MARGIN TIER (the s45 bare census extended)
+  Model: page.pdf() A4; MARGINS = the Chrome-default tier (0.6in t/b + 0.4in sides);
+  HF = margins + displayHeaderFooter (custom footer); post-scroll full-ink model.
+
+  route         | clone bare/margins/hf      | live bare/margins/hf      | verdict
+  --------------+----------------------------+---------------------------+---------
+  landing       | 11p / 17p / 17p (682k)      | 11p / 17p / 17p (521k)     | MATCH
+  courses       |  4p / 10p / 10p (607k)      |  4p / 10p / 10p (607k)     | MATCH
+  pricing       |  3p /  5p /  5p (194k)      |  3p /  5p /  5p (194k)     | MATCH
+  contact       |  2p /  3p /  3p (201k)      |  2p /  3p /  3p (201k)     | MATCH
+  aiassistant   |  2p /  3p /  3p (190k)      |  2p /  3p /  3p (190k)     | MATCH
+
+  VERDICT: ALL MATCH — the margin tier re-fragments identically; the header/footer
+  stamps ride INSIDE the margin box (hf == margins everywhere; only the
+  margins change pagination, never displayHeaderFooter). The bare counts
+  re-verify the s45 census (11/4/3/2/2). The PDF bytes are asset-variance
+  (the s45 note) — the page COUNT is the comparable.
+
+PART 2 — THE FILE-DOWNLOAD / CONTENT-DISPOSITION CENSUS
+
+  asset          | clone status/type/disposition                | live status/type/disposition
+  ---------------+---------------------------------------------+---------------------------------------------
+  logo.png        | 200 / image/png / (none)                     | 200 / text/html / (none)
+  manifest.json   | 200 / application/json / (none)              | 302 / (none) / (none)
+  og-image.png    | 200 / image/png / (none)                     | 200 / text/html / (none)
+  sitemap.xml     | 200 / application/xml / (none)               | 200 / application/xml / (none)
+  robots.txt      | 200 / text/plain / (none)                    | 200 / text/plain / (none)
+  favicon.ico     | 404 / text/html / (none)                     | 302 / (none) / (none)
+
+  the live /favicon.ico chain: 302 -> https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/pu...
+  hop 2: 200 image/png (the supabase logo asset)
+  the clone /favicon.ico: 404 (no favicon.ico ships — the documented s41
+  platform-chrome variance; the live's 302-to-CDN is its platform family).
+  [download] attribute sweep: 0 on every route, BOTH sites.
+  Playwright download events on asset navigation: NONE on either site —
+  every asset renders INLINE (no Content-Disposition: attachment anywhere).
+
+PART 3 — THE MULTI-WINDOW / OPENER CENSUS (9 routes, both signed in)
+
+  clone: targets=0 rels=0 openCalls=0 posted=0 messageListeners=0 opener=false
+  live:  targets=0 rels=0 openCalls=0 posted=0 messageListeners=9 opener=false
+
+  VERDICT: the ZERO-multi-window surface on BOTH sites (no target=
+  attributes, no window.open calls, no postMessage usage, no rel=noopener,
+  window.opener null). The one divide: the live's platform registers 1
+  message listener per route (its own chrome — the s44 census extended);
+  the clone's zero stance is guarded by the s44 exact-set source pin.
+
+PART 4 — THE ENV CONTRACT + THE GATE SUMMARY
+
+  .env == .env.example: IDENTICAL
+  DATABASE_URL: file:../db/custom.db
+  db/ at repo root: custom.db present
+  skills/ excluded: tsconfig exclude + eslint ignores + vitest include + playwright testDir (re-verified)
+
+  Session-46 gates: lint + typecheck + 315/315 unit + build + e2e (see the
+  session log for the count — the GUARD ran the full suite after the spec
+  block landed). The standing battery: heights 18/18 byte-exact, the mobile
+  battery IDENTICAL (no Tailwind v4 bug), console 13/13 clean.
+
+  No source change shipped this session — the pins are the deliverable
+  (the s44 precedent): +5 e2e (the print-dialog pair + the download pair +
+  the multi-window single).
