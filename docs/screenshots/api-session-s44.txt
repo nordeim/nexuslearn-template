@@ -1,0 +1,180 @@
+================================================================
+NexusLearn — Session 44 Proof Matrix (the escalation tier + the
+page-lifecycle census + the storage/ITP census + the offline tier)
+Generated: 2026-10-03T04:22:38.613Z
+Clone prod: http://localhost:3100  ·  Live: https://nexuslearn-template.base44.app
+================================================================
+
+----------------------------------------------------------------
+PART 1 — THE ERROR-BOUNDARY ESCALATION MATRIX (fresh-eyes family A)
+  The third crash class: the page-segment boundary's OWN render
+  failing while it mounts. Two independent seams: the s42 persistent
+  count-format poison (CourseCard's toLocaleString) forces the first
+  crash; a keyed one-shot console.error poison (the string
+  "route render error" — error.tsx's ONLY render-time call, unique in
+  the codebase) fails the boundary's own render. The escalation
+  unwinds to the next enclosing boundary — the ROOT tier the user's
+  global-error owns (the s43 two-tier wiring).
+----------------------------------------------------------------
+A. THE SHIPPED ESCALATION (the user's global-error owns it):
+   {"nav":0,"footer":0,"h1":"500","h2":"Something went wrong","lang":"en","scrollBehavior":"smooth","bodyClasses":"font-sans antialiased","homeAnchor":true}
+   VERDICT: PASS — the Navbar + Footer GONE (the root layout replaced;
+   the distinguishing evidence vs error.tsx, which keeps the root
+   chrome), the document shape preserved (lang + data-scroll-behavior +
+   the font classes), the plain-anchor home link.
+B. THE RESET RECOVERY (disarm the count poison, then reset at root):
+   {"nav":1,"h1":"Explore Our Courses","url":"/Courses"}
+   VERDICT: PASS — the FULL document returns (the Navbar restored, the
+   real content, the URL intact) — the probe's A2 evidence.
+C. THE CONTROL (fresh context, no sabotage): {"nav":1,"h1":"Explore Our Courses","cards":9}
+D. THE LIVE control: {"nav":1,"h1":"Explore Our Courses","cards":9}
+   VERDICT: the live's equivalent tier ships NO boundary at ANY order
+   (the s42/s43 blank/frozen family) — the escalation concept does not
+   exist there; the clone's explicit two-tier boundary ladder is the
+   deliberate-better (the s10 real-404 precedent).
+
+----------------------------------------------------------------
+PART 2 — THE PAGE-LIFECYCLE CENSUS (fresh-eyes family B)
+----------------------------------------------------------------
+clone: {
+ "name": "clone",
+ "registrations": [
+  "pagehide@window",
+  "pageshow@window",
+  "pageshow@window"
+ ],
+ "wasDiscarded": false,
+ "visibilityState": "visible",
+ "prerendering": false,
+ "freeze": "timer fired +3000.4ms (no JS pause — probe-context note)"
+}
+live : {
+ "name": "live",
+ "registrations": [
+  "pagehide@window",
+  "offline@window",
+  "visibilitychange@window",
+  "visibilitychange@window",
+  "online@window",
+  "offline@window"
+ ],
+ "wasDiscarded": false,
+ "visibilityState": "visible",
+ "prerendering": false,
+ "freeze": "timer fired +3000.3ms (no JS pause — probe-context note)"
+}
+   VERDICT: the live's platform registers pagehide + offline x2 +
+   visibilitychange x2 + online x1 (the Base44 telemetry — the platform
+   family, like its 43 platform keyframes); the clone ships ZERO
+   app-level lifecycle listeners (only Next's own pagehide/pageshow
+   framework wiring + the app's scroll/keydown/popstate family). The
+   synthetic visibilitychange reacts on NEITHER site; wasDiscarded /
+   visibilityState / prerendering identical. The CDP freeze/resume is a
+   probe-context note (accepted, no JS pause) — identical both sites.
+   PINNED: tests/lifecycle-source.test.ts (the zero-listener census).
+
+----------------------------------------------------------------
+PART 3 — THE STORAGE / COOKIE / ITP CENSUS (fresh-eyes family C)
+----------------------------------------------------------------
+clone: {
+ "name": "clone",
+ "cookies": [
+  {
+   "name": "nexus_session",
+   "httpOnly": true,
+   "secure": true,
+   "sameSite": "Lax",
+   "window": "604798s"
+  }
+ ],
+ "localStorageKeys": [],
+ "tokenSample": null,
+ "sessionStorageKeys": [],
+ "documentCookie": "(empty)",
+ "indexedDBBytes": 0
+}
+live : {
+ "name": "live",
+ "cookies": [],
+ "localStorageKeys": [
+  "base44_from_url",
+  "i18nextLng",
+  "token",
+  "base44_app_id",
+  "base44_functions_version",
+  "base44_access_token",
+  "base44_analytics_session_id"
+ ],
+ "tokenSample": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ…",
+ "sessionStorageKeys": [
+  "mp_tab_id_mixpanel_eff913a25a5a2642acc7794bb28dc621"
+ ],
+ "documentCookie": "(empty)",
+ "indexedDBBytes": 73728
+}
+   VERDICT — a REAL structural discovery: the LIVE's post-login auth is
+   localStorage-token based (ZERO cookies at any point; the JWTs ride
+   script-writable storage with a ~90-day exp + 5 platform keys + the
+   mixpanel IDB); the CLONE's is the HttpOnly nexus_session (secure,
+   Lax, ~604,800s = the s32 7-day maxAge; document.cookie empty). The
+   ITP analysis (the session_94 direction (c) answered): the live's
+   script-writable tokens are purged by Safari's 7-day cap on
+   script-writable storage — the SAME effective window as the clone's
+   7-day maxAge, from the OPPOSITE direction; the clone's HttpOnly
+   cookie is ITP-EXEMPT (dies only by its own maxAge) and is
+   script-invisible where the live's tokens are XSS-readable. The
+   platform-auth family — the clone's posture already pinned s22/s32.
+
+----------------------------------------------------------------
+PART 4 — THE OFFLINE MATRIX (fresh-eyes family D)
+----------------------------------------------------------------
+clone: {
+ "name": "clone",
+ "softNav": {
+  "url": "/",
+  "h1": null,
+  "title": "",
+  "bodyEmpty": true
+ },
+ "newsletter": {
+  "before": "Subscribe",
+  "mid": "Subscribe",
+  "settled": "Subscribe"
+ },
+ "onLineAfterSetOffline": false
+}
+live : {
+ "name": "live",
+ "softNav": {
+  "url": "/Courses",
+  "h1": "Explore Our Courses",
+  "title": "NexusLearn",
+  "bodyEmpty": false
+ },
+ "newsletter": {
+  "before": "Subscribe",
+  "mid": "...",
+  "settled": "..."
+ },
+ "onLineAfterSetOffline": false
+}
+   VERDICT — the soft-nav divide is the s16/s24 SPA-vs-SSR architecture
+   family: the live soft-navigates offline (its in-bundle SPA renders
+   /Courses — note the STALE TITLE, the s16 family visible again); the
+   clone's RSC channel dies and the s42 browser-navigation fallback
+   hits the offline wall (the browser's error page). Replicating it
+   would require shipping the route tree client-side — beyond-reference.
+   The API tier: the clone's newsletter fails INSTANTLY into its catch
+   (button back to "Subscribe" — the pending "..." exists only while a
+   request is in flight); the live = the PERPETUAL "..." (settled at
+   +6.2s — the platform's no-catch family, the s18/s42 record).
+
+----------------------------------------------------------------
+PART 5 — THE ENV CONTRACT + THE GATE SUMMARY
+----------------------------------------------------------------
+.env == .env.example: IDENTICAL (byte-exact)
+DATABASE_URL: "file:../db/custom.db" (the repo-root db/ folder; db/custom.db + db/e2e.db present)
+skills/ excluded: tsconfig exclude + eslint ignores + vitest include (src/** + tests/** *.test.ts) + playwright testDir ./tests/e2e — re-verified.
+Gates: lint PASS · typecheck PASS · unit 311/311 PASS · build PASS · e2e 380/380 PASS (9.1m) = 691 total.
+Standing parity (GUARD re-run): heights x9 x2 byte-exact 18/18; the mobile battery IDENTICAL (no Tailwind v4 bug — trigger byte-identical, panel 389x405 @ y=64, 9 members); console 13/13 clean.
+No new env knobs this session (no source/config change ships — the pins are the deliverable).

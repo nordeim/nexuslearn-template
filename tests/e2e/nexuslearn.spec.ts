@@ -6587,6 +6587,103 @@ test.describe("session-43 parity: the long-run stability tier", () => {
 });
 
 
+test.describe("session-44 parity: the error-boundary escalation tier", () => {
+  // The s43 pass shipped both user boundaries (error.tsx for the page
+  // segment + global-error.tsx for the root tier). The ESCALATION class —
+  // the page-segment boundary's OWN render failing while it mounts — is the
+  // third crash class, and it needs a SECOND, INDEPENDENT sabotage seam:
+  // the s42 count-format sabotage forces the first crash; a keyed
+  // console.error poison (the string "route render error" exists in
+  // exactly one place in the codebase — error.tsx's single render-time
+  // call, grep-verified) fails the boundary's own render as it mounts.
+  // React's internal logging (different arg shapes) and global-error's
+  // "root render error" call pass through untouched. The poison
+  // self-disarms after its one throw — the reset remount renders clean.
+  //
+  // PROBED (s44, the production standalone): the escalation lands in the
+  // USER's global-error — the Navbar + Footer GONE (the root layout
+  // replaced: the distinguishing evidence vs error.tsx, which keeps the
+  // root chrome), the preserved document shape, and the FULL reset
+  // recovery. The live's equivalent tier: no boundary at ANY order (the
+  // s42/s43 blank/frozen family — the escalation concept does not exist
+  // there).
+  const ESCALATION_SABOTAGE = `
+    // Seam 1 — the s42 persistent count-format poison (armed until disarmed):
+    const origToLocale = Number.prototype.toLocaleString;
+    Number.prototype.toLocaleString = function () {
+      if (!window.__disarmCount) throw new Error("s44 count-format sabotage");
+      return origToLocale.apply(this, arguments);
+    };
+    // Seam 2 — the keyed one-shot console.error poison: throws ONLY on
+    // error.tsx's "route render error" call (the boundary's own render),
+    // then disarms itself forever (the reset remount must render clean).
+    const origCE = console.error;
+    let armed = true;
+    console.error = function (first) {
+      if (armed && first === "route render error") {
+        armed = false;
+        throw new Error("s44 escalation sabotage: the boundary's own render failed");
+      }
+      return origCE.apply(this, arguments);
+    };
+  `;
+
+  test("error.tsx's own render failure escalates to the user's global-error (the root tier)", async ({ page }) => {
+    await page.addInitScript(ESCALATION_SABOTAGE);
+    await page.goto("/Courses");
+    await page.waitForTimeout(4500); // first crash -> error.tsx mounts -> its render throws -> the escalation settles
+
+    // The boundary design language, one tier up.
+    await expect(page.locator("h1", { hasText: "500" })).toBeVisible();
+    await expect(page.locator("h2", { hasText: "Something went wrong" })).toBeVisible();
+    const body = await page.evaluate(() => document.body.innerText);
+    expect(body).toContain("Try again");
+    expect(body).toContain("Back to Home");
+    expect(body).not.toContain("This page couldn’t load"); // the built-in default never shows
+    expect(body).not.toContain("Application error");
+
+    // THE ESCALATION PROOF — the root layout was REPLACED: the Navbar and
+    // the Footer are GONE (an error.tsx render keeps the root chrome; only
+    // the global tier removes it).
+    expect(await page.evaluate(() => document.querySelectorAll("nav").length)).toBe(0);
+    expect(await page.evaluate(() => document.querySelectorAll("footer").length)).toBe(0);
+
+    // The crash-time a11y + document-shape contract (the s43 pins, holding
+    // through the escalation).
+    expect(await page.evaluate(() => document.documentElement.lang)).toBe("en");
+    expect(await page.evaluate(() => document.documentElement.dataset.scrollBehavior)).toBe("smooth");
+    expect(await page.evaluate(() => document.body.className)).toContain("font-sans");
+
+    // The plain-anchor home link (no router dependency at the crashed-root
+    // tier; source-pinned in tests/global-error-source.test.ts).
+    const home = page.locator('a[href="/"]', { hasText: /Back to Home/i });
+    await expect(home).toBeVisible();
+  });
+
+  test("the escalation's reset() recovers the FULL document (the root-tier reset)", async ({ page }) => {
+    await page.addInitScript(ESCALATION_SABOTAGE);
+    await page.goto("/Courses");
+    await page.waitForTimeout(4500); // the escalation settles
+
+    // The recovery: disarm the count poison FIRST (the console poison has
+    // self-disarmed after its one throw), then reset at the root tier.
+    await page.evaluate(() => {
+      (window as unknown as { __disarmCount?: boolean }).__disarmCount = true;
+    });
+    await page.getByRole("button", { name: /Try again/i }).click();
+    await page.waitForTimeout(2500);
+
+    // The FULL document returns: the root chrome restored, the real page
+    // content rendered, the URL intact — the probe's A2 evidence.
+    expect(await page.evaluate(() => document.querySelectorAll("nav").length)).toBe(1);
+    await expect(
+      page.getByRole("heading", { level: 1 }).first()
+    ).toContainText("Explore Our Courses");
+    expect(await page.evaluate(() => location.pathname)).toBe("/Courses");
+  });
+});
+
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a
