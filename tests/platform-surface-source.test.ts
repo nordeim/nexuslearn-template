@@ -91,6 +91,90 @@ const PREFERS_FAMILIES = [
   "prefers-color-scheme",
 ] as const;
 
+/** The clipboard-API surface (the s48 family A census definition — the
+ * async API + the legacy execCommand path). */
+const CLIPBOARD_APIS = [
+  "navigator.clipboard",
+  "execCommand",
+] as const;
+
+/** The fullscreen / Picture-in-Picture surface (the s48 family B census
+ * definition — both the request/exit calls and the video attributes). */
+const FULLSCREEN_PIP_APIS = [
+  "requestFullscreen",
+  "exitFullscreen",
+  "fullscreenElement",
+  "requestPictureInPicture",
+  "disablePictureInPicture",
+] as const;
+
+/** The gamepad / WebHID surface (the s48 family C census definition). */
+const GAMEPAD_HID_APIS = [
+  "getGamepads",
+  "gamepadconnected",
+  "navigator.hid",
+] as const;
+
+describe("session-48: the platform-surface source census", () => {
+  it("ZERO clipboard-API references anywhere in src/ (the family A zero-stance)", () => {
+    // The pin: the clone ships no clipboard surface — no async
+    // navigator.clipboard call (writeText/readText/write/read), no legacy
+    // document.execCommand copy/cut/paste path. The probed parity: BOTH
+    // sites carry zero app-level clipboard calls, zero copy-labeled UI,
+    // zero legacy execCommand invocations (the API object itself exists in
+    // the shared context on both sites; neither site's code touches it).
+    // The copy/cut/paste LISTENERS the runtimes register are framework
+    // surface (React's own event delegation), not app handlers.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of CLIPBOARD_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("ZERO fullscreen / Picture-in-Picture references anywhere in src/ (the family B zero-stance)", () => {
+    // The pin: the clone ships no fullscreen or PiP surface — no
+    // requestFullscreen/exitFullscreen call, no requestPictureInPicture on
+    // any video (both sites render ZERO video elements), no
+    // disablePictureInPicture attribute. The probed parity: both APIs are
+    // ENABLED in the shared context on both sites; the instrumented
+    // counters never fire on either; zero fullscreen/PiP-labeled UI; zero
+    // :fullscreen / :picture-in-picture CSSOM rules on either site. The
+    // fullscreenchange/fullscreenerror LISTENERS the clone's react-dom
+    // 19.3 registers at the document tier are framework surface (its
+    // non-delegated event list carries both — the s48 framework-internal
+    // listener family, the listener-tier analogue of the s47 .outline-hidden
+    // rule discovery); the live's older React registers no fullscreen
+    // family at all. All inert — the app never calls either API.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of FULLSCREEN_PIP_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("ZERO gamepad / WebHID references anywhere in src/ (the family C zero-stance)", () => {
+    // The pin: the clone ships no gamepad or HID surface — no
+    // navigator.getGamepads poll, no gamepadconnected listener, no
+    // navigator.hid device request. The probed parity: the APIs exist in
+    // the shared context on BOTH sites (getGamepads is a function,
+    // navigator.hid present with getDevices/requestDevice — the Chromium
+    // surface, identical shape); the instrumented counters never fire on
+    // either; zero gamepad/controller/joystick-labeled UI anywhere.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of GAMEPAD_HID_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("session-47: the platform-surface source census", () => {
   it("the app source tree is swept (a non-empty, ts/tsx/css-only source set)", () => {
     // 70+ sources at s47 (ts/tsx + globals.css); the floor catches a

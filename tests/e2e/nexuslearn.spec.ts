@@ -7304,6 +7304,216 @@ test.describe("session-47 parity: the idle-tier census", () => {
 });
 
 
+test.describe("session-48 parity: the clipboard census", () => {
+  // The s48 clipboard census (both sites, all 9 routes + the two auth
+  // routes, the session_106 direction (a)): the ZERO-clipboard surface —
+  // the API PRESENT in the shared context (the async clipboard object,
+  // unlike navigator.share) but zero app calls (writeText/readText +
+  // the legacy execCommand path all instrumented before load), zero
+  // copy-labeled UI elements. The copy/cut/paste LISTENERS the runtimes
+  // register are React's own event delegation (framework surface — the
+  // s48 framework-internal listener family), not app handlers. This spec
+  // freezes the clone's public-route contract (the source tier is pinned
+  // by tests/platform-surface-source.test.ts).
+
+  test("no clipboard surface: API present, zero calls, zero copy UI", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s48clip: { calls: string[]; exec: string[] } };
+      w.__s48clip = { calls: [], exec: [] };
+      if (navigator.clipboard) {
+        for (const m of ["writeText", "readText", "write", "read"] as const) {
+          const anyClip = navigator.clipboard as unknown as Record<string, unknown>;
+          if (typeof anyClip[m] === "function") {
+            const orig = (anyClip[m] as (...a: unknown[]) => Promise<unknown>).bind(navigator.clipboard);
+            anyClip[m] = (...a: unknown[]) => {
+              w.__s48clip.calls.push(`${m}@${location.pathname}`);
+              return orig(...a);
+            };
+          }
+        }
+      }
+      const origExec = Document.prototype.execCommand;
+      Document.prototype.execCommand = function (this: Document, cmd: string, ...rest: unknown[]) {
+        w.__s48clip.exec.push(`${cmd}@${location.pathname}`);
+        return (origExec as unknown as (cmd: string, ...rest: unknown[]) => boolean).apply(this, [cmd, ...rest]);
+      };
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e headless-Chromium context — the same
+    // context the probe censused; a Playwright bump that changes the
+    // headless clipboard surface re-baselines this read, while the
+    // zero-CALL census stays the durable contract).
+    const api = await page.evaluate(() => {
+      const clip = navigator.clipboard as unknown as Record<string, unknown> | undefined;
+      return {
+        present: !!clip,
+        writeText: typeof clip?.writeText,
+      };
+    });
+    expect(api.present).toBe(true);
+    expect(api.writeText).toBe("function");
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const counters = await page.evaluate(() => {
+        const w = window as unknown as { __s48clip?: { calls: string[]; exec: string[] } };
+        const copyUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label]"))) {
+          const label = (el.getAttribute("aria-label") || el.textContent || "").trim().toLowerCase();
+          if (/copy|clipboard/.test(label)) copyUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        return { calls: w.__s48clip?.calls ?? [], exec: w.__s48clip?.exec ?? [], copyUi };
+      });
+      expect(counters.calls, `${route} never calls the async clipboard API`).toEqual([]);
+      expect(counters.exec, `${route} never uses the legacy copy path`).toEqual([]);
+      expect(counters.copyUi, `${route} ships no copy-labeled UI`).toEqual([]);
+    }
+  });
+});
+
+
+test.describe("session-48 parity: the fullscreen / Picture-in-Picture census", () => {
+  // The s48 fullscreen/PiP census (both sites, all 9 routes + the auth
+  // routes, the session_106 direction (b)): the ZERO-fullscreen/PiP
+  // surface — both APIs ENABLED in the shared context, zero
+  // requestFullscreen/exitFullscreen/requestPictureInPicture calls
+  // (instrumented before load), zero video elements, zero fullscreen/
+  // PiP-labeled UI, zero :fullscreen/:picture-in-picture CSSOM rules (the
+  // layer-aware walk, the s47 walker). The fullscreenchange listeners the
+  // clone's react-dom 19.3 registers at the document tier are framework
+  // surface (its non-delegated event list — the s48 framework-internal
+  // listener family; the live's older React ships no fullscreen family),
+  // all inert: the app never requests fullscreen or PiP. This spec freezes
+  // the clone's public-route contract (the source tier is pinned by
+  // tests/platform-surface-source.test.ts).
+
+  test("no fullscreen/PiP surface: APIs enabled, zero requests, zero UI, zero CSSOM rules", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s48fs: { calls: string[]; exits: string[]; pip: string[] } };
+      w.__s48fs = { calls: [], exits: [], pip: [] };
+      const origRFS = Element.prototype.requestFullscreen;
+      Element.prototype.requestFullscreen = function (this: Element, ...a: unknown[]) {
+        w.__s48fs.calls.push(`${this.tagName}@${location.pathname}`);
+        return (origRFS as unknown as (...a: unknown[]) => Promise<void>).apply(this, a);
+      };
+      const origEFS = Document.prototype.exitFullscreen;
+      Document.prototype.exitFullscreen = function (this: Document) {
+        w.__s48fs.exits.push(location.pathname);
+        return (origEFS as unknown as () => Promise<void>).call(this);
+      };
+      const origPIP = HTMLVideoElement.prototype.requestPictureInPicture;
+      HTMLVideoElement.prototype.requestPictureInPicture = function (this: HTMLVideoElement) {
+        w.__s48fs.pip.push(location.pathname);
+        return (origPIP as unknown as () => Promise<PictureInPictureWindow>).call(this);
+      };
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e Chromium context — a Playwright bump
+    // that changes the headless surface re-baselines the read; the
+    // zero-CALL census is the durable contract).
+    const api = await page.evaluate(() => ({
+      fullscreenEnabled: document.fullscreenEnabled,
+      pipEnabled: document.pictureInPictureEnabled,
+    }));
+    expect(api.fullscreenEnabled).toBe(true);
+    expect(api.pipEnabled).toBe(true);
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s48fs?: { calls: string[]; exits: string[]; pip: string[] } };
+        const fsUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label], [title]"))) {
+          const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim().toLowerCase();
+          if (/full\s?screen|picture.?in.?picture/.test(label)) fsUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        // The layer-aware CSSOM selector census (the s47 walker: recurse
+        // into @layer/@media/@supports — Tailwind v4 emits utilities inside
+        // @layer).
+        const fsRules: string[] = [];
+        const walk = (rules: CSSRuleList | undefined): void => {
+          for (const rule of Array.from(rules ?? [])) {
+            const nested = (rule as CSSGroupingRule).cssRules;
+            if (nested) walk(nested);
+            const sel = (rule as CSSStyleRule).selectorText || "";
+            if (/:fullscreen|:picture-in-picture/i.test(sel)) fsRules.push(sel.slice(0, 80));
+          }
+        };
+        for (const sheet of Array.from(document.styleSheets)) {
+          try { walk(sheet.cssRules); } catch { /* cross-origin sheet */ }
+        }
+        return {
+          calls: w.__s48fs?.calls ?? [],
+          exits: w.__s48fs?.exits ?? [],
+          pip: w.__s48fs?.pip ?? [],
+          videos: document.querySelectorAll("video").length,
+          fsUi,
+          fsRules,
+        };
+      });
+      expect(census.calls, `${route} never requests fullscreen`).toEqual([]);
+      expect(census.exits, `${route} never exits fullscreen`).toEqual([]);
+      expect(census.pip, `${route} never requests Picture-in-Picture`).toEqual([]);
+      expect(census.videos, `${route} renders no video elements`).toBe(0);
+      expect(census.fsUi, `${route} ships no fullscreen/PiP-labeled UI`).toEqual([]);
+      expect(census.fsRules, `${route} ships no :fullscreen/:picture-in-picture CSS rules`).toEqual([]);
+    }
+  });
+});
+
+
+test.describe("session-48 parity: the gamepad / WebHID census", () => {
+  // The s48 gamepad/WebHID census (both sites, all 9 routes + the auth
+  // routes, the session_106 direction (c)): the ZERO-gamepad/HID surface —
+  // the APIs EXIST in the shared context (navigator.getGamepads a
+  // function, navigator.hid present with getDevices/requestDevice — the
+  // Chromium surface, identical on both sites) but zero polls, zero
+  // gamepad event registrations, zero gamepad-labeled UI. This spec
+  // freezes the clone's public-route contract (the source tier is pinned
+  // by tests/platform-surface-source.test.ts).
+
+  test("no gamepad/HID surface: APIs present, zero polls, zero gamepad UI", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s48gp: number };
+      w.__s48gp = 0;
+      if (navigator.getGamepads) {
+        const orig = navigator.getGamepads.bind(navigator);
+        navigator.getGamepads = (...a: unknown[]) => {
+          w.__s48gp++;
+          return (orig as unknown as (...a: unknown[]) => (Gamepad | null)[])(...a);
+        };
+      }
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e Chromium context).
+    const api = await page.evaluate(() => ({
+      getGamepads: typeof navigator.getGamepads,
+      hid: !!(navigator as unknown as { hid?: unknown }).hid,
+    }));
+    expect(api.getGamepads).toBe("function");
+    expect(api.hid).toBe(true);
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s48gp?: number };
+        const gpUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label], [title], h1, h2, h3"))) {
+          const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim().toLowerCase();
+          if (/gamepad|controller|joystick/.test(label)) gpUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        return { polls: w.__s48gp ?? 0, gpUi };
+      });
+      expect(census.polls, `${route} never polls the gamepad API`).toBe(0);
+      expect(census.gpUi, `${route} ships no gamepad-labeled UI`).toEqual([]);
+    }
+  });
+});
+
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a

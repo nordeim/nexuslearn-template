@@ -1,0 +1,141 @@
+==================================================================
+SESSION 48 PROOF MATRIX — the clipboard + fullscreen/PiP + gamepad/WebHID pass
+==================================================================
+
+PART 1 — THE CLIPBOARD CENSUS (navigator.clipboard + the legacy execCommand path)
+  Census: the instrumented API surface (all four async methods + the legacy
+  document.execCommand override, injected before load), the corrected
+  copy-labeled UI sweep, and the addEventListener copy/cut/paste registration
+  census — both sites, 9 routes signed in + the auth routes.
+
+  clone: api={"clipboard":true,"writeText":"function"} calls=0(9 routes)
+         execCommand=0 copyUI=0
+  live:  api={"clipboard":true,"writeText":"function"} calls=0(9 routes)
+         execCommand=0 copyUI=0 (the corrected sweep — see PART 5)
+  FINDING: the ZERO-clipboard surface on both sites — the API object is PRESENT
+  in the shared headless context (unlike navigator.share, the s47 ABSENT case)
+  but zero app-level calls fire anywhere: no writeText/readText, no legacy
+  execCommand copy/cut/paste, no copy-labeled UI on either site.
+
+PART 2 — THE FULLSCREEN / PICTURE-IN-PICTURE TIER
+  Census: the API-surface reads (fullscreenEnabled/pictureInPictureEnabled),
+  the instrumented requestFullscreen/exitFullscreen/requestPictureInPicture
+  counters, the video-element count (with controls/disablePictureInPicture
+  attrs), the fullscreen/PiP-labeled UI sweep, and the layer-aware
+  :fullscreen/:picture-in-picture CSSOM selector census (the s47 walker).
+
+  clone: api={"fullscreenEnabled":true,"pictureInPictureEnabled":true}
+         calls=0 exits=0 pip=0 videos=0(9 routes) ui=0 cssom=0
+  live:  api={"fullscreenEnabled":true,"pictureInPictureEnabled":true}
+         calls=0 exits=0 pip=0 videos=0(9 routes) ui=0 cssom=0
+  FINDING: the ZERO-fullscreen/PiP surface on both sites — both APIs are
+  ENABLED in the shared context, zero request/exit calls, zero video elements
+  (the 9-route count is 0 everywhere), zero labeled UI, zero
+  :fullscreen/:picture-in-picture CSS rules on either site.
+
+PART 3 — THE GAMEPAD / WEBHID CENSUS
+
+  clone: api={"getGamepads":"function","hid":true} polls=0(9 routes)
+         gamepadEvents=0 gamepadUI=0
+  live:  api={"getGamepads":"function","hid":true} polls=0(9 routes)
+         gamepadEvents=0 gamepadUI=0
+  FINDING: the ZERO-gamepad/HID surface on both sites — the APIs exist in the
+  shared context (navigator.getGamepads a function, navigator.hid present with
+  getDevices/requestDevice — the Chromium WebHID surface, identical shape on
+  both) but zero polls, zero gamepadconnected registrations, zero gamepad-
+  labeled UI anywhere.
+
+PART 4 — THE FRAMEWORK-INTERNAL LISTENER FAMILY (the s48 discovery)
+
+  The addEventListener census (instrumented before load, both sites, 9 routes):
+    clone registers copy/cut/paste + fullscreenchange/fullscreenerror at the
+    document + root-container (DIV) + BODY tiers — REACT 19.3's own event
+    system: react-dom-client's non-delegated event list carries
+    fullscreenchange/fullscreenerror (verified in
+    node_modules/react-dom/cjs/react-dom-client.production.js), and the
+    delegated copy/cut/paste family attaches at the React root + document.
+    live  registers ONLY the copy/cut/paste family (DIV/BODY/SPAN targets —
+    its older Base44 platform React bundle registers no fullscreen family;
+    its /Courses + /Contact SPAN/BODY registrations are its own platform
+    tier).
+  FINDING: the LISTENER-TIER analogue of the s47 .outline-hidden framework-rule
+  discovery — a framework-internal surface the clone's newer React carries
+  that the live's older one does not. ALL INERT: zero app handlers (the src/
+  zero-stance pins), zero API calls (the instrumented counters never fire),
+  no render impact (the standing battery is the render proof, byte-identical).
+  Deliberately NOT pinned as a zero-listener assertion — React's own
+  registrations are legitimate framework surface; the durable contracts are
+  the zero-CALL counters + the src/ zero-stance.
+
+PART 5 — THE PROBE-METHODOLOGY CORRECTION (the operator-precedence trap)
+
+  The first-pass UI-label sweep shipped
+    /copy|clipboard/i.test(aria) + " " + innerText
+  — test() binds FIRST, so the filter concatenated a BOOLEAN to the label
+  string, producing a truthy string for EVERY element (38 "copy" matches on
+  the live, 45 on the clone — "My Dashboard", "Browse Courses"…). The
+  parenthesized corrected sweep shows the TRUE zero surface (PART 1-3).
+  GOTCHA 77: parenthesize the regex test around the FULL label assembly.
+
+PART 6 — THE ENV CONTRACT + THE GATE SUMMARY
+
+  .env == .env.example: byte-identical (tracked, matching the codebase —
+             every knob the src/ + prisma/ + next.config.ts consume; no new
+             knobs this session)
+  DATABASE_URL: file:../db/custom.db (db/ at the repo root: custom.db + e2e.db,
+             created by db:push + db:seed; the prisma/db-url.ts resolution +
+             the shell-pollution guard re-verified green at baseline)
+  skills/ excluded: tsconfig exclude + eslint ignores + vitest include
+             (src/tests only) + playwright testDir ./tests/e2e — re-verified
+  vitest + playwright: both configs exercised green this session (the unit
+             layer 322/322, the e2e layer 400/400 — the configs need no
+             change; every finding rides the existing suites)
+
+  GATE (the session-48 GUARD, in the required order):
+    lint ......... clean
+    typecheck .... clean
+    unit ......... 322/322 (319 -> 322: +3 platform-surface source pins —
+                   clipboard / fullscreen-PiP / gamepad-HID zero-stance)
+    build ........ clean (standalone)
+    e2e .......... 400/400 (397 -> 400: +3 session-48 census pins; the run
+                   split for the tool-timeout — 14 mobile-nav + 364 pre-s44
+                   + 22 s44-s48, the burst spec ordering constraint held)
+    TOTAL ........ 722 (was 716) — zero regressions
+
+  STANDING PARITY BATTERY (re-run after the additions):
+    heights x9 routes x2 viewports ... 18/18 byte-exact (the live's own
+                                      CourseDetail id walked from its /Courses)
+    innerText ........................ 5/5 identical (incl. /CourseDetail)
+    mobile battery .................. IDENTICAL — NO Tailwind v4 bug (trigger
+                                      byte-identical BUTTON md:hidden p-2
+                                      rounded-lg text-white/80 40x40 @(333,12);
+                                      panel 389x405 @ y=64; 9 members at
+                                      identical geometry; the 4px space-y gap
+                                      renders on both — the live as the v3
+                                      engine's CTA margin-top, the clone as
+                                      the predecessor's margin-block-end: the
+                                      documented s9 engine-variance fix)
+    console sweep ................... clean on every real route (the live's
+                                      429s + its cdn.tailwindcss.com warning +
+                                      its socket.io WebSocket = its platform
+                                      families; the clone's only flagged entry
+                                      is the 404 document network log on a
+                                      bogus route — the real-404
+                                      deliberate-better, Chrome's automatic
+                                      console entry, not app noise)
+
+  TDD: +3 unit source pins (tests/platform-surface-source.test.ts, RED-verified
+  honestly with a temp offender file) + 3 e2e census pins (the clipboard
+  single, the fullscreen/PiP single, the gamepad/HID single — all 3 green
+  against the current tree before the GUARD, 40.7s). NO source change shipped
+  — the pins are the deliverable (the s44/s46/s47 precedent).
+
+  SCREENSHOTS: the 13-capture DEV-SERVER matrix (the owner's ask — next dev
+  on :3000 with db/custom.db + the canonical demo state: 10 routes x desktop
+  + landing/mobile + dashboard/mobile + THE MOBILE MENU OPEN (the Tailwind v4
+  surface, panel verified open: white panel y=64..469 + the gradient CTA)),
+  + the tracked dashboard pair re-shot BYTE-IDENTICAL after the canonical
+  e2e.db state restore (seed-1 + seed-3 + seed-5 with seed-5's Lesson 1
+  complete = 1% — the progress API takes enrollmentId, not courseId; the
+  first restore attempt's 400 is the qualification note; 0/2073600 and
+  0/250125 pixels changed vs the tracked set).
