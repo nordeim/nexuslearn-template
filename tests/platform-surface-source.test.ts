@@ -170,6 +170,105 @@ const WEB_NFC_SMS_APIS = [
   "dataTransfer",
 ] as const;
 
+/** The WebTransport / WebCodecs surface (the s51 family A census
+ * definition — the transport/codec tier: the WebTransport constructors +
+ * the codec constructor family). */
+const WEBTRANSPORT_CODEC_APIS = [
+  "WebTransport",
+  "WebCodecs",
+  "VideoEncoder",
+  "VideoDecoder",
+  "ImageDecoder",
+] as const;
+
+/** The Compute Pressure / Priority Hints surface (the s51 family B census
+ * definition — the PressureObserver tier + the fetchPriority React prop
+ * form; the s28 img-attributes test already guards the lowercase
+ * `fetchpriority=` prop pattern, and the CourseCard comment's bare-word
+ * mention is not a prop). */
+const PRESSURE_PRIORITY_APIS = [
+  "PressureObserver",
+  "PressureRecord",
+  "computePressure",
+  "fetchPriority",
+] as const;
+
+/** The View Transitions / Document Picture-in-Picture surface (the s51
+ * family C census definition — the same-document ViewTransition seam +
+ * the document PiP window seam). */
+const VIEW_TRANSITIONS_PIP_APIS = [
+  "startViewTransition",
+  "documentPictureInPicture",
+  "requestWindow",
+  "ViewTransition",
+] as const;
+
+describe("session-51: the platform-surface source census", () => {
+  it("ZERO WebTransport / WebCodecs references anywhere in src/ (the family A zero-stance)", () => {
+    // The pin: the clone ships no transport/codec surface — no WebTransport
+    // construction, no VideoEncoder/VideoDecoder configure/decode call, no
+    // ImageDecoder render path. The probed parity: WebTransport +
+    // WebTransportError are PRESENT with IDENTICAL shape on BOTH sites
+    // (WebTransportCongestionControl the only absent entry, on both) + the
+    // codec constructor family (VideoEncoder/VideoDecoder/AudioEncoder/
+    // AudioDecoder/ImageDecoder/EncodedVideoChunk/EncodedAudioChunk) all
+    // present on both, but ZERO instrumented calls, ZERO transport/codec-
+    // labeled UI, ZERO transport/codec CSSOM rules.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of WEBTRANSPORT_CODEC_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("ZERO Compute Pressure / Priority Hints references anywhere in src/ (the family B zero-stance)", () => {
+    // The pin: the clone ships no pressure surface — no PressureObserver
+    // construction, no observe/unobserve registration, no computePressure
+    // read, no fetchPriority prop on any element. The probed parity:
+    // PressureObserver + PressureRecord are PRESENT with IDENTICAL shape
+    // on BOTH sites but ZERO instrumented calls and ZERO pressurechange
+    // registrations; the fetchPriority ATTRIBUTE tier ships only on the
+    // framework's own one-per-route bootstrap preload link (Next 16's
+    // emission, CSP-nonce'd — the s29 first-party preload family's
+    // attribute-level extension, the documented deliberate-better SSR
+    // family; the live ships ZERO preload links on its app routes) —
+    // never on an app-authored element.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of PRESSURE_PRIORITY_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("ZERO View Transitions / Document Picture-in-Picture references anywhere in src/ (the family C zero-stance)", () => {
+    // The pin: the clone ships no view-transition surface — no
+    // document.startViewTransition call, no documentPictureInPicture
+    // requestWindow, no ViewTransition consumer. The probed parity: the
+    // API tier is PRESENT with IDENTICAL shape on BOTH sites
+    // (startViewTransition + ViewTransition + documentPictureInPicture
+    // with requestWindow) with ZERO calls; the CSS tier is the zero
+    // stance on every clone route + every live APP route — the live's 16
+    // ::view-transition-* rules live ONLY in its AUTH-route platform
+    // bundle (static/index-*.css, the Base44 auth-shell sheet), ALL INERT
+    // (the html element never carries the vt-hub-enter/vt-hub-exit/
+    // vt-product-switch class gates; zero @view-transition at-rules on
+    // either site) — the s47 auth-route platform-chrome family's third
+    // member (the Google-Identity-Services + motion-utilities siblings),
+    // documented, never replicated.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of VIEW_TRANSITIONS_PIP_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("session-50: the platform-surface source census", () => {
   it("ZERO WebXR / immersive-VR references anywhere in src/ (the family A zero-stance)", () => {
     // The pin: the clone ships no XR surface — no navigator.xr

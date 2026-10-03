@@ -7941,6 +7941,277 @@ test.describe("session-50 parity: the Web NFC / Web SMS census", () => {
 });
 
 
+test.describe("session-51 parity: the WebTransport / WebCodecs census", () => {
+  // The s51 WebTransport / WebCodecs census (both sites, all 9 routes + the
+  // auth routes, the session_115 direction (a)): the ZERO transport/codec
+  // surface — the full tier is PRESENT with IDENTICAL shape on both sites
+  // (WebTransport + WebTransportError + the codec constructor family:
+  // VideoEncoder/VideoDecoder/AudioEncoder/AudioDecoder/ImageDecoder +
+  // the Encoded chunk types; WebTransportCongestionControl the only absent
+  // entry, on both) but zero instrumented constructions, zero codec
+  // configure/decode calls, zero transport/codec-labeled UI. This spec
+  // freezes the clone's public-route contract (the source tier is pinned
+  // by tests/platform-surface-source.test.ts).
+
+  test("no transport/codec surface: APIs present, zero calls, zero codec UI", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s51tc: { ctor: number; calls: string[] } };
+      w.__s51tc = { ctor: 0, calls: [] };
+      const win = window as unknown as Record<string, unknown>;
+      const WT = win.WebTransport as (new (...a: unknown[]) => unknown) | undefined;
+      if (typeof WT === "function") {
+        const OrigWT = WT;
+        function PatchedWT(this: unknown, ...a: unknown[]) {
+          w.__s51tc.ctor++;
+          return new (OrigWT as new (...a: unknown[]) => unknown)(...a);
+        }
+        (PatchedWT as unknown as { prototype: unknown }).prototype = (OrigWT as unknown as { prototype: unknown }).prototype;
+        win.WebTransport = PatchedWT;
+      }
+      const instrumentCodec = (name: string, method: string) => {
+        const C = win[name] as (new (...a: unknown[]) => unknown) | undefined;
+        if (typeof C !== "function") return;
+        const proto = (C as unknown as { prototype: Record<string, unknown> }).prototype;
+        const m = proto[method];
+        if (typeof m !== "function") return;
+        proto[method] = function patched(this: unknown, ...a: unknown[]) {
+          w.__s51tc.calls.push(`${name}.${method}@${location.pathname}`);
+          return (m as (...a: unknown[]) => unknown).apply(this, a);
+        };
+      };
+      instrumentCodec("VideoEncoder", "configure");
+      instrumentCodec("VideoDecoder", "decode");
+      instrumentCodec("AudioEncoder", "configure");
+      instrumentCodec("AudioDecoder", "decode");
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e headless-Chromium context — the same
+    // context the probe censused; a Playwright bump that changes the
+    // headless surface re-baselines this read, while the zero-CALL census
+    // stays the durable contract).
+    const api = await page.evaluate(() => {
+      const win = window as unknown as Record<string, unknown>;
+      return {
+        webTransport: typeof win.WebTransport,
+        webTransportError: typeof win.WebTransportError,
+        videoEncoder: typeof win.VideoEncoder,
+        videoDecoder: typeof win.VideoDecoder,
+        imageDecoder: typeof win.ImageDecoder,
+      };
+    });
+    expect(api.webTransport).toBe("function");
+    expect(api.webTransportError).toBe("function");
+    expect(api.videoEncoder).toBe("function");
+    expect(api.videoDecoder).toBe("function");
+    expect(api.imageDecoder).toBe("function");
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s51tc?: { ctor: number; calls: string[] } };
+        const tcUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label], [title], h1, h2, h3, label"))) {
+          const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim().toLowerCase();
+          if (/web\s?transport|codec|encoder|decoder|live\s?stream|transmit/.test(label)) tcUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        return { ctor: w.__s51tc?.ctor ?? 0, calls: w.__s51tc?.calls ?? [], tcUi };
+      });
+      expect(census.ctor, `${route} never constructs a WebTransport`).toBe(0);
+      expect(census.calls, `${route} never calls the codec APIs`).toEqual([]);
+      expect(census.tcUi, `${route} ships no transport/codec-labeled UI`).toEqual([]);
+    }
+  });
+});
+
+
+test.describe("session-51 parity: the Compute Pressure / Priority Hints census", () => {
+  // The s51 Compute Pressure / Priority Hints census (both sites, all 9
+  // routes + the auth routes, the session_115 direction (b)): the ZERO
+  // pressure surface — PressureObserver + PressureRecord are PRESENT with
+  // identical shape on both sites but zero instrumented constructor/observe
+  // calls and zero pressurechange registrations. THE ATTRIBUTE-TIER
+  // CONTRACT (the family-B discovery): the fetchPriority attribute ships
+  // ONLY on the framework's own one-per-route bootstrap preload link
+  // (Next 16's `<link rel="preload" as="script" fetchPriority="low"
+  // nonce=…>` emission — the s29 first-party preload family's
+  // attribute-level extension) — the CONTAINMENT pin below fails the
+  // moment an app-authored element (img/link/script/div) carries the
+  // attribute, while surviving any Next bump that changes the emission's
+  // count or priority value (the s47 forced-colors containment
+  // precedent). The live ships ZERO preload links on its app routes (the
+  // documented CSR platform posture). This spec freezes the clone's
+  // public-route contract (the source tier is pinned by
+  // tests/platform-surface-source.test.ts).
+
+  test("no pressure surface: APIs present, zero calls, fetchPriority contained to the framework preload", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s51pr: { ctor: number; calls: string[] } };
+      w.__s51pr = { ctor: 0, calls: [] };
+      const win = window as unknown as Record<string, unknown>;
+      const PO = win.PressureObserver as (new (...a: unknown[]) => unknown) | undefined;
+      if (typeof PO === "function") {
+        const OrigPO = PO;
+        function PatchedPO(this: unknown, ...a: unknown[]) {
+          w.__s51pr.ctor++;
+          return new (OrigPO as new (...a: unknown[]) => unknown)(...a);
+        }
+        (PatchedPO as unknown as { prototype: unknown }).prototype = (OrigPO as unknown as { prototype: unknown }).prototype;
+        win.PressureObserver = PatchedPO;
+        const observe = (OrigPO as unknown as { prototype: Record<string, unknown> }).prototype.observe;
+        if (typeof observe === "function") {
+          (OrigPO as unknown as { prototype: Record<string, unknown> }).prototype.observe = function patchedObserve(this: unknown, ...a: unknown[]) {
+            w.__s51pr.calls.push(`observe@${location.pathname}`);
+            return (observe as (...a: unknown[]) => unknown).apply(this, a);
+          };
+        }
+      }
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e headless-Chromium context — context-
+    // bound like every presence mirror, while the zero-CALL census stays
+    // the durable contract).
+    const api = await page.evaluate(() => {
+      const win = window as unknown as Record<string, unknown>;
+      return {
+        pressureObserver: typeof win.PressureObserver,
+        pressureRecord: typeof win.PressureRecord,
+      };
+    });
+    expect(api.pressureObserver).toBe("function");
+    expect(api.pressureRecord).toBe("function");
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s51pr?: { ctor: number; calls: string[] } };
+        const prUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label], [title], h1, h2, h3, label"))) {
+          const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim().toLowerCase();
+          if (/compute\s?pressure|resource\s?pressure|cpu\s?pressure|thermal/.test(label)) prUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        // the fetchPriority CONTAINMENT census: every element carrying the
+        // attribute must be the framework's own script preload into /_next/
+        // (the one Next-16 bootstrap emission; any app-authored carrier —
+        // an img, a div, an app-authored link — breaks the containment).
+        const fpOffenders: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("[fetchpriority], [fetchPriority]"))) {
+          const isFrameworkPreload =
+            el.tagName === "LINK" &&
+            (el.getAttribute("rel") || "").toLowerCase() === "preload" &&
+            (el.getAttribute("as") || "").toLowerCase() === "script" &&
+            (el.getAttribute("href") || "").startsWith("/_next/");
+          if (!isFrameworkPreload) fpOffenders.push(`${el.tagName}:${(el.getAttribute("href") || el.textContent || "").slice(0, 40)}`);
+        }
+        return { ctor: w.__s51pr?.ctor ?? 0, calls: w.__s51pr?.calls ?? [], prUi, fpOffenders };
+      });
+      expect(census.ctor, `${route} never constructs a PressureObserver`).toBe(0);
+      expect(census.calls, `${route} never calls the pressure APIs`).toEqual([]);
+      expect(census.prUi, `${route} ships no pressure-labeled UI`).toEqual([]);
+      expect(census.fpOffenders, `${route} carries fetchPriority ONLY on the framework's /_next/ script preload`).toEqual([]);
+    }
+  });
+});
+
+
+test.describe("session-51 parity: the View Transitions / Document Picture-in-Picture census", () => {
+  // The s51 View Transitions / Document PiP census (both sites, all 9
+  // routes + the auth routes, the session_115 direction (c)): the ZERO
+  // view-transition surface — document.startViewTransition + ViewTransition
+  // + window.documentPictureInPicture (with requestWindow) are PRESENT
+  // with identical shape on both sites but zero instrumented calls, zero
+  // transition/PiP-labeled UI. THE CSS TIER (the session's genuine
+  // discovery): the live's AUTH-route platform bundle carries 16 INERT
+  // ::view-transition-* rules (the Base44 hub/product-switch machinery —
+  // the vt-hub-enter/vt-hub-exit/vt-product-switch class gates never fire;
+  // the s47 auth-route platform-chrome family's third member) while the
+  // live's app routes and the clone's every route ship ZERO — this spec
+  // freezes the clone's zero stance (the platform tier lives in the proof
+  // matrix, never replicated). The source tier is pinned by
+  // tests/platform-surface-source.test.ts.
+
+  test("no view-transition/PiP surface: APIs present, zero calls, zero vt CSS rules", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s51vt: { calls: string[] } };
+      w.__s51vt = { calls: [] };
+      if (typeof document.startViewTransition === "function") {
+        const orig = document.startViewTransition.bind(document);
+        (document as unknown as Record<string, unknown>).startViewTransition = (...a: unknown[]) => {
+          w.__s51vt.calls.push(`startViewTransition@${location.pathname}`);
+          return (orig as (...a: unknown[]) => unknown)(...a);
+        };
+      }
+      const dpip = (window as unknown as { documentPictureInPicture?: { requestWindow: unknown } }).documentPictureInPicture;
+      if (dpip && typeof dpip.requestWindow === "function") {
+        const orig = (dpip.requestWindow as (...a: unknown[]) => unknown).bind(dpip);
+        (dpip as unknown as Record<string, unknown>).requestWindow = (...a: unknown[]) => {
+          w.__s51vt.calls.push(`pipRequestWindow@${location.pathname}`);
+          return orig(...a);
+        };
+      }
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e headless-Chromium context — context-
+    // bound like every presence mirror, while the zero-CALL census stays
+    // the durable contract).
+    const api = await page.evaluate(() => {
+      const win = window as unknown as Record<string, unknown>;
+      return {
+        startViewTransition: typeof document.startViewTransition,
+        viewTransition: typeof win.ViewTransition,
+        documentPiP: typeof win.documentPictureInPicture,
+      };
+    });
+    expect(api.startViewTransition).toBe("function");
+    expect(api.viewTransition).toBe("function");
+    expect(api.documentPiP).toBe("object");
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s51vt?: { calls: string[] } };
+        const vtUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label], [title], h1, h2, h3, label"))) {
+          const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim().toLowerCase();
+          if (/view\s?transition|page\s?transition|picture\s?in\s?picture|pop\s?out|detach\s?window|mini\s?player/.test(label)) vtUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        // the CSSOM vt census: zero ::view-transition / :active-view-transition
+        // / picture-in-picture rules on any sheet (the live's 16 platform
+        // rules live in its AUTH-route auth-shell bundle — platform chrome,
+        // documented; the clone ships none anywhere).
+        const vtRules: string[] = [];
+        function walkVt(rs: CSSRuleList) {
+          for (const r of Array.from(rs)) {
+            const st = (r as CSSStyleRule).selectorText ?? "";
+            if (/view-transition|picture-in-picture/i.test(st)) vtRules.push(st.slice(0, 60));
+            if ((r as CSSMediaRule).cssRules) {
+              try {
+                walkVt((r as CSSMediaRule).cssRules);
+              } catch {
+                /* CORS */
+              }
+            }
+          }
+        }
+        for (const s of Array.from(document.styleSheets)) {
+          try {
+            walkVt(s.cssRules);
+          } catch {
+            /* CORS */
+          }
+        }
+        return { calls: w.__s51vt?.calls ?? [], vtUi, vtRules };
+      });
+      expect(census.calls, `${route} never calls the view-transition/PiP APIs`).toEqual([]);
+      expect(census.vtUi, `${route} ships no transition/PiP-labeled UI`).toEqual([]);
+      expect(census.vtRules, `${route} ships zero view-transition CSS rules`).toEqual([]);
+    }
+  });
+});
+
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a

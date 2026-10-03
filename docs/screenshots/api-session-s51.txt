@@ -1,0 +1,183 @@
+SESSION 51 — THE WEBTRANSPORT / WEBCODECS + COMPUTE-PRESSURE / PRIORITY-HINTS
++ VIEW-TRANSITIONS / DOCUMENT-PIP PASS — PROOF MATRIX
+(evidence scripts: /home/z/my-project/scripts/s51-probe.mjs + s51-battery.mjs
++ s51-capture.mjs + s51-tracked-pair.mjs; probe JSON: s51-probe.json)
+
+===========================================================================
+GATE SUMMARY
+===========================================================================
+baseline (the shipped session-50 tree, ddb8dc3):
+  lint OK · typecheck OK · 328/328 unit · build OK · 406/406 e2e
+  (split: --grep-invert "session-(4[4-9]|50)" = 378
+        + --grep "session-(4[4-9]|50)" = 28) · TOTAL 734
+after the session-51 pins:
+  lint OK · typecheck OK · 331/331 unit · build OK · 409/409 e2e
+  (split: --grep-invert "session-(4[4-9]|5[01])" = 378
+        + --grep "session-(4[4-9]|5[01])" = 31) · TOTAL 740
+RED-verification: honest — a temp offender file under src/ quoting each
+  pinned literal failed exactly the 3 new unit sweeps (13 existing stayed
+  green), then was deleted; 331/331 after deletion.
+standing parity battery (BEFORE and AFTER the pins — the house rule):
+  heights ×9 routes ×2 viewports BYTE-EXACT 18/18
+  innerText identical 5/5 (/, /Courses, /CourseDetail, /Dashboard, /login
+    — 0 diffs on 214/96/789/15/9 lines)
+  MOBILE BATTERY IDENTICAL — NO Tailwind v4 bug
+    (trigger byte-identical: BUTTON "md:hidden p-2 rounded-lg
+     text-white/80" 40x40 @(319,12); panel 375x405 @(0,64);
+     all 9 members at identical geometry)
+  console sweep 0 errors on BOTH sites (the live's platform-family
+    entries: 429 bursts / cdn.tailwindcss warning / socket.io WebSocket)
+  battery demo state: the LIVE-MATCHED zero-enrollment account state
+    (the s50 battery demo-state rule — gotcha 79(e) — applied before
+    both battery runs; the canonical 3-enrollment state re-restored via
+    the REAL API only for the screenshot phase)
+
+===========================================================================
+FAMILY A — THE WEBTRANSPORT / WEBCODECS CENSUS (the session_115 dir (a))
+===========================================================================
+API presence (identical shape on BOTH sites, all 9 routes, signed in):
+  WebTransport                function   function
+  WebTransportError           function   function
+  WebTransportCongestionControl undefined  undefined   (the one absent entry, on both)
+  VideoEncoder                function   function
+  VideoDecoder                function   function
+  AudioEncoder                function   function
+  AudioDecoder                function   function
+  ImageDecoder                function   function
+  EncodedVideoChunk           function   function
+  EncodedAudioChunk           function   function
+instrumented counters (overridden BEFORE load; 9 routes × both sites):
+  live : WebTransport ctor = 0, codec configure/decode = 0   ALL ZERO
+  clone: WebTransport ctor = 0, codec configure/decode = 0   ALL ZERO
+UI-label sweep (parenthesized; transport/codec/live-stream/transmit): NONE both
+listener census (qoschange): NONE both
+CSSOM census (transport/codec/encoder selectors): NONE both
+VERDICT: parity-clean — zero app surface on both sites. PINNED.
+
+===========================================================================
+FAMILY B — THE COMPUTE PRESSURE / PRIORITY HINTS CENSUS (dir (b))
+===========================================================================
+API presence (identical on BOTH sites):
+  PressureObserver            function   function
+  PressureRecord              function   function
+instrumented counters (9 routes × both sites):
+  live : PressureObserver ctor = 0, observe = 0                ALL ZERO
+  clone: PressureObserver ctor = 0, observe = 0                ALL ZERO
+listener census (pressurechange): NONE both
+UI-label sweep (compute/resource/cpu pressure, thermal): NONE both
+
+THE ATTRIBUTE-TIER FINDING (the family-B discovery — the Priority Hints
+fetchPriority tier, never censused before: the s28 family pinned the IMG
+attribute tier only, the s29 family counted preload links + as= types but
+not the priority attribute):
+  raw-HTML + rendered-DOM census, every route of both sites:
+  live  app routes : preload links = 0, fetchPriority elements = 0
+                    (head carries only icon/manifest/stylesheet/canonical —
+                     the CSR platform posture; the SPA cannot preload
+                     data-dependent images in HTML)
+  live  auth routes: preload links = 0, fetchPriority elements = 0
+                    (37 platform modulepreloads on /login + /reset-password —
+                     the documented Base44 login-kit family, the count
+                     bundle-version-dependent; s29 measured 62, now 37)
+  clone every route: exactly ONE <link rel="preload" as="script"
+                     fetchPriority="low" nonce=…> — Next 16's own
+                     bootstrap-chunk preload emission into /_next/
+                     (the s29 "exactly ONE preload:script — first-party"
+                     family's attribute-level extension), plus the React 19
+                     SSR-hoisted image preloads (the s29 documented
+                     deliberate-better family; every href an exact rendered
+                     img src — the no-double-fetch guard, e2e-pinned s29)
+  APP-authored fetchPriority posture: ZERO on both sites (the s28 IMG
+    tier: zero loading/decoding/fetchpriority on every img — pinned;
+    src/ grep: zero fetchPriority prop references)
+VERDICT: API parity-clean + the attribute tier is the documented
+  deliberate-better framework-emission family (removing the bootstrap
+  preload would fight Next 16's runtime and regress the documented
+  faster-FCP/LCP posture). PINNED as the CONTAINMENT contract: every
+  [fetchpriority] element on every public route is the framework's own
+  /_next/ script-preload link — any app-authored carrier fails the spec.
+
+===========================================================================
+FAMILY C — THE VIEW TRANSITIONS / DOCUMENT PIP CENSUS (dir (c))
++ THE AUTH-ROUTE VIEW-TRANSITION CSS TIER (the session's discovery)
+===========================================================================
+API presence (identical on BOTH sites):
+  document.startViewTransition  function  function
+  ViewTransition                function  function
+  window.documentPictureInPicture object  object (requestWindow: function)
+instrumented counters (9 routes × both sites):
+  live : startViewTransition = 0, pip requestWindow = 0      ALL ZERO
+  clone: startViewTransition = 0, pip requestWindow = 0      ALL ZERO
+UI-label sweep (view/page transition, picture-in-picture, pop-out,
+  detach window, mini player): NONE both
+@view-transition at-rule census: ZERO on every route of both sites
+
+THE AUTH-ROUTE VIEW-TRANSITION CSS TIER (the genuine discovery — the s47
+auth-route platform-chrome family's THIRD member):
+  the live's AUTH routes (/login, /reset-password) load a DIFFERENT
+  platform bundle than its app routes:
+    auth routes  : static/index-DiZiYQBd.css  (10,293 rules) — the
+                   platform auth-shell sheet (the s41/s47 family)
+    app routes   : assets/index-BWSk-xk1.css  (1,022 rules) — the
+                   user's SPA sheet
+  the auth-shell sheet carries 16 ::view-transition-* rules — the
+  Base44 hub/product-switch navigation machinery:
+    html.vt-hub-enter::view-transition-old/new(root)
+    html.vt-hub-exit::view-transition-old/new(root)
+    html.vt-product-switch::view-transition-old/new(root)
+    html.vt-product-switch::view-transition-group(home-sidebar)
+    html.vt-hub-enter::view-transition-old(home-sidebar) (+ mirrors)
+    html.vt-{hub-enter,hub-exit,product-switch}::view-transition-old/new(*)
+  ALL INERT — the class gates never fire: the html element carries ZERO
+  classes on every probed route (/login, /reset-password, / — verified
+  directly); the rules are the platform's cross-app navigation kit (the
+  Hub enter/exit/product-switch transitions), never activated on this
+  app's pages. The clone ships ZERO vt rules anywhere (the e2e census
+  pin); the live's APP routes ship ZERO vt rules.
+  Siblings in the same documented family: the Google Identity Services
+  button chrome (2 prefers-contrast rules, s47) + the auth-shell
+  motion-safe/motion-reduce utilities (8 prefers-reduced-motion rules,
+  s47) — identified, documented, never replicated (dead CSS with zero
+  rendered parity).
+VERDICT: API parity-clean + the CSS tier documented (the platform-chrome
+  family). PINNED: the clone's zero stance (zero calls, zero vt CSSOM
+  rules on every route).
+
+===========================================================================
+ENVIRONMENT CONTRACT (re-verified)
+===========================================================================
+  .env == .env.example byte-identical (diff clean)
+  DATABASE_URL="file:../db/custom.db" — resolves to <repo>/db/custom.db
+    for CLI, dev, seed, standalone and e2e alike (prisma/db-url.ts)
+  db/ at the repo root: custom.db (364544 B) + e2e.db (405504 B)
+  skills/ excluded from all four tool configs:
+    tsconfig exclude: ["node_modules", "skills"]
+    eslint ignores: [..., "skills", ...]
+    vitest include: ["src/**/*.test.ts", "tests/**/*.test.ts"]
+    playwright testDir: "./tests/e2e"
+  vitest + playwright suites green through their existing configs
+    (no config modification required by any finding — the
+    no-speculative-scaffolding rule)
+
+===========================================================================
+SCREENSHOT MATRIX (the dev-server captures, the owner's standing ask)
+===========================================================================
+  next dev on :3000 with db/custom.db + the canonical demo state
+  restored via the REAL API (3 enrollments: seed-1 + seed-3 + seed-5
+  with seed-5's Lesson 1 complete = 1%; the progress API takes
+  enrollmentId, the lesson id queried from the DB); every context
+  carrying the session cookie (the s49 capture-cookie rule):
+    s51-dev-landing--desktop.png            s51-dev-landing--mobile.png
+    s51-dev-courses--desktop.png            s51-dev-dashboard--mobile.png
+    s51-dev-course-detail--desktop.png      s51-dev-mobile-menu-open--mobile.png
+    s51-dev-pricing--desktop.png              (BYTE-IDENTICAL to the s50
+    s51-dev-about--desktop.png                 capture — 89796 bytes, the
+    s51-dev-contact--desktop.png               panel verified open)
+    s51-dev-becomeinstructor--desktop.png
+    s51-dev-aiassistant--desktop.png
+    s51-dev-dashboard--desktop.png
+    s51-dev-login--desktop.png
+  the tracked dashboard pair re-shot from the STANDALONE server
+  (the same environment as the original tracked captures):
+    dashboard--desktop.png : 0/6220800 bytes changed (byte-identical)
+    dashboard--mobile.png  : 0/750375 bytes changed (byte-identical)
