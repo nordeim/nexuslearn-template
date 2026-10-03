@@ -1203,3 +1203,28 @@ Stage Summary:
 - Key finds: the EIGHTY-FIFTH through EIGHTY-SEVENTH probe families (the credentials/WebAuthn zero surface; the Web-Speech zero surface; the Bluetooth/Serial/USB zero surface incl. the bluetooth-ABSENT context note) + the Next.js runtime error-listener family (the genuine discovery, gotcha 78) + the two methodology lessons (the context-coordinate rule, the capture-cookie rule).
 - No source change: +3 unit source pins + 3 e2e census pins (the s44/s46/s47/s48 precedent — the pins are the deliverable).
 - Audit scripts persisted at /home/z/my-project/scripts/ (s49-battery, s49-probe, s49-probe-error-listeners, s49-capture, s49-tracked-pair, boot-clone).
+
+
+---
+## Session 50 — the WebXR + File System Access + Web NFC/SMS pass
+
+- WORKSPACE REFRESH: git pull to c1bf88a (the owner's session_113 transcript commit on top of 7d51dbf); the five core docs + session_112/113 + remediation-plan-session49 + worklog reviewed; the s49 changeset audited (test pins + docs only — sound).
+- BASELINE GATES re-verified in order: lint, typecheck, 325/325 unit, build, 403/403 e2e (the s49 split: --grep-invert "session-4[4-9]" 378 + --grep "session-4[4-9]" 25) — 728 total, matching the documented state exactly.
+- PARITY RE-AUDIT (scripts/s50-battery.mjs, the s49 pattern): the first run showed CourseDetail/Dashboard diffs — THE DEMO-STATE ASYMMETRY (the s49 screenshot phase left the canonical 3-enrollment state in custom.db; the live's demo user has ZERO enrollments, verified directly). Reset to the live-matched state -> FULLY GREEN: heights 18/18 byte-exact, innerText 5/5 identical, mobile battery byte-identical (NO Tailwind v4 bug), console 0 errors on both sites.
+- FRESH-EYES FAMILY 1 — THE WEBXR CENSUS: navigator.xr PRESENT with identical shape on both sites (isSessionSupported + requestSession; XRSession + XRSystem; XRDevice absent on both) but zero calls, zero XR-labeled UI, zero session registrations.
+- FRESH-EYES FAMILY 2 — THE FILE SYSTEM ACCESS CENSUS: the three pickers + the four FileSystem constructors PRESENT with identical shape but zero calls, zero file inputs, zero upload-labeled UI.
+- FRESH-EYES FAMILY 3 — THE WEB NFC / WEB SMS CENSUS: NDEFReader + NDEFMessage ABSENT on both (the headless flag); zero one-time-code inputs on the public routes; the LoginForm verify-view one-time-code hit is the s26-pinned intentional hardening (re-verified green — deliberately not a family-C pin string).
+- THE LISTENER-CENSUS ANOMALY -> the drag-family attribution census (scripts/s50-drag-listeners.mjs): live 38 vs clone 56 per drag event — fully attributed as THE REACT 19.3 DRAG-DELEGATION FAMILY (the genuine discovery): shared tiers identical, live div#root=18, clone route-announcer=18 + document=18, ALL handlers [native code], zero app-level — documented as gotcha 79, deliberately NOT pinned as a zero-listener assertion.
+- REMEDIATION PLAN written (docs/remediation-plan-session50.md) with plan-time validation (all pin strings grep-verified zero in src/; the e2e context guarantees verified; the split extension planned).
+- REMEDIATION (TDD): +3 unit source pins (the session-50 block in tests/platform-surface-source.test.ts — the WebXR + File-System-Access + Web-NFC/SMS zero-stance censuses, RED-verified honestly with a temp offender file) +3 e2e census singles (inserted before the s33 burst spec) — the lint warning (unused eslint-disable) fixed.
+- VERIFY/GUARD: lint, typecheck, 328/328 unit, fresh build, 406/406 e2e (the s50 split: --grep-invert "session-(4[4-9]|50)" 378 + --grep "session-(4[4-9]|50)" 28 = 406) — 734 total; the standing battery re-run GREEN (18/18 + 5/5 + mobile + console, the live-matched state).
+- SCREENSHOTS: the canonical demo state restored via the REAL API (3 enrollments, seed-5@1%); 13 dev-server captures under docs/screenshots/s50-dev-* (every context carrying the session cookie); the open-mobile-menu shot BYTE-IDENTICAL to the s49 capture (89796 bytes); the tracked dashboard pair re-shot from the STANDALONE server BYTE-IDENTICAL to the tracked files (0/6220800 + 0/750375 bytes).
+- THE PROOF MATRIX (docs/screenshots/api-session-s50.txt): the three census tables, the drag-listener attribution census, the demo-state qualification, the env contract + the gate summary.
+- DOCS ALIGNED: AGENTS.md (the commands table 328/406 + gotcha 79 — the drag-delegation family + the battery demo-state rule), CLAUDE.md (the pyramid 328/406 + the s50 unit/e2e tails), README (badge 734 + the session-50 paragraph), PAD ([S50] row + the Last-Updated stamp), SKILL v3.38.0, session_114/115 logs, this worklog entry.
+- Final full gate AFTER all doc writes (the gotcha-41 rule — the CSS-leak spec re-runs LAST), then commit + push via the SSH wrapper (main only), remote verified, operator key shredded after use, servers stopped.
+
+Stage Summary:
+- Repo at the session-50 state with every standing parity surface byte-exact: 734 tests green (328 unit + 406 e2e), lint/typecheck/build clean, NO Tailwind v4 mobile-nav bug.
+- Key finds: the EIGHTY-EIGHTH through NINETIETH probe families (the WebXR zero surface; the File System Access zero surface; the Web NFC/SMS zero surface) + THE REACT 19.3 DRAG-DELEGATION FAMILY (the s50 discovery — the drag-event analogue of the s49 error-listener family) + THE BATTERY DEMO-STATE RULE (the state-level mirror of the s49 capture-cookie lesson).
+- No source change: +3 unit source pins + 3 e2e census pins (the s44-s49 precedent — the pins are the deliverable).
+- Audit scripts persisted at /home/z/my-project/scripts/ (s50-battery, s50-probe, s50-drag-listeners, s50-capture, s50-tracked-pair, s50-reset-demo, s50-state-check, boot-clone).

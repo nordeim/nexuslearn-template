@@ -142,6 +142,87 @@ const CONNECTIVITY_APIS = [
   "requestDevice",
 ] as const;
 
+/** The WebXR / immersive-VR surface (the s50 family A census definition —
+ * the last unprobed major device tier: the XR system + session seam). */
+const WEBXR_APIS = [
+  "navigator.xr",
+  "isSessionSupported",
+  "requestSession",
+  "XRSession",
+] as const;
+
+/** The File System Access surface (the s50 family B census definition —
+ * the picker tier + the handle constructors). */
+const FILE_SYSTEM_ACCESS_APIS = [
+  "showOpenFilePicker",
+  "showSaveFilePicker",
+  "showDirectoryPicker",
+  "FileSystemHandle",
+] as const;
+
+/** The Web NFC / Web SMS surface (the s50 family C census definition — the
+ * NDEF tier + the drag-data consumption seam; the one-time-code
+ * autocomplete hardening is the s26-pinned intentional divergence, not a
+ * family-C API reference). */
+const WEB_NFC_SMS_APIS = [
+  "NDEFReader",
+  "NDEFMessage",
+  "dataTransfer",
+] as const;
+
+describe("session-50: the platform-surface source census", () => {
+  it("ZERO WebXR / immersive-VR references anywhere in src/ (the family A zero-stance)", () => {
+    // The pin: the clone ships no XR surface — no navigator.xr
+    // isSessionSupported probe, no requestSession construction, no XRSession
+    // event wiring. The probed parity: navigator.xr is PRESENT with IDENTICAL
+    // shape on BOTH sites (isSessionSupported + requestSession functions;
+    // XRSession + XRSystem constructors; XRDevice absent on both) but ZERO
+    // instrumented calls, ZERO vr/headset/immersive-labeled UI, ZERO
+    // sessionstart/sessionend registrations.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of WEBXR_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("ZERO File System Access references anywhere in src/ (the family B zero-stance)", () => {
+    // The pin: the clone ships no file-picker surface — no showOpenFilePicker
+    // / showSaveFilePicker / showDirectoryPicker call, no FileSystemHandle
+    // consumption. The probed parity: the full picker tier is PRESENT with
+    // IDENTICAL shape on BOTH sites (three picker functions + the four
+    // FileSystem constructors) but ZERO instrumented calls, ZERO
+    // input[type=file] elements, ZERO upload/import/export-labeled UI.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of FILE_SYSTEM_ACCESS_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("ZERO Web NFC / Web SMS references anywhere in src/ (the family C zero-stance)", () => {
+    // The pin: the clone ships no NFC surface — no NDEFReader construction,
+    // no scan/write, no dataTransfer drag consumption. The probed parity:
+    // NDEFReader + NDEFMessage are ABSENT in the shared headless context on
+    // BOTH sites (the s47/s49 ABSENT case's mirror — the headless flag);
+    // ZERO nfc-labeled UI; the Web OTP consumption tier is zero on both
+    // sites' public routes (the one-time-code autocomplete hit in
+    // LoginForm.tsx is the s26-pinned intentional hardening, e2e-pinned at
+    // the password-manager contract spec — not a family-C API reference).
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of WEB_NFC_SMS_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("session-49: the platform-surface source census", () => {
   it("ZERO credentials / WebAuthn references anywhere in src/ (the family A zero-stance)", () => {
     // The pin: the clone ships no passkey surface — no navigator.credentials

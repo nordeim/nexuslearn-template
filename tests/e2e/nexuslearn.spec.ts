@@ -7730,6 +7730,217 @@ test.describe("session-49 parity: the Bluetooth / Serial / USB census", () => {
 });
 
 
+test.describe("session-50 parity: the WebXR / immersive-VR census", () => {
+  // The s50 WebXR census (both sites, all 9 routes + the auth routes, the
+  // session_112 direction (a)): the ZERO-XR surface — the last unprobed
+  // major device tier is PRESENT with IDENTICAL shape in the shared context
+  // (navigator.xr with isSessionSupported + requestSession, XRSession +
+  // XRSystem constructors, XRDevice absent on both) but zero instrumented
+  // calls, zero vr/headset/immersive-labeled UI, zero sessionstart/
+  // sessionend registrations. This spec freezes the clone's public-route
+  // contract (the source tier is pinned by
+  // tests/platform-surface-source.test.ts).
+
+  test("no XR surface: APIs present, zero calls, zero XR UI", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s50xr: { calls: string[] } };
+      w.__s50xr = { calls: [] };
+      const xr = (navigator as unknown as { xr?: Record<string, unknown> }).xr;
+      if (xr) {
+        for (const m of ["isSessionSupported", "requestSession"] as const) {
+          if (typeof xr[m] === "function") {
+            const orig = (xr[m] as (...a: unknown[]) => Promise<unknown>).bind(xr);
+            xr[m] = (...a: unknown[]) => {
+              w.__s50xr.calls.push(`${m}@${location.pathname}`);
+              return orig(...a);
+            };
+          }
+        }
+      }
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e headless-Chromium context — the same
+    // context the probe censused; a Playwright bump that changes the
+    // headless surface re-baselines this read, while the zero-CALL census
+    // stays the durable contract).
+    const api = await page.evaluate(() => {
+      const xr = (navigator as unknown as { xr?: Record<string, unknown> }).xr;
+      const win = window as unknown as Record<string, unknown>;
+      return {
+        xr: !!xr,
+        isSessionSupported: typeof xr?.isSessionSupported,
+        requestSession: typeof xr?.requestSession,
+        XRSession: typeof win.XRSession,
+        XRSystem: typeof win.XRSystem,
+        XRDevice: typeof win.XRDevice,
+      };
+    });
+    expect(api.xr).toBe(true);
+    expect(api.isSessionSupported).toBe("function");
+    expect(api.requestSession).toBe("function");
+    expect(api.XRSession).toBe("function");
+    expect(api.XRSystem).toBe("function");
+    expect(api.XRDevice).toBe("undefined");
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s50xr?: { calls: string[] } };
+        const xrUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label], [title], h1, h2, h3, label"))) {
+          const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim().toLowerCase();
+          if (/web\s?xr|\bxr\b|immersive|virtual\s?reality|augmented\s?reality|headset|vr\s?mode/.test(label)) xrUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        return { calls: w.__s50xr?.calls ?? [], xrUi };
+      });
+      expect(census.calls, `${route} never calls the XR APIs`).toEqual([]);
+      expect(census.xrUi, `${route} ships no XR-labeled UI`).toEqual([]);
+    }
+  });
+});
+
+
+test.describe("session-50 parity: the File System Access census", () => {
+  // The s50 File System Access census (both sites, all 9 routes + the auth
+  // routes, the session_112 direction (b)): the ZERO-picker surface — the
+  // full picker tier is PRESENT with IDENTICAL shape on both sites
+  // (showOpenFilePicker + showSaveFilePicker + showDirectoryPicker + the
+  // FileSystem constructor family) but zero instrumented picker calls,
+  // zero input[type=file] elements, zero upload/import/export-labeled UI.
+  // This spec freezes the clone's public-route contract (the source tier
+  // is pinned by tests/platform-surface-source.test.ts).
+
+  test("no file-picker surface: APIs present, zero calls, zero file inputs", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s50fs: { calls: string[] } };
+      w.__s50fs = { calls: [] };
+      const win = window as unknown as Record<string, unknown>;
+      for (const m of ["showOpenFilePicker", "showSaveFilePicker", "showDirectoryPicker"] as const) {
+        if (typeof win[m] === "function") {
+          const orig = (win[m] as (...a: unknown[]) => Promise<unknown>).bind(window);
+          win[m] = (...a: unknown[]) => {
+            w.__s50fs.calls.push(`${m}@${location.pathname}`);
+            return orig(...a);
+          };
+        }
+      }
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e headless-Chromium context — the same
+    // context the probe censused; context-bound like every presence
+    // mirror, while the zero-CALL census stays the durable contract).
+    const api = await page.evaluate(() => {
+      const win = window as unknown as Record<string, unknown>;
+      return {
+        open: typeof win.showOpenFilePicker,
+        save: typeof win.showSaveFilePicker,
+        dir: typeof win.showDirectoryPicker,
+        fsh: typeof win.FileSystemHandle,
+        fsdh: typeof win.FileSystemDirectoryHandle,
+      };
+    });
+    expect(api.open).toBe("function");
+    expect(api.save).toBe("function");
+    expect(api.dir).toBe("function");
+    expect(api.fsh).toBe("function");
+    expect(api.fsdh).toBe("function");
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s50fs?: { calls: string[] } };
+        const fsUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label], [title], h1, h2, h3, label"))) {
+          const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim().toLowerCase();
+          if (/upload|import\s?file|export\s?file|open\s?file|save\s?file|browse\s?files|file\s?picker|drop\s?zone/.test(label)) fsUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        const fileInputs = document.querySelectorAll('input[type="file"]').length;
+        return { calls: w.__s50fs?.calls ?? [], fsUi, fileInputs };
+      });
+      expect(census.calls, `${route} never calls the picker APIs`).toEqual([]);
+      expect(census.fsUi, `${route} ships no file-picker-labeled UI`).toEqual([]);
+      expect(census.fileInputs, `${route} ships no file inputs`).toBe(0);
+    }
+  });
+});
+
+
+test.describe("session-50 parity: the Web NFC / Web SMS census", () => {
+  // The s50 Web NFC / Web SMS census (both sites, all 9 routes + the auth
+  // routes, the session_112 direction (c)): the ZERO-nfc surface —
+  // NDEFReader + NDEFMessage are ABSENT in the shared headless context on
+  // BOTH sites (the s47 navigator.share / s49 navigator.bluetooth ABSENT
+  // case's mirror — the headless flag; the spec documents the absence,
+  // never asserts presence), and the Web OTP consumption tier is ZERO on
+  // the public routes of both sites (zero one-time-code inputs). The
+  // clone's verify-view one-time-code autocomplete is the s26-pinned
+  // intentional hardening (the password-manager contract spec), not a
+  // family-C API reference. This spec freezes the clone's public-route
+  // contract (the source tier is pinned by
+  // tests/platform-surface-source.test.ts).
+
+  test("no NFC/SMS surface: NDEF absent, zero constructions, zero OTP inputs", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s50nfc: { ctor: number; calls: string[] } };
+      w.__s50nfc = { ctor: 0, calls: [] };
+      const win = window as unknown as Record<string, unknown>;
+      const NDEF = win.NDEFReader as (new (...a: unknown[]) => unknown) | undefined;
+      if (typeof NDEF === "function") {
+        const OrigNDEF = NDEF;
+        function PatchedNDEF(this: unknown) {
+          w.__s50nfc.ctor++;
+          return new (OrigNDEF as new (...a: unknown[]) => unknown)();
+        }
+        (PatchedNDEF as unknown as { prototype: unknown }).prototype = (OrigNDEF as unknown as { prototype: unknown }).prototype;
+        win.NDEFReader = PatchedNDEF;
+        const scan = (OrigNDEF as unknown as { prototype: Record<string, unknown> }).prototype.scan;
+        if (typeof scan === "function") {
+          (OrigNDEF as unknown as { prototype: Record<string, unknown> }).prototype.scan = function patchedScan(this: unknown, ...a: unknown[]) {
+            w.__s50nfc.calls.push(`scan@${location.pathname}`);
+            return (scan as (...a: unknown[]) => unknown).apply(this, a);
+          };
+        }
+      }
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e headless-Chromium context — NDEFReader
+    // + NDEFMessage ABSENT: the headless flag, documented as context-bound
+    // like the s49 bluetooth note).
+    const api = await page.evaluate(() => {
+      const win = window as unknown as Record<string, unknown>;
+      return {
+        NDEFReader: typeof win.NDEFReader,
+        NDEFMessage: typeof win.NDEFMessage,
+      };
+    });
+    expect(api.NDEFReader).toBe("undefined");
+    expect(api.NDEFMessage).toBe("undefined");
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s50nfc?: { ctor: number; calls: string[] } };
+        const nfcUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label], [title], h1, h2, h3, label"))) {
+          const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim().toLowerCase();
+          if (/nfc|near\s?field|tap\s?to\s?share|tag\s?reader/.test(label)) nfcUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        const otpInputs = Array.from(document.querySelectorAll("input"))
+          .filter((el) => (el.getAttribute("autocomplete") || "").includes("one-time-code")).length;
+        return { ctor: w.__s50nfc?.ctor ?? 0, calls: w.__s50nfc?.calls ?? [], nfcUi, otpInputs };
+      });
+      expect(census.ctor, `${route} never constructs NDEFReader`).toBe(0);
+      expect(census.calls, `${route} never calls the NFC APIs`).toEqual([]);
+      expect(census.nfcUi, `${route} ships no NFC-labeled UI`).toEqual([]);
+      expect(census.otpInputs, `${route} ships no one-time-code inputs (the Web OTP tier)`).toBe(0);
+    }
+  });
+});
+
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a

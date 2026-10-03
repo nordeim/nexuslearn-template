@@ -1,0 +1,162 @@
+==================================================================
+SESSION 50 PROOF MATRIX — the WebXR + File System Access + Web NFC/SMS pass
+==================================================================
+
+PART 1 — THE WEBXR / IMMERSIVE-VR CENSUS (the last major device surface)
+  Census: the API-surface reads (navigator.xr per-method typeof + the
+  XRSession/XRSystem/XRDevice constructor tier), the instrumented call
+  counters (isSessionSupported + requestSession, overridden before load),
+  the parenthesized vr/headset/immersive-labeled UI sweep, the
+  sessionstart/sessionend listener census — both sites, 9 routes signed
+  in + the auth routes.
+
+  clone: api={"xr":{"isSessionSupported":"function","requestSession":
+               "function"},"XRSession":"function","XRSystem":"function",
+               "XRDevice":"undefined"}
+         isSessionSupported=0 requestSession=0(9 routes) xrUI=0
+         sessionstart/sessionend listeners=0
+  live:  api={"xr":{"isSessionSupported":"function","requestSession":
+               "function"},"XRSession":"function","XRSystem":"function",
+               "XRDevice":"undefined"}
+         isSessionSupported=0 requestSession=0(9 routes) xrUI=0
+         sessionstart/sessionend listeners=0
+  FINDING: the ZERO-XR surface on both sites — navigator.xr is PRESENT
+  with IDENTICAL shape on both (the XR system + session seam, XRDevice
+  the legacy alias absent on both) but zero app-level calls fire
+  anywhere: no isSessionSupported probe, no requestSession
+  construction, no vr/headset/immersive-labeled UI, no session
+  lifecycle registrations on either site.
+
+PART 2 — THE FILE SYSTEM ACCESS CENSUS (the picker tier)
+
+  clone: api={"showOpenFilePicker":"function","showSaveFilePicker":
+               "function","showDirectoryPicker":"function",
+               "FileSystemHandle":"function","FileSystemFileHandle":
+               "function","FileSystemDirectoryHandle":"function",
+               "FileSystemWritableFileStream":"function"}
+         open=0 save=0 dir=0(9 routes) fileInputs=0 uploadUI=0
+         pickerCSSOM=0
+  live:  api={"showOpenFilePicker":"function","showSaveFilePicker":
+               "function","showDirectoryPicker":"function",
+               "FileSystemHandle":"function","FileSystemFileHandle":
+               "function","FileSystemDirectoryHandle":"function",
+               "FileSystemWritableFileStream":"function"}
+         open=0 save=0 dir=0(9 routes) fileInputs=0 uploadUI=0
+         pickerCSSOM=0
+  FINDING: the ZERO-picker surface on both sites — the full picker tier
+  is PRESENT with IDENTICAL shape on both (the three picker functions +
+  the four FileSystem constructors) but zero instrumented picker calls,
+  zero input[type=file] elements on every route, zero
+  upload/import/export-labeled UI, zero picker-family CSSOM rules on
+  either site.
+
+PART 3 — THE WEB NFC / WEB SMS CENSUS (the short-range tier + Web OTP)
+
+  clone: api={"NDEFReader":"undefined","NDEFMessage":"undefined"}
+         ndefCtor=0 scan=0 write=0(9 routes) nfcUI=0
+         oneTimeCodeInputs=0(9 public routes) fileInputs=0 datalist=0
+  live:  api={"NDEFReader":"undefined","NDEFMessage":"undefined"}
+         ndefCtor=0 scan=0 write=0(9 routes) nfcUI=0
+         oneTimeCodeInputs=0(9 public routes) fileInputs=0 datalist=0
+  FINDING: the ZERO-nfc surface on both sites — NDEFReader +
+  NDEFMessage are ABSENT in the shared headless context on BOTH (the
+  s47 navigator.share / s49 navigator.bluetooth ABSENT case's mirror —
+  headless Chromium without the experimental flag), and the Web OTP
+  consumption tier is ZERO on the public routes of both sites. The one
+  source hit (LoginForm.tsx:547's verify-view autocomplete
+  one-time-code) is the s26-pinned INTENTIONAL hardening (the live
+  ships bare inputs; the clone's password-manager contract is
+  e2e-pinned at nexuslearn.spec.ts:3487 — re-verified green this
+  session).
+
+PART 4 — THE DRAG-DELEGATION ATTRIBUTION CENSUS (the genuine discovery)
+
+  The raw listener census counted per drag event (dragenter/dragover/
+  drop, accumulated across the 9 routes): live=38 clone=56. The
+  target-level attribution census:
+
+  clone: document=18 + div#__next-route-announcer__=18 + body=4 +
+               span=8 + other=8 (per event; total 56)
+         handler fingerprints: 1 distinct (function () { [native code] })
+  live:  div#root=18 + body=4 + span=8 + other=8 (per event; total 38)
+         handler fingerprints: 1 distinct (function () { [native code] })
+  FINDING: the delta (56 - 38 = 18 per event = 2/route) is FULLY
+  ATTRIBUTED framework-internal surface. The SHARED tiers are identical
+  (body=4, span=8, other=8 — the platform/browser's own drag
+  machinery); the LIVE registers div#root=18 (2/route, its platform
+  React's root-container delegation tier); the CLONE registers
+  div#__next-route-announcer__=18 (2/route, Next.js's a11y route
+  announcer — the s49-discovered element) PLUS document=18 (2/route,
+  React 19.3's document-level drag registration tier). ALL handlers
+  are [native code] bound functions (one distinct fingerprint per site
+  — the framework signature; app handlers stringify with source text).
+  Zero app-level drag handlers on either site; zero drag-string
+  references in src/ (dragenter/dragover/onDrop/onDragOver/
+  dataTransfer all zero). The DRAG-EVENT analogue of the s49
+  error-listener family — documented as gotcha 79, deliberately NOT
+  pinned as a zero-listener assertion.
+
+PART 5 — THE STANDING-STATE QUALIFICATION (the battery demo-state rule)
+
+  The first battery run this session showed CourseDetail height DIFF
+  (34246 vs 34290) + 778 innerText diffs + a 33-line clone Dashboard
+  vs the 15-line live. Root cause: the s49 screenshot phase had LEFT
+  the canonical demo state (3 enrollments: seed-1 + seed-3 +
+  seed-5@1%) in db/custom.db while the LIVE's demo user carries ZERO
+  enrollments today (verified: "Welcome back, sepnetflix2023" + "0" +
+  "No courses yet"). Resetting the clone's demo enrollments to the
+  live-matched zero state re-verified the standing battery FULLY
+  GREEN: heights 18/18 byte-exact, innerText 5/5 identical, mobile
+  battery byte-identical (trigger BUTTON md:hidden p-2 rounded-lg
+  text-white/80 40x40 @(319,12); panel 375x405 @(0,64); all 9 members
+  at identical geometry), console 0 errors on both sites. THE RULE
+  (gotcha 79 (e)): the standing battery runs in the LIVE-MATCHED
+  account state — reset the demo enrollments before the battery when
+  the screenshot phase has restored the canonical state.
+
+PART 6 — THE ENVIRONMENT + GATE SUMMARY
+
+  .env == .env.example (byte-identical, re-verified); DATABASE_URL
+  "file:../db/custom.db" with the db/ folder at the repo root (custom.db
+  + e2e.db, recreated by db:push + db:seed); skills/ excluded from
+  tsconfig exclude + eslint ignores + vitest include + playwright
+  testDir (all four re-verified). Vitest + Playwright configs exercised
+  green — no modification required by any finding.
+
+  Baseline (pre-remediation):  lint OK · typecheck OK · 325/325 unit
+  · build OK · 403/403 e2e (the s49 split: --grep-invert
+  "session-4[4-9]" 378 + --grep "session-4[4-9]" 25) = 728 total.
+  Post-remediation GUARD:    lint OK · typecheck OK · 328/328 unit ·
+  build OK · 406/406 e2e (the s50 split: --grep-invert
+  "session-(4[4-9]|50)" 378 + --grep "session-(4[4-9]|50)" 28) = 734
+  total. RED-verification: the 3 new unit pins honestly failed with a
+  temp offender file under src/ (the s47-s49 precedent), then green
+  after deletion. Standing parity battery re-run after the GUARD:
+  18/18 + 5/5 + mobile byte-identical + console clean (the
+  live-matched state).
+
+PART 7 — THE SCREENSHOT MATRIX (the dev-server captures, the owner's
+  standing ask)
+
+  13 captures under docs/screenshots/ (next dev on :3000 with
+  custom.db + the canonical demo state restored via the REAL API: 3
+  enrollments seed-1 + seed-3 + seed-5 with seed-5's Lesson 1
+  complete = 1%):
+    s50-dev-landing--desktop.png          s50-dev-landing--mobile.png
+    s50-dev-courses--desktop.png          s50-dev-dashboard--mobile.png
+    s50-dev-course-detail--desktop.png    s50-dev-mobile-menu-open--mobile.png
+    s50-dev-pricing--desktop.png            (byte-identical to the s49
+    s50-dev-about--desktop.png               capture: 89796 bytes, panel
+    s50-dev-contact--desktop.png             verified open)
+    s50-dev-becomeinstructor--desktop.png
+    s50-dev-aiassistant--desktop.png      every context carrying the
+    s50-dev-dashboard--desktop.png        session cookie (the s49
+    s50-dev-login--desktop.png            capture-cookie lesson)
+  The tracked dashboard pair re-shot from the STANDALONE production
+  server (the s49 convention — next dev re-shoots pick up the dev-tools
+  badge + dev-rendering artifacts): dashboard--desktop.png and
+  dashboard--mobile.png — both BYTE-IDENTICAL to the tracked files
+  (0/6220800 + 0/750375 bytes).
+
+  NO source change this session (the s44-s49 precedent: the pins are
+  the deliverable).
