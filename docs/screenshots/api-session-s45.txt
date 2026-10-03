@@ -1,0 +1,111 @@
+==============================================================================
+NEXUSLEARN SESSION-45 PROOF MATRIX
+the orientation-rotation + print-to-PDF + auth-expiry + cross-tab pass
+generated: 2026-10-03T05:55:32.140Z
+clone: the remediated production standalone on :3100 (db/e2e.db)
+live:  https://nexuslearn-template.base44.app (both sites signed in)
+==============================================================================
+
+PART 1 — THE MID-SESSION ORIENTATION-ROTATION MATRIX (post-fix)
+------------------------------------------------------------------------------
+CLONE:
+  portrait 375x667 : panel 389x405@(0,64)  expanded=true  overflow=hidden  display=grid
+  landscape 667x375: panel 681x405@(0,64)  expanded=true  overflow=hidden
+  crossed 1000x700 : panel 0x0@(0,0)  display=none  overflow=(unset)  userWheelScrollY=561
+  back to 375x667  : panel 389x405@(0,64)  expanded=true  overflow=hidden  display=grid
+LIVE:
+  portrait 375x667 : panel 389x405@(0,64)  expanded=null  overflow=(unset)  display=block
+  landscape 667x375: panel 681x405@(0,64)  expanded=null  overflow=(unset)
+  crossed 1000x700 : panel 0x0@(0,0)  display=none  overflow=(unset)  userWheelScrollY=561
+  back to 375x667  : panel 389x405@(0,64)  expanded=null  overflow=(unset)  display=block
+
+PARITY:  panel geometry MATCH at every tier (portrait/landscape/crossed/back)
+        menu-state survival across the md round trip: both sites keep the menu
+        OPEN (the clone's aria-expanded=true; the live ships no aria-expanded
+        at all — its bare reference markup, the s22 family — so its evidence
+        is the geometric re-open: panel 389x405@(0,64) display=block on the
+        return, identical to the clone's 389x405 display=grid).
+        THE LEAK (pre-fix): the clone's body overflow stayed "hidden" at the crossed tier
+        (probed: userWheel scrollY clamped; the live ships no scroll lock at all — its
+        platform family). THE FIX (post-fix, this run): the clone's overflow at the
+        crossed tier = "(unset)" and the USER wheel scrolls (scrollY=561) —
+        the lock releases with the panel; the portrait lock + the round-trip re-open +
+        the re-applied lock are pinned by the session-45 e2e rotation quartet.
+
+PART 2 — THE PAGINATED PRINT-TO-PDF CENSUS (A4, printBackground:false)
+------------------------------------------------------------------------------
+route               clone     live      parity
+landing            11p/  705189b 11p/  540255b  MATCH
+courses             4p/  572027b  4p/  570739b  MATCH
+coursedetail       32p/ 1059848b 32p/ 1060334b  MATCH
+pricing             3p/  170543b  3p/  171206b  MATCH
+about               3p/  199249b  3p/  199912b  MATCH
+contact             2p/  210112b  2p/  210567b  MATCH
+becomeinstructor    4p/  313167b  4p/  217890b  MATCH
+aiassistant         2p/  175065b  2p/  175575b  MATCH
+dashboard           3p/  389870b  2p/  171406b  DIFF
+
+the dashboard note: the :3100 clone runs db/e2e.db whose demo user carries 3
+e2e-suite enrollments (stats 3/1/0/0% + 3 cards) vs the live's 0 — the page-count
+diff (if any) is the DATA artifact, isolated by the custom.db re-probe: the clean
+standalone prints 2 pages = the live's 2 (docHeight 1573 on all three).
+
+clone reveal-in-print: pre-scroll 35/40 hidden -> 11p/705189b | post-scroll 0/40 hidden -> 11p/1464639b
+live reveal-in-print: pre-scroll 0/0 hidden -> 11p/540255b | post-scroll 0/0 hidden -> 11p/1314347b
+
+PARITY:  page counts MATCH on every route; the reveal-in-print contract holds on
+        BOTH sites — below-fold reveal content prints effectively invisible
+        pre-scroll (alpha-0 glyph runs, images not embedded) and fully after a
+        complete scroll; the PAGINATION is reveal-invariant (the space is
+        reserved). PDF bytes are asset-variance (image variants + font
+        subsetting) — the page COUNT is the comparable. The s29 print-stylesheet
+        contract (zero @media print rules, frozen) still holds.
+
+PART 3 — THE SESSION-LAPSE LADDER (the flip timing)
+------------------------------------------------------------------------------
+CLONE (the 7-day cookie lapse): before="Welcome back, sepnetflix2023" | after the cookie drops, view="Welcome back, sepnetflix2023" | after ONE soft-nav="Welcome back"
+  -> the flip lands at the FIRST server render after the lapse (server truth).
+LIVE  (the 90-day/ITP token lapse): before="Welcome back, sepnetflix2023" | tokens removed, no reload="Welcome back, sepnetflix2023" | after soft-nav="Welcome back, sepnetflix2023" | after RELOAD="Welcome back"
+  -> the live HOLDS the stale signed-in view through arbitrary soft-navs until a
+     full reload (its SPA in-memory auth state — the s16 family extended to auth).
+
+PARITY:  the lapse VIEW matches (h1 "Welcome back" + zeroed stats — the public
+        dashboard). The TIMING is the structural divide: the clone's cookie is
+        server-truth on every RSC fetch (immediate flip); the live's localStorage
+        tokens feed an in-memory SPA state (stale until reload). The clone is the
+        deliberate-better. Pinned: the session-45 e2e session-lapse pair.
+
+PART 4 — THE CROSS-TAB SHARED-SESSION MATRIX
+------------------------------------------------------------------------------
+CLONE: tabB after tabA sign-in="Welcome back, sepnetflix2023" | after the remote end (no nav)="Welcome back, sepnetflix2023" | after soft-nav="Welcome back"
+LIVE: tabB after tabA sign-in="Welcome back, sepnetflix2023" | after the remote end (no nav)="Welcome back, sepnetflix2023" | after soft-nav="Welcome back, sepnetflix2023"
+
+PARITY:  the shared session + the static current view + the reload truth all match;
+        the SOFT-NAV tier divides exactly like PART 3 (the clone flips at the next
+        server render; the live holds the in-memory state). Pinned: the cross-tab
+        e2e spec. The raw storage event fires on both sites; neither ships an app
+        listener (the s44 census).
+
+PART 5 — THE ENV CONTRACT + THE GATE SUMMARY
+------------------------------------------------------------------------------
+.env == .env.example: BYTE-IDENTICAL
+DATABASE_URL: file:../db/custom.db
+db/ at the repo root: custom.db + e2e.db
+skills/ excluded from tsconfig/eslint/vitest/playwright: re-verified this session.
+
+GATES (the session-45 run):
+  lint          OK
+  typecheck     OK
+  unit          315/315  (311 -> 315: +4 the navbar md-gate source pins)
+  build         OK (standalone)
+  e2e           388/388  (380 -> 388: +8 the rotation quartet + the print pair +
+                       the session-lapse pair; 9.9m, zero flakes)
+  TOTAL         703
+  standing battery re-run AFTER the fix: heights 18/18 byte-exact, mobile
+  battery IDENTICAL (no Tailwind v4 bug), console 13/13 clean.
+
+SOURCE CHANGES: src/components/Navbar.tsx (the md-gated scroll lock — the
+  matchMedia gate + the change listener; the open-state machinery untouched).
+  tests/navbar-source.test.ts (+4), the session-45 e2e block (+8), the s44
+  lifecycle exact-set pin updated (+the matchMedia change registration).
+==============================================================================

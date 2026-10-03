@@ -76,10 +76,27 @@ export function Navbar() {
     };
   }, []);
 
-  // Body scroll lock while the mobile menu is open (class G fix)
+  // Body scroll lock while the mobile menu is open (class G fix) — session 45:
+  // gated on the md breakpoint. The panel's visibility is pure CSS (md:hidden),
+  // so crossing md with the menu open (a rotation past 768px, a foldable
+  // expanding, a window dragged across 768) CSS-hides the panel while the
+  // React open-state survives — which is the PARITY contract (the live's menu
+  // state survives the md round trip too, re-appearing open). The lock must
+  // therefore release when the panel is not visible: before session 45 the
+  // leak left body overflow hidden on a page whose menu was invisible
+  // (unscrollable until the user rotated back and closed it — probed at
+  // 700x1000 -> 1000x700: the scrollTo clamped at the pre-cross scroll while
+  // the live, which ships no scroll lock at all, scrolled freely).
   useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => {
+      document.body.style.overflow = open && !mq.matches ? "hidden" : "";
+    };
+    apply();
+    const onChange = () => apply();
+    mq.addEventListener("change", onChange);
     return () => {
+      mq.removeEventListener("change", onChange);
       document.body.style.overflow = "";
     };
   }, [open]);

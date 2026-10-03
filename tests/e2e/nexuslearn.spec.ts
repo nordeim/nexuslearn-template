@@ -6684,6 +6684,268 @@ test.describe("session-44 parity: the error-boundary escalation tier", () => {
 });
 
 
+test.describe("session-45 parity: the mid-session viewport-orientation rotation tier", () => {
+  // The s43 landscape tier pinned the STATIC 667x375 geometry; the ROTATION
+  // dynamics — crossing the md breakpoint mid-session with the mobile menu
+  // open — were never probed. The s45 census (both sites, the rotation
+  // matrix 375x667 <-> 667x375 <-> 700x1000 <-> 1000x700) found:
+  //   - the panel/trigger geometry MATCHES at every tier (portrait-open,
+  //     landscape, 700w, crossed-hidden, round-trip re-open);
+  //   - the menu STATE survives the md round trip on BOTH sites (the live
+  //     re-opens its panel too — the parity contract the fix preserves);
+  //   - THE MD-CROSSING SCROLL-LOCK LEAK (the clone-only bug): the lock was
+  //     gated ONLY on the React open-state while the panel hides via CSS —
+  //     crossing md left body overflow hidden on a page whose menu was
+  //     invisible (the scrollTo clamped at the pre-cross scroll; the live,
+  //     which ships no scroll lock at all, scrolled freely). The fix gates
+  //     the lock on the SAME md breakpoint the panel uses (matchMedia).
+  const panelGeometry = (page: Page) =>
+    page.evaluate(() => {
+      const nav = document.querySelector("nav");
+      if (!nav) return { error: "no nav" as const };
+      const trigger = [...nav.querySelectorAll("button")].find((b) =>
+        b.className.includes("md:hidden")
+      );
+      const panel = [...nav.querySelectorAll("div")].find(
+        (d) => d.className.includes("md:hidden") && d.className.includes("bg-white")
+      );
+      if (!trigger || !panel) return { error: "no trigger/panel" as const };
+      const pr = panel.getBoundingClientRect();
+      const tr = trigger.getBoundingClientRect();
+      return {
+        panel: { x: Math.round(pr.x), y: Math.round(pr.y), w: Math.round(pr.width), h: Math.round(pr.height) },
+        trigger: { x: Math.round(tr.x), w: Math.round(tr.width) },
+        overflow: document.body.style.overflow,
+        expanded: trigger.getAttribute("aria-expanded"),
+        panelDisplay: getComputedStyle(panel).display,
+      };
+    });
+
+  test("crossing md with the menu open releases the scroll lock (the leak fix)", async ({ page }) => {
+    await page.setViewportSize({ width: 700, height: 1000 });
+    await page.goto("/");
+    await page.waitForTimeout(1500);
+    // open the mobile menu below md — the lock applies (the class-G hardening)
+    await page.click('nav button[aria-label="Toggle navigation menu"]');
+    await page.waitForTimeout(900);
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+
+    // cross md (a rotation past 768px, a foldable expanding, a window drag)
+    await page.setViewportSize({ width: 1000, height: 700 });
+    await page.waitForTimeout(1200);
+    // the panel + trigger CSS-hide, the desktop row appears
+    const crossed = await panelGeometry(page);
+    expect(crossed.panelDisplay).toBe("none");
+    // THE LEAK: the lock must release with the panel gone
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+    // the user-facing symptom: the USER can scroll again — the wheel event
+    // (real input) is the honest probe: programmatic scrollTo bypasses the
+    // body lock, the browser input pipeline does not
+    await page.mouse.move(400, 300);
+    await page.mouse.wheel(0, 600);
+    await page.waitForTimeout(600);
+    const scrolled = await page.evaluate(() => Math.round(window.scrollY));
+    expect(scrolled).toBeGreaterThan(0);
+  });
+
+  test("the portrait scroll lock stays intact below md (the class-G hardening)", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("/");
+    await page.waitForTimeout(1500);
+    await page.click('nav button[aria-label="Toggle navigation menu"]');
+    await page.waitForTimeout(900);
+    // the lock applies below md — the fix must not over-release
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+    // and the USER cannot scroll while the panel covers the page (the
+    // wheel event — real input through the browser's scroller resolution;
+    // programmatic scrollTo would bypass the lock)
+    await page.mouse.move(180, 300);
+    await page.mouse.wheel(0, 600);
+    await page.waitForTimeout(600);
+    const scrolled = await page.evaluate(() => Math.round(window.scrollY));
+    expect(scrolled).toBe(0);
+  });
+
+  test("the menu state survives the md round trip; the lock re-applies below md", async ({ page }) => {
+    await page.setViewportSize({ width: 700, height: 1000 });
+    await page.goto("/");
+    await page.waitForTimeout(1500);
+    await page.click('nav button[aria-label="Toggle navigation menu"]');
+    await page.waitForTimeout(900);
+    await page.setViewportSize({ width: 1000, height: 700 });
+    await page.waitForTimeout(1200);
+    // cross back below md — the panel re-appears OPEN (the probed parity:
+    // the live's menu state survives the round trip too) and the lock
+    // re-applies with it
+    await page.setViewportSize({ width: 700, height: 1000 });
+    await page.waitForTimeout(1200);
+    const state = await panelGeometry(page);
+    expect(state.expanded).toBe("true");
+    expect(state.panel).toEqual({ x: 0, y: 64, w: 700, h: 405 });
+    expect(state.overflow).toBe("hidden");
+  });
+
+  test("the open panel re-geometries across the portrait/landscape rotation", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("/");
+    await page.waitForTimeout(1500);
+    await page.click('nav button[aria-label="Toggle navigation menu"]');
+    await page.waitForTimeout(900);
+    const portrait = await panelGeometry(page);
+    expect(portrait.panel).toEqual({ x: 0, y: 64, w: 375, h: 405 });
+
+    // rotate to landscape (still below md — the phone-rotation tier)
+    await page.setViewportSize({ width: 667, height: 375 });
+    await page.waitForTimeout(1200);
+    const landscape = await panelGeometry(page);
+    // the panel re-flows to the full landscape width, the trigger follows
+    expect(landscape.panel).toEqual({ x: 0, y: 64, w: 667, h: 405 });
+    expect(landscape.trigger).toEqual({ x: 603, w: 40 });
+    expect(landscape.expanded).toBe("true");
+  });
+});
+
+test.describe("session-45 parity: the paginated print tier (the reveal-in-print contract)", () => {
+  // The s29 print census covered the print STYLESHEET (zero @media print
+  // rules on either site; emulated print media changes no computed style).
+  // The PAGINATED OUTPUT — what "Save as PDF" produces — was never probed.
+  // The s45 census (page.pdf per route, both sites): page counts MATCH 9/9
+  // (landing 11, courses 4, coursedetail 32, pricing 3, about 3, contact 2,
+  // becomeinstructor 4, aiassistant 2, dashboard 2 — the dashboard's initial
+  // 3-vs-2 diff was the e2e-db enrollment artifact, isolated via the
+  // custom.db re-probe). The headline: BOTH sites print the landing with
+  // below-fold reveal content effectively INVISIBLE pre-scroll (opacity-0
+  // glyph runs, the below-fold images not even embedded) and FULLY after a
+  // complete scroll — the pagination itself is reveal-INVARIANT (the
+  // opacity-0 elements reserve their space; 11 pages pre AND post).
+  const countPdfPages = (buf: Buffer): number => {
+    const s = buf.toString("latin1");
+    return (s.match(/\/Type\s*\/Page[^s]/g) || []).length;
+  };
+
+  test("the landing print pagination is reveal-invariant (pre-scroll vs post-scroll)", async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.goto("/");
+    await page.waitForTimeout(2500);
+
+    // pre-scroll: the below-fold reveal elements sit at opacity 0
+    const pre = await page.evaluate(() => {
+      const els = [...document.querySelectorAll("[data-reveal]")];
+      return {
+        total: els.length,
+        hidden: els.filter((e) => Number(getComputedStyle(e).opacity) === 0).length,
+      };
+    });
+    expect(pre.hidden, "the pre-reveal state exists below the fold").toBeGreaterThan(0);
+    const prePdf = await page.pdf({ format: "A4" });
+    expect(countPdfPages(prePdf)).toBe(11);
+
+    // the full scroll triggers every reveal
+    await page.evaluate(async () => {
+      for (let y = 0; y <= document.documentElement.scrollHeight; y += 600) {
+        window.scrollTo(0, y);
+        await new Promise((r) => setTimeout(r, 100));
+      }
+    });
+    await page.waitForTimeout(1500);
+    const post = await page.evaluate(() => {
+      const els = [...document.querySelectorAll("[data-reveal]")];
+      return {
+        total: els.length,
+        hidden: els.filter((e) => Number(getComputedStyle(e).opacity) === 0).length,
+      };
+    });
+    expect(post.hidden, "the full scroll reveals everything").toBe(0);
+    const postPdf = await page.pdf({ format: "A4" });
+    expect(countPdfPages(postPdf), "the pagination is reveal-invariant").toBe(11);
+    // the revealed content carries its images — the bytes grow
+    expect(postPdf.length).toBeGreaterThan(prePdf.length);
+  });
+
+  test("the per-route print page counts (the paginated census)", async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    const expected: [string, number][] = [
+      ["/Courses", 4],
+      ["/Pricing", 3],
+      ["/AIAssistant", 2],
+    ];
+    for (const [route, pages] of expected) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(2000);
+      const pdf = await page.pdf({ format: "A4" });
+      expect(countPdfPages(pdf), `${route} prints ${pages} pages`).toBe(pages);
+    }
+  });
+});
+
+test.describe("session-45 parity: the session-lapse flip (the server-truth contract)", () => {
+  // The s45 auth-expiry census: at the session-lapse boundary the clone
+  // flips to the signed-out truth at the FIRST navigation (every RSC fetch
+  // re-verifies the cookie) while the live holds its in-memory signed-in
+  // view through arbitrary soft-navs until a full RELOAD (its SPA state —
+  // the s16 stale-state family extended to auth). These specs freeze the
+  // clone's immediate-flip contract at both tiers: the cookie the browser
+  // drops at maxAge, and the cross-tab end (the API-only logout — no UI
+  // ships, matching the reference).
+  test("the cookie lapse flips the view at the next navigation", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByLabel("Email").fill("sepnetflix2023@outlook.com");
+    await page.getByLabel("Password").fill("$Abcd1234");
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.waitForURL((u) => !u.pathname.endsWith("/login"));
+    await page.goto("/Dashboard");
+    await page.waitForTimeout(1500);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Welcome back, sepnetflix2023");
+
+    // the cookie lapses (the browser drops it at its maxAge boundary)
+    await page.context().clearCookies();
+    // the CURRENT view stays — no polling, the rendered page is static
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Welcome back, sepnetflix2023");
+
+    // the next navigation renders the server truth: signed out
+    await page.click('nav a[href="/Courses"]');
+    await page.waitForURL((u) => u.pathname === "/Courses");
+    await page.waitForTimeout(800);
+    await page.click('nav a[href="/Dashboard"]');
+    await page.waitForURL((u) => u.pathname === "/Dashboard");
+    await page.waitForTimeout(1200);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Welcome back");
+  });
+
+  test("the cross-tab logout flips the other tab at its next navigation", async ({ page }) => {
+    // tab A signs in; tab B shares the cookie (one context = one jar)
+    await page.goto("/login");
+    await page.getByLabel("Email").fill("sepnetflix2023@outlook.com");
+    await page.getByLabel("Password").fill("$Abcd1234");
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.waitForURL((u) => !u.pathname.endsWith("/login"));
+    const tabB = await page.context().newPage();
+    await tabB.goto("/Dashboard");
+    await tabB.waitForTimeout(1500);
+    await expect(tabB.getByRole("heading", { level: 1 })).toHaveText("Welcome back, sepnetflix2023");
+
+    // tab A ends the session via the API (the API-only logout)
+    const status = await page.evaluate(async () => {
+      const res = await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      return res.status;
+    });
+    expect(status).toBe(200);
+    // tab B's CURRENT view stays static (no polling — the probed parity)
+    await expect(tabB.getByRole("heading", { level: 1 })).toHaveText("Welcome back, sepnetflix2023");
+
+    // tab B's next navigation renders the signed-out truth
+    await tabB.click('nav a[href="/Courses"]');
+    await tabB.waitForURL((u) => u.pathname === "/Courses");
+    await tabB.waitForTimeout(800);
+    await tabB.click('nav a[href="/Dashboard"]');
+    await tabB.waitForURL((u) => u.pathname === "/Dashboard");
+    await tabB.waitForTimeout(1200);
+    await expect(tabB.getByRole("heading", { level: 1 })).toHaveText("Welcome back");
+    await tabB.close();
+  });
+});
+
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a

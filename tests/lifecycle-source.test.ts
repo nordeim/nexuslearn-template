@@ -40,11 +40,18 @@ const LIFECYCLE_EVENTS = [
 ] as const;
 
 /** The app-source registration surface (scroll/keydown/popstate — the s43
- * history family + the nav's own listeners; NONE of the lifecycle family). */
+ * history family + the nav's own listeners; NONE of the lifecycle family).
+ * Session 45 adds the matchMedia "change" registration — the Navbar's
+ * md-gated scroll lock (the rotation-leak fix): the MQ change event
+ * releases/re-applies the body lock when the viewport crosses the md
+ * breakpoint mid-menu. It is a MediaQueryList registration (the breakpoint
+ * family), NOT a Page-Lifecycle event — the lifecycle census below still
+ * asserts zero lifecycle-family listeners. */
 const APP_REGISTRATIONS = [
   'addEventListener("scroll"',
   'addEventListener("keydown"',
   'addEventListener("popstate"',
+  'addEventListener("change"',
 ] as const;
 
 const SRC_ROOT = "src";
