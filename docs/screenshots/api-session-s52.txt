@@ -1,0 +1,204 @@
+SESSION 52 — THE SPECULATION-RULES / PRERENDER + CONTAINER-QUERIES /
+SCROLL-DRIVEN-ANIMATIONS + WEBGPU / WEB-LOCKS PASS — PROOF MATRIX
+(evidence scripts: /home/z/my-project/scripts/s52-probe.mjs +
+s52-attribution.mjs + s52-inertness.mjs + s52-battery.mjs +
+s52-capture.mjs + s52-tracked-pair.mjs; probe JSON: s52-probe-live.json
++ s52-probe-clone.json)
+
+===========================================================================
+GATE SUMMARY
+===========================================================================
+baseline (the shipped session-51 tree, 92c0358):
+  lint OK · typecheck OK · 331/331 unit · build OK · 409/409 e2e
+  (split: --grep-invert "session-(4[4-9]|5[01])" = 378
+        + --grep "session-(4[4-9]|5[01])" = 31) · TOTAL 740
+after the session-52 pins:
+  lint OK · typecheck OK · 334/334 unit · build OK · 412/412 e2e
+  (split: --grep-invert "session-(4[4-9]|5[0-2])" = 378
+        + --grep "session-(4[4-9]|5[0-2])" = 34) · TOTAL 746
+RED-verification: honest — a temp offender file under src/ quoting each
+  pinned literal failed exactly the 3 new unit sweeps (16 existing stayed
+  green), then was deleted; 334/334 after deletion.
+standing parity battery (BEFORE and AFTER the pins — the house rule):
+  heights ×9 routes ×2 viewports BYTE-EXACT 18/18
+  innerText identical 5/5 (/, /Courses, /CourseDetail, /Dashboard, /login
+    — 0 diffs on 214/96/789/15/9 lines)
+  MOBILE BATTERY IDENTICAL — NO Tailwind v4 bug
+    (trigger byte-identical: BUTTON "md:hidden p-2 rounded-lg
+     text-white/80" 40x40 @(319,12); panel 375x405 @(0,64);
+     all 9 members at identical geometry)
+  console sweep 0 errors on BOTH sites (the live's platform-family
+    entries: 429 bursts / cdn.tailwindcss warning / socket.io WebSocket)
+  battery demo state: the LIVE-MATCHED zero-enrollment account state
+    (the s50 battery demo-state rule — gotcha 79(e) — applied before
+    both battery runs; the canonical 3-enrollment state re-restored via
+    the REAL API only for the screenshot phase)
+
+===========================================================================
+FAMILY A — THE SPECULATION RULES / PRERENDER CENSUS (the session_118 dir (b))
+===========================================================================
+DOM census (9 routes × both sites + the auth routes):
+  script[type="speculationrules"]   live = 0    clone = 0
+  parsed action/eagerness           live = {}   clone = {}
+  rel="expect" links                live = 0    clone = 0
+  prefetch links                    live = 0    clone = 0
+response-header sweep (the page-level response listener, every
+document + subresource across all routes):
+  Speculation-Rules header          live = 0    clone = 0
+  Supports-Loading-Mode header      live = 0    clone = 0
+listener census (prerenderingchange): NONE both
+runtime-evidence tier (identical on BOTH sites, every route):
+  document.prerendering             boolean + false    boolean + false
+  activationStart                   0                  0
+    (no prerendering ever activated — every navigation live-activated)
+UI-label sweep (prerender/prefetch/speculation): NONE both
+VERDICT: parity-clean — the FULL declarative-prerender tier is a ZERO
+  surface on both sites. PINNED (the e2e census single + the source
+  zero-stance).
+
+===========================================================================
+FAMILY B — THE CONTAINER QUERIES / SCROLL-DRIVEN ANIMATIONS CENSUS
+(the session_118 dir (c)) + THE GENUINE DISCOVERY
+===========================================================================
+CSS ENGINE tier (identical on BOTH sites — both Chromiums support CQ+SDA):
+  CSS.supports("container-type: inline-size")        true    true
+  CSS.supports("animation-timeline: scroll()")       true    true
+  CSS.supports("animation-timeline: view()")         true    true
+  CSS.supports("timeline-scope: --t")                true    true
+USAGE tier (the layer-aware walk over every sheet incl. @layer nesting):
+  @container at-rules            live = 0    clone = 0
+  container-type/name/container  live = 0    clone = 0
+  timeline-scope/view-timeline   live = 0    clone = 0
+  scroll-timeline                live = 0    clone = 0
+  scroll-snap-type/align         live = 0    clone = 0
+  animation-timeline decls       live = 36   clone = 0     ← THE DISCOVERY
+
+THE ANIMATION-TIMELINE SHORTHAND-SERIALIZATION TIER (the s52 discovery,
+  documented as gotcha 81, never pinned as a read):
+  attribution (s52-attribution.mjs):
+    the live's USER SPA sheet (assets/index-BWSk-xk1.css, 1,022 rules)
+      exposes exactly 4 animation-timeline:auto specified-value longhand
+      reads per route (36 across 9 app routes) on:
+        .animate-pulse
+        .animate-spin
+        .data-[state=closed]:animate-accordion-up[data-state="closed"]
+        .data-[state=open]:animate-accordion-down[data-state="open"]
+      — the platform compiler emits the LITERAL 8-component animation
+      shorthand (e.g. `animation: 2s cubic-bezier(0.4, 0, 0.6, 1) 0s
+      infinite normal none running pulse`), which Chromium's parser
+      resolves into every animation longhand INCLUDING the timeline
+      (auto = the default value).
+    the live's AUTH-route platform sheet (static/index-DiZiYQBd.css,
+      10,293 rules — the gotcha-80 sheet) carries 36+ more (the vt-*
+      view-transition siblings, the sonner loader bars, the full Base44
+      animate kit) — the DOCUMENTED auth-shell platform-chrome family.
+    the CLONE's Tailwind v4 emission is var()-indirected
+      (`animation: var(--animate-pulse)`) — the CSSOM specified-value
+      read of the animation-timeline longhand returns EMPTY until
+      computed-value substitution — so the clone reads ZERO.
+  inertness proof (s52-inertness.mjs):
+    ZERO elements carrying animate-* / motion-safe: / motion-reduce:
+      utility classes on ANY of the 10 probed routes on EITHER site
+      (animatedEls = 0 × 20 route-visits)
+    ZERO running animations (getComputedStyle animation-name = none
+      everywhere; non-auto computed timeline count = ZERO)
+    the clone's compiled sheet DOES ship .animate-pulse + .animate-spin
+      + the two data-state accordion variants (4 animate-adjacent rules
+      — the utilities its source references) — same dead-utility tier,
+      different emission form.
+  VERDICT: the engine tier is parity-clean; the serialization variance
+    is a sheet-STRUCTURE artifact of the platform's literal-shorthand
+    emission vs v4's var()-indirection — INERT by proof (zero animate-
+    class elements, zero running animations anywhere). The live's 16
+    inert ::view-transition rules (gotcha 80) now have a documented
+    animation-timeline tier sibling. PINNED: the clone's USAGE zero-
+    stance + the inertness contract (zero animate-class elements) +
+    the scroll-behavior CONTAINMENT; never the serialization read.
+
+THE SCROLL-BEHAVIOR DECOMPOSITION (the documented family, not new):
+  live  = 1/route: the runtime-injected INLINE `* { scroll-behavior:
+    smooth }` (the universal smooth pin — the documented runtime-cascade
+    family; the live's auth sheet also carries .scroll-smooth)
+  clone = 2/route: the universal pin in the compiled sheet +
+    `html[data-scroll-restore], html[data-scroll-restore] * {
+    scroll-behavior: auto }` — the s25-documented deliberate-better
+    popstate suppressor (the scroll-restoration divide: the live's CSR
+    SPA never restores scroll; the clone's SSR does and suppresses
+    smooth for the popstate window ONLY).
+  PINNED as the containment: every scroll-behavior rule on the public
+    routes is one of the two documented selectors.
+
+===========================================================================
+FAMILY C — THE WEBGPU / WEB LOCKS CENSUS + THE BLUETOOTH MIRROR
+(the session_118 dir (a) — the device-tier follow-up)
+===========================================================================
+API presence (identical shape on BOTH sites, all 9 routes, signed in):
+  navigator.gpu        object    object
+  GPUAdapter           function  function
+  GPUDevice            function  function
+  navigator.locks      object    object    (the LockManager)
+  navigator.usb        object    object    (the s49 verified tier)
+  navigator.bluetooth  undefined undefined (the gotcha-78 headless
+    mirror — ABSENT in the shared headless context on BOTH sites;
+    never asserted in any spec)
+instrumented counters (overridden BEFORE load; 9 routes × both sites):
+  live : gpu.requestAdapter = 0, getPreferredCanvasFormat = 0,
+         locks.request = 0, locks.query = 0                   ALL ZERO
+  clone: gpu.requestAdapter = 0, getPreferredCanvasFormat = 0,
+         locks.request = 0, locks.query = 0                   ALL ZERO
+canvas census (the GPU render target): live = 0   clone = 0
+UI-label sweep (web gpu / graphics adapter / web lock / lock manager):
+  NONE both
+VERDICT: parity-clean — zero app surface on both sites. PINNED (the
+  e2e census single + the source zero-stance).
+
+===========================================================================
+ENV CONTRACT (re-verified)
+===========================================================================
+  .env == .env.example (byte-identical, diff clean)
+  DATABASE_URL="file:../db/custom.db" (the db/ folder at the repo root,
+    custom.db + e2e.db present)
+  skills/ excluded from all four tool configs (tsconfig exclude,
+    eslint ignores, vitest include, playwright testDir) — re-verified
+  vitest + playwright configs exercised green through the session's
+  pins (334 unit + 412 e2e) — no modification required by any finding
+
+===========================================================================
+SCREENSHOT MATRIX (the dev-server captures — the owner's standing ask)
+===========================================================================
+  13 captures under docs/screenshots/s52-dev-*:
+    landing/courses/course-detail/pricing/about/contact/
+    becomeinstructor/aiassistant/dashboard/login desktop (1920×1080)
+    + landing/dashboard mobile (375×667)
+    + THE OPEN MOBILE MENU (mobile, /, panel verified open —
+      BYTE-IDENTICAL to the s51 capture: 89796 bytes)
+  the canonical demo state (3 enrollments: seed-1/seed-3/seed-5 with
+    seed-5 at 1 lesson) re-restored via the REAL API (login → enroll ×3
+    → progress) BEFORE the captures; every context carrying the session
+    cookie (the s49 capture-cookie lesson).
+  the tracked dashboard pair re-shot from the STANDALONE production
+    server (the s48 qualification convention):
+    dashboard--desktop.png  0/6220800 RGB bytes differ (1920×1080)
+    dashboard--mobile.png   0/750375  RGB bytes differ (375×667)
+    (decoded-pixel comparison — PIL ImageChops, bbox=None)
+
+===========================================================================
+SESSION-52 CHANGES (the deliverable: pins only, NO source change)
+===========================================================================
+  tests/platform-surface-source.test.ts  +3 unit source pins (the s52
+    block: SPECULATION_PRERENDER_APIS / CONTAINER_SDA_APIS /
+    WEBGPU_LOCKS_APIS zero-stance sweeps over src/)
+  tests/e2e/nexuslearn.spec.ts           +3 e2e census singles (the s52
+    block: the speculation/prerender census, the CQ/SDA census with the
+    scroll-behavior containment + the inertness contract, the WebGPU/
+    Web Locks census — inserted before the s33 burst spec, the position
+    contract preserved)
+  docs/remediation-plan-session52.md     the plan (this session's
+    findings inventory + the pre-execution validation)
+  docs/screenshots/api-session-s52.txt   this proof matrix
+  docs/screenshots/s52-dev-*.png         the 13 dev-server captures
+  AGENTS.md / CLAUDE.md / README.md / Project_Architecture_Document.md /
+    nexuslearn-template_SKILL.md — the alignment pass (counts 334/412,
+    badge 746, gotcha 81, [S52] row, SKILL v3.40.0)
+  docs/session_120.md + docs/session_121.md + worklog.md — the session
+    logs (the house convention)

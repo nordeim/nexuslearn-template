@@ -8212,6 +8212,272 @@ test.describe("session-51 parity: the View Transitions / Document Picture-in-Pic
 });
 
 
+test.describe("session-52 parity: the Speculation Rules / Prerender census", () => {
+  // The s52 Speculation Rules / Prerender census (the session_118
+  // direction (b)): the ZERO declarative-prerender surface — zero
+  // <script type="speculationrules"> elements, zero rel=expect/prefetch
+  // links, zero Speculation-Rules / Supports-Loading-Mode headers, zero
+  // prerenderingchange registrations on BOTH sites (the probed parity;
+  // the runtime-evidence tier: document.prerendering boolean-present +
+  // false, PerformanceNavigationTiming.activationStart = 0 on every
+  // route on both sites — no prerendering ever activated). The source
+  // tier is pinned by tests/platform-surface-source.test.ts (the s52
+  // block).
+
+  test("no speculation/prerender surface: prerendering false, zero rules scripts, zero expect/prefetch links", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s52sr: { listeners: string[] } };
+      w.__s52sr = { listeners: [] };
+      const origAdd = EventTarget.prototype.addEventListener;
+      EventTarget.prototype.addEventListener = function patchedAdd(this: EventTarget, type: string, ...rest: unknown[]) {
+        if (type === "prerenderingchange") {
+          w.__s52sr.listeners.push(`${type}@${location.pathname}`);
+        }
+        return (origAdd as (this: EventTarget, t: string, ...r: unknown[]) => unknown).apply(this, [type, ...rest] as unknown as [string]);
+      };
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface read (the e2e headless-Chromium context — context-
+    // bound like every presence mirror, while the zero-REGISTRATION
+    // census stays the durable contract).
+    const api = await page.evaluate(() => ({
+      documentPrerendering: typeof (document as unknown as Record<string, unknown>).prerendering,
+      prerenderingValue: (document as unknown as { prerendering?: boolean }).prerendering,
+    }));
+    expect(api.documentPrerendering).toBe("boolean");
+    expect(api.prerenderingValue).toBe(false);
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s52sr?: { listeners: string[] } };
+        // the DOM census: speculationrules scripts (count + parsed
+        // action/eagerness) + the rel=expect / rel=prefetch link tier.
+        const srScripts: string[] = [];
+        for (const sc of Array.from(document.querySelectorAll('script[type]'))) {
+          const t = (sc.getAttribute("type") || "").toLowerCase();
+          if (t.includes("speculation")) srScripts.push(`${sc.tagName}:${t}`);
+        }
+        const hintLinks: string[] = [];
+        for (const link of Array.from(document.querySelectorAll("link[rel]"))) {
+          const rel = (link.getAttribute("rel") || "").toLowerCase();
+          if (rel === "expect" || rel.includes("prefetch")) hintLinks.push(`${rel}:${(link.getAttribute("href") || "").slice(0, 40)}`);
+        }
+        // the runtime-evidence tier: activationStart = 0 (no prerendering
+        // ever activated for this navigation).
+        const nav = performance.getEntriesByType("navigation")[0] as (PerformanceNavigationTiming & { activationStart?: number }) | undefined;
+        return {
+          listeners: w.__s52sr?.listeners ?? [],
+          srScripts,
+          hintLinks,
+          activationStart: nav ? (nav.activationStart ?? "no-entry") : "no-entry",
+          prerendering: (document as unknown as { prerendering?: boolean }).prerendering,
+        };
+      });
+      expect(census.prerendering, `${route} never prerendering`).toBe(false);
+      expect(census.activationStart, `${route} activationStart stays 0`).toBe(0);
+      expect(census.srScripts, `${route} ships zero speculationrules scripts`).toEqual([]);
+      expect(census.hintLinks, `${route} ships zero rel=expect/prefetch links`).toEqual([]);
+      expect(census.listeners, `${route} registers zero prerenderingchange listeners`).toEqual([]);
+    }
+  });
+});
+
+
+test.describe("session-52 parity: the Container Queries / Scroll-Driven Animations census", () => {
+  // The s52 Container Queries / SDA census (the session_118 direction
+  // (c)): the ENGINE tier present on both sides (all four CSS.supports
+  // probes TRUE — both Chromiums support CQ + SDA) while the USAGE tier
+  // is ZERO on BOTH: zero @container at-rules, zero container-type/name
+  // declarations, zero animation-timeline/timeline-scope/view-timeline/
+  // scroll-timeline declarations. THE S52 DISCOVERY (the session's
+  // genuine finding, documented as gotcha 81 — the animation-timeline
+  // shorthand-serialization tier, NEVER pinned as a read): the live's
+  // literal 8-component animation-shorthand emission exposes 4-per-route
+  // animation-timeline:auto longhand reads (its platform's always-shipped
+  // animate utilities — all INERT: zero animate-class elements on any
+  // route on either site, zero running animations) while the clone's
+  // var()-indirected v4 emission reads empty. This spec freezes the
+  // clone's USAGE zero-stance + the inertness contract + the
+  // scroll-behavior CONTAINMENT (every scroll-behavior rule is one of
+  // the two s24/s25-documented deliberate-better rules — the universal
+  // smooth pin or the popstate suppressor; an app-authored third
+  // selector breaks the containment). The source tier is pinned by
+  // tests/platform-surface-source.test.ts.
+
+  test("no container/SDA usage: engine supported, zero @container rules, zero timeline decls, scroll-behavior contained", async ({ page }) => {
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The ENGINE-presence mirror (context-bound; the zero-USAGE census
+    // stays the durable contract).
+    const engine = await page.evaluate(() => ({
+      containerType: CSS.supports("container-type: inline-size"),
+      timelineScroll: CSS.supports("animation-timeline: scroll()"),
+      timelineView: CSS.supports("animation-timeline: view()"),
+      timelineScope: CSS.supports("timeline-scope: --t"),
+    }));
+    expect(engine.containerType).toBe(true);
+    expect(engine.timelineScroll).toBe(true);
+    expect(engine.timelineView).toBe(true);
+    expect(engine.timelineScope).toBe(true);
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        // the LAYER-AWARE CSSOM census (the s47 correction: recurse into
+        // EVERY grouping rule — @layer, @media, @container, @supports).
+        const containerAtRules: string[] = [];
+        const containerDecls: string[] = [];
+        const timelineDecls: string[] = [];
+        const sbRules: string[] = [];
+        const walk = (rs: CSSRuleList) => {
+          for (const r of Array.from(rs)) {
+            const rule = r as CSSStyleRule & { containerQuery?: string };
+            const ctor = (r as { constructor?: { name?: string } }).constructor?.name;
+            if (ctor === "CSSContainerRule" || (rule.containerQuery !== undefined && (r as CSSMediaRule).cssRules && !(r as CSSMediaRule).media)) {
+              containerAtRules.push(String(rule.containerQuery ?? (r as { conditionText?: string }).conditionText ?? "?").slice(0, 50));
+            }
+            const style = (r as CSSStyleRule).style;
+            if (style) {
+              for (const prop of ["container-type", "container-name", "container"]) {
+                let v;
+                try { v = style.getPropertyValue(prop); } catch { v = ""; }
+                if (v) containerDecls.push(`${prop}=${v.slice(0, 30)}@${(rule.selectorText ?? "?").slice(0, 40)}`);
+              }
+              for (const prop of ["animation-timeline", "timeline-scope", "view-timeline", "scroll-timeline", "scroll-snap-type", "scroll-snap-align"]) {
+                let v;
+                try { v = style.getPropertyValue(prop); } catch { v = ""; }
+                if (v) timelineDecls.push(`${prop}=${v.slice(0, 30)}@${(rule.selectorText ?? "?").slice(0, 40)}`);
+              }
+              let sb;
+              try { sb = style.getPropertyValue("scroll-behavior"); } catch { sb = ""; }
+              if (sb) sbRules.push(`${(rule.selectorText ?? "?").slice(0, 60)}=>${sb}`);
+            }
+            if ((r as CSSMediaRule).cssRules) {
+              try {
+                walk((r as CSSMediaRule).cssRules);
+              } catch {
+                /* CORS */
+              }
+            }
+          }
+        };
+        for (const s of Array.from(document.styleSheets)) {
+          try {
+            walk(s.cssRules);
+          } catch {
+            /* CORS */
+          }
+        }
+        // the inertness contract: zero elements carrying animate-* /
+        // motion-safe / motion-reduce utility classes (the live ships the
+        // same zero-element surface — its at-rules ride always-shipped
+        // dead utilities).
+        const animateEls: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("[class]"))) {
+          const cls = el.getAttribute("class") || "";
+          if (/animate-|motion-safe:|motion-reduce:/.test(cls)) animateEls.push(`${el.tagName}:${cls.slice(0, 50)}`);
+        }
+        return { containerAtRules, containerDecls, timelineDecls, sbRules, animateEls };
+      });
+      // the scroll-behavior CONTAINMENT: every rule is one of the two
+      // documented deliberate-better selectors.
+      const sbOffenders = census.sbRules.filter((s) => !/^\*=>|^html\[data-scroll-restore\]/.test(s));
+      expect(census.containerAtRules, `${route} ships zero @container rules`).toEqual([]);
+      expect(census.containerDecls, `${route} ships zero container-type/name declarations`).toEqual([]);
+      expect(census.timelineDecls, `${route} ships zero timeline/snap declarations`).toEqual([]);
+      expect(census.animateEls, `${route} ships zero animate-class elements (the inertness contract)`).toEqual([]);
+      expect(sbOffenders, `${route} scroll-behavior contained to the universal pin + the popstate suppressor`).toEqual([]);
+    }
+  });
+});
+
+
+test.describe("session-52 parity: the WebGPU / Web Locks census", () => {
+  // The s52 WebGPU / Web Locks census (the session_118 direction (a), the
+  // device-tier follow-up): navigator.gpu (object) + GPUAdapter/GPUDevice
+  // (functions) + navigator.locks (object) + navigator.usb are PRESENT
+  // with identical shape on both sites — navigator.bluetooth headless-
+  // ABSENT on both (the gotcha-78 mirror, NEVER asserted here) — while
+  // the app surface is ZERO on BOTH: zero instrumented requestAdapter /
+  // locks.request calls, zero canvases, zero gpu/lock-labeled UI. The
+  // source tier is pinned by tests/platform-surface-source.test.ts.
+
+  test("no GPU/locks surface: APIs present, zero calls, zero canvases, zero labeled UI", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s52gl: { calls: string[] } };
+      w.__s52gl = { calls: [] };
+      const nav = navigator as unknown as {
+        gpu?: { requestAdapter: (...a: unknown[]) => unknown };
+        locks?: { request: (...a: unknown[]) => unknown; query: (...a: unknown[]) => unknown };
+      };
+      if (nav.gpu && typeof nav.gpu.requestAdapter === "function") {
+        const orig = nav.gpu.requestAdapter.bind(nav.gpu);
+        nav.gpu.requestAdapter = (...a: unknown[]) => {
+          w.__s52gl.calls.push(`requestAdapter@${location.pathname}`);
+          return orig(...a);
+        };
+      }
+      if (nav.locks && typeof nav.locks.request === "function") {
+        const orig = nav.locks.request.bind(nav.locks);
+        nav.locks.request = (...a: unknown[]) => {
+          w.__s52gl.calls.push(`locks.request@${location.pathname}`);
+          return orig(...a);
+        };
+      }
+      if (nav.locks && typeof nav.locks.query === "function") {
+        const orig = nav.locks.query.bind(nav.locks);
+        nav.locks.query = (...a: unknown[]) => {
+          w.__s52gl.calls.push(`locks.query@${location.pathname}`);
+          return orig(...a);
+        };
+      }
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e headless-Chromium context — context-
+    // bound like every presence mirror, while the zero-CALL census stays
+    // the durable contract; bluetooth is the gotcha-78 mirror — absent
+    // in headless, never asserted).
+    const api = await page.evaluate(() => {
+      const win = window as unknown as Record<string, unknown>;
+      const nav = navigator as unknown as Record<string, unknown>;
+      return {
+        navigatorGpu: typeof nav.gpu,
+        gpuAdapter: typeof win.GPUAdapter,
+        navigatorLocks: typeof nav.locks,
+        navigatorUsb: typeof nav.usb,
+      };
+    });
+    expect(api.navigatorGpu).toBe("object");
+    expect(api.gpuAdapter).toBe("function");
+    expect(api.navigatorLocks).toBe("object");
+    expect(api.navigatorUsb).toBe("object");
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s52gl?: { calls: string[] } };
+        const glUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label], [title], h1, h2, h3, label"))) {
+          const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim().toLowerCase();
+          if (/web\s?gpu|webgpu|graphics\s?adapter|lock\s?manager|web\s?locks?/.test(label)) glUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        return {
+          calls: w.__s52gl?.calls ?? [],
+          glUi,
+          canvases: document.querySelectorAll("canvas").length,
+        };
+      });
+      expect(census.calls, `${route} never calls the GPU/locks APIs`).toEqual([]);
+      expect(census.glUi, `${route} ships no gpu/lock-labeled UI`).toEqual([]);
+      expect(census.canvases, `${route} ships zero canvases (no GPU render target)`).toBe(0);
+    }
+  });
+});
+
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a

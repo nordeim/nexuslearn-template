@@ -203,6 +203,122 @@ const VIEW_TRANSITIONS_PIP_APIS = [
   "ViewTransition",
 ] as const;
 
+/** The Speculation Rules / Prerender surface (the s52 family A census
+ * definition — the declarative prerender tier: the script-type attr +
+ * camel form, the response-header name, and the prerendering runtime
+ * read (which covers `prerenderingchange` — the longer string contains
+ * the shorter; the bare `prerender` stays unpinned because the two
+ * documented `static-prerendered` CSP-nonce comments in src/proxy.ts +
+ * layout.tsx legitimately contain it). */
+const SPECULATION_PRERENDER_APIS = [
+  "speculationrules",
+  "speculationRules",
+  "Speculation-Rules",
+  "prerendering",
+] as const;
+
+/** The Container Queries / Scroll-Driven Animations surface (the s52
+ * family B census definition — the CSS engine tier: the container-query
+ * longhands + at-rule, the animation-timeline / timeline-scope /
+ * view-timeline / scroll-timeline longhands (kebab + the inline-style
+ * camel forms for the two timeline props), and the scroll-snap family.
+ * `scroll-behavior` is deliberately NOT here: the clone ships the
+ * s25-documented deliberate-better universal pin + popstate suppressor
+ * in globals.css — the documented family, pinned by the e2e containment
+ * census instead). */
+const CONTAINER_SDA_APIS = [
+  "container-type",
+  "container-name",
+  "@container",
+  "animation-timeline",
+  "animationTimeline",
+  "timeline-scope",
+  "timelineScope",
+  "view-timeline",
+  "scroll-timeline",
+  "scroll-snap",
+] as const;
+
+/** The WebGPU / Web Locks surface (the s52 family C census definition —
+ * the device-tier graphics + async-coordination seams; navigator.bluetooth
+ * is headless-ABSENT on both sites — the gotcha-78 mirror, never a pin
+ * string). */
+const WEBGPU_LOCKS_APIS = [
+  "navigator.gpu",
+  "requestAdapter",
+  "getPreferredCanvasFormat",
+  "navigator.locks",
+  "locks.request",
+  "GPUAdapter",
+  "GPUDevice",
+] as const;
+
+describe("session-52: the platform-surface source census", () => {
+  it("ZERO Speculation Rules / Prerender references anywhere in src/ (the family A zero-stance)", () => {
+    // The pin: the clone ships no speculation-rules surface — no
+    // <script type="speculationrules"> element, no Speculation-Rules
+    // header emission, no document.prerendering / prerenderingchange
+    // consumer. The probed parity: the FULL declarative prerender tier is
+    // a ZERO surface on BOTH sites — zero speculationrules scripts on
+    // every probed route (app + auth), zero rel=expect / prefetch links,
+    // zero Speculation-Rules / Supports-Loading-Mode response headers,
+    // zero prerenderingchange registrations, document.prerendering
+    // boolean-present + false, activationStart = 0 everywhere.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of SPECULATION_PRERENDER_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("ZERO Container Queries / Scroll-Driven-Animations references anywhere in src/ (the family B zero-stance)", () => {
+    // The pin: the clone ships no container-query or scroll-driven-
+    // animation surface — no @container rule, no container-type/name
+    // declaration, no animation-timeline / timeline-scope / view-timeline
+    // / scroll-timeline usage, no scroll-snap positioning. The probed
+    // parity: the ENGINE tier is identical on both sites (all four
+    // CSS.supports probes TRUE) while the USAGE tier is ZERO on BOTH.
+    // THE S52 DISCOVERY (the animation-timeline shorthand-serialization
+    // tier, documented as gotcha 81, never pinned as a read): the live's
+    // literal 8-component animation-shorthand emission exposes 4-per-route
+    // animation-timeline:auto longhand reads (its platform's always-shipped
+    // animate utilities — .animate-pulse/.animate-spin/accordion-* in the
+    // user SPA sheet, 36+ more in the auth platform sheet) while the
+    // clone's var()-indirected v4 emission reads empty — ALL INERT (zero
+    // animate-class elements on any route on either site, zero running
+    // animations). The scroll-behavior count variance (live 1/route vs
+    // clone 2/route) is the s25-documented deliberate-better popstate
+    // suppressor — the e2e containment census owns that family.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of CONTAINER_SDA_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("ZERO WebGPU / Web Locks references anywhere in src/ (the family C zero-stance)", () => {
+    // The pin: the clone ships no GPU surface — no navigator.gpu access,
+    // no requestAdapter call, no canvas render target — and no Web Locks
+    // coordination — no navigator.locks.request/query call. The probed
+    // parity: navigator.gpu (object) + GPUAdapter/GPUDevice (functions) +
+    // navigator.locks (object) + navigator.usb are PRESENT with IDENTICAL
+    // shape on BOTH sites (navigator.bluetooth headless-ABSENT on both —
+    // the gotcha-78 mirror, never asserted), but ZERO instrumented calls,
+    // ZERO canvases, ZERO gpu/lock-labeled UI on either site.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of WEBGPU_LOCKS_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("session-51: the platform-surface source census", () => {
   it("ZERO WebTransport / WebCodecs references anywhere in src/ (the family A zero-stance)", () => {
     // The pin: the clone ships no transport/codec surface — no WebTransport

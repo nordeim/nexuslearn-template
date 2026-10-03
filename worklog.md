@@ -1251,3 +1251,25 @@ Stage Summary:
 - Key finds: the NINETY-FIRST through NINETY-THIRD probe families (the WebTransport/WebCodecs zero surface; the Compute Pressure zero surface + the fetchPriority attribute-tier finding; the View Transitions/Document PiP zero surface) + THE AUTH-ROUTE VIEW-TRANSITION CSS TIER (the s51 discovery — the s47 platform-chrome family's third member) + THE FETCHPRIORITY CONTAINMENT PIN (the attribute-tier contract form).
 - No source change: +3 unit source pins + 3 e2e census pins (the s44-s50 precedent — the pins are the deliverable).
 - Audit scripts persisted at /home/z/my-project/scripts/ (s51-battery, s51-probe, s51-capture, s51-tracked-pair, boot-clone, s50-reset-demo, s50-state-check reused).
+
+---
+Task ID: session-52
+Agent: main agent (Super Z)
+Task: The session-52 pass — the Speculation Rules/Prerender + Container Queries/Scroll-Driven Animations + WebGPU/Web Locks tier (audit → parity → remediation → TDD → docs → push to main), incl. the dev-server screenshot matrix + the animation-timeline shorthand-serialization discovery
+
+Work Log:
+- Workspace refresh: git pull to 92c0358 (the owner's session_119 doc commit); the five core docs + session_118/119 + remediation-plan-session51 + worklog reviewed; the s51 changeset audited (pins + docs only, sound).
+- Baseline gates re-verified in order (lint, typecheck, 331 unit, build, 409 e2e in the documented split) — 740 total, the documented session-51 state exactly. Environment contracts re-verified (.env == .env.example byte-identical, DATABASE_URL, db/ at the repo root, skills/ excluded from all four tool configs).
+- Standing parity battery in the LIVE-MATCHED zero-enrollment demo state (the s50 battery demo-state rule): heights 18/18 byte-exact, innerText 5/5 identical, mobile battery byte-identical (NO Tailwind v4 bug — the owner's mobile-menu concern), console 0 errors both sites.
+- Fresh-eyes probes (s52-probe.mjs): family A Speculation Rules/Prerender — the complete ZERO surface on both sites; family B Container Queries/SDA — engine parity-clean + THE ANIMATION-TIMELINE SHORTHAND-SERIALIZATION DISCOVERY (attributed: the live's literal 8-component animation shorthand exposes 4-per-route animation-timeline:auto longhand reads vs the clone's var()-indirected v4 emission reading empty; inertness PROVEN: zero animate-class elements + zero running animations on either site); family C WebGPU/Web Locks — present with identical shape, zero app surface, bluetooth headless-absent on both (the gotcha-78 mirror).
+- Remediation plan written (docs/remediation-plan-session52.md) with plan-time validation (all pin strings grep-zero in src/ — the bare `prerender` + `scroll-behavior` deliberately excluded for the documented legitimate uses).
+- TDD: +3 unit source pins (the session-52 block in tests/platform-surface-source.test.ts — RED-verified honestly with a temp offender file) + 3 e2e census singles (the speculation/prerender census, the CQ/SDA census with the scroll-behavior containment + the inertness contract, the WebGPU/Web Locks census; one typecheck iteration for the activationStart lib cast). GUARD: 746 green (334 unit + 412 e2e); the battery re-verified green.
+- Screenshots: the canonical demo state restored via the REAL API; 13 dev-server captures (the open-mobile-menu shot byte-identical to s51 — 89796 bytes); the tracked dashboard pair re-shot pixel-identical from the standalone (0/6220800 + 0/750375 RGB bytes). The proof matrix written (api-session-s52.txt).
+- Docs aligned: AGENTS.md (334/412 + gotcha 81), CLAUDE.md (pyramid + tails), README (badge 746 + the session-52 paragraph), PAD ([S52] row), SKILL v3.40.0, session_120/121, the repo worklog. Final full gate re-run AFTER all doc writes — 746 fully green.
+- Commit + push via the SSH wrapper (the key deployed + verified, dry-run → push → remote-verified), the key shredded, all servers stopped.
+
+Stage Summary:
+- Repo at the session-52 state, pushed to main: 746 tests green (334 unit + 412 e2e), lint/typecheck/build clean, NO Tailwind v4 mobile-nav bug, every standing parity surface byte-exact.
+- Key finds: the animation-timeline shorthand-serialization tier (gotcha 81 — the live's literal-shorthand emission vs the clone's var()-indirection, all inert) + the Speculation-Rules/Prerender + WebGPU/Web-Locks zero surfaces.
+- No source change: +3 unit source pins + 3 e2e census pins (the s44–s51 precedent — the pins are the deliverable).
+- Audit scripts persisted at /home/z/my-project/scripts/ (s52-battery, s52-probe, s52-attribution, s52-inertness, s52-capture, s52-tracked-pair + the s50/s51 reuse set).
