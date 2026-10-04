@@ -1273,3 +1273,23 @@ Stage Summary:
 - Key finds: the animation-timeline shorthand-serialization tier (gotcha 81 — the live's literal-shorthand emission vs the clone's var()-indirection, all inert) + the Speculation-Rules/Prerender + WebGPU/Web-Locks zero surfaces.
 - No source change: +3 unit source pins + 3 e2e census pins (the s44–s51 precedent — the pins are the deliverable).
 - Audit scripts persisted at /home/z/my-project/scripts/ (s52-battery, s52-probe, s52-attribution, s52-inertness, s52-capture, s52-tracked-pair + the s50/s51 reuse set).
+
+---
+Task ID: session-53
+Agent: main agent (Super Z)
+Task: The session-53 pass on nexuslearn-template — docs review (session_121/122 + remediation-plan-session52), baseline gates, live parity battery, fresh-eyes probes (Web MIDI/Badge, the Navigation API, Local Font Access/EyeDropper/Contact Picker), the mobile-panel mount-modality discovery (gotcha 82), remediation plan + TDD pins, screenshots, docs alignment, commit + push to main via SSH wrapper
+
+Work Log:
+- git pull to a753609 (the owner's session_122 transcript commit on top of 0310e01); five core docs + session_121/122 + remediation-plan-session52 + worklog reviewed; the s122 changeset audited (docs-only — sound)
+- Baseline gates 746 green (lint, typecheck, 334 unit, build, 412 e2e split 378/34)
+- Standing parity battery GREEN after two boot corrections (the omitted AUTH_SECRET — production mode's session-33 enforcement refused the login; then the demo-state reset — the s52 screenshot phase had left 3 enrollments vs the live's zero): heights 18/18 byte-exact, innerText 5/5, mobile menu byte-identical (NO Tailwind v4 bug), console 0 errors both sites
+- Three fresh-eyes families (the session_122 directions) all parity-clean zero surfaces; GENUINE DISCOVERY: the mobile-panel MOUNT-MODALITY tier (gotcha 82) — the live's panel content is mount-on-open (zero members in the closed-nav DOM at fresh-375, desktop, or after resize; click mounts the byte-identical 9 members) vs the clone's always-mounted panel (17 links at 375-closed, 0fr-track-clipped, display:none at desktop) — every observable surface parity-clean, the inert DOM census pinned as the gotcha-82 guard, never replicated
+- Remediation plan written (docs/remediation-plan-session53.md) with plan-time validation (19 pin strings grep-zero in src/, the containment design, the split extension)
+- TDD: +3 unit source pins (RED-verified with temp offender) +4 e2e census pins = 753 total (337 unit + 416 e2e split 378/38); GUARD + final gate after doc writes all green (the CSS-leak spec LAST)
+- 13 dev-server screenshots + proof matrix + tracked dashboard pair re-shot pixel-identical from the standalone (0/2073600 + 0/250125 pixels); the open mobile-menu shot byte-identical to s52 (89796 bytes)
+- Docs aligned (AGENTS gotcha 82 + counts 337/416, CLAUDE, README badge 753, PAD [S53], SKILL v3.41.0, session_123/124, worklog)
+
+Stage Summary:
+- Repo at session-53 state: 753 tests green (337 unit + 416 e2e), every standing parity surface byte-exact, no source change (pins are the deliverable), pushed to main and remote-verified
+- Deliverables: docs/remediation-plan-session53.md, docs/screenshots/api-session-s53.txt, 13 s53-dev-* screenshots, session_123/124 logs, updated core docs
+- Scripts persisted: /home/z/my-project/scripts/s53-* (probe, contact-attribution, resize-auth, resize2, click-after-resize, fresh375-closed, capture, tracked-pair, pixdiff)

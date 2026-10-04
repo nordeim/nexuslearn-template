@@ -1,0 +1,224 @@
+SESSION 53 — THE WEB-MIDI/BADGE + NAVIGATION-API + LOCAL-FONT/EYEDROPPER/
+CONTACTS PASS + THE MOBILE-PANEL MOUNT-MODALITY TIER — PROOF MATRIX
+(evidence scripts: /home/z/my-project/scripts/s53-probe.mjs +
+s53-contact-attribution.mjs + s53-resize-auth.mjs + s53-resize2.mjs +
+s53-click-after-resize.mjs + s53-fresh375-closed.mjs + s52-battery.mjs
+(reused, the standing battery) + s53-capture.mjs + s53-tracked-pair.mjs;
+probe JSON: s53-probe.json + s53-probe-digest.json)
+
+===========================================================================
+GATE SUMMARY
+===========================================================================
+baseline (the shipped session-52 tree, 0310e01 + the owner's session_122
+doc commit a753609):
+  lint OK · typecheck OK · 334/334 unit · build OK · 412/412 e2e
+  (split: --grep-invert "session-(4[4-9]|5[0-2])" = 378
+        + --grep "session-(4[4-9]|5[0-2])" = 34) · TOTAL 746
+after the session-53 pins:
+  lint OK · typecheck OK · 337/337 unit · build OK · 416/416 e2e
+  (split: --grep-invert "session-(4[4-9]|5[0-3])" = 378
+        + --grep "session-(4[4-9]|5[0-3])" = 38) · TOTAL 753
+RED-verification: honest — a temp offender file under src/ quoting each
+  pinned literal failed exactly the 3 new unit sweeps (19 existing stayed
+  green), then was deleted; 337/337 after deletion.
+standing parity battery (BEFORE and AFTER the pins — the house rule):
+  heights ×9 routes ×2 viewports BYTE-EXACT 18/18
+  innerText identical 5/5 (/, /Courses, /CourseDetail, /Dashboard, /login
+    — 0 diffs on 214/96/789/15/9 lines)
+  MOBILE BATTERY IDENTICAL — NO Tailwind v4 bug
+    (trigger byte-identical: BUTTON "md:hidden p-2 rounded-lg
+     text-white/80" 40x40 @(319,12); panel 375x405 @(0,64);
+     all 9 members at identical geometry)
+  console sweep 0 errors on BOTH sites
+  battery demo state: the LIVE-MATCHED zero-enrollment account state
+    (the s50 battery demo-state rule — gotcha 79(e) — applied before
+    both battery runs; the s52 screenshot phase had left 3 enrollments
+    in custom.db — reset before the battery; the canonical state
+    re-restored via the REAL API only for the screenshot phase)
+  operational note: the battery boot REQUIRES the explicit AUTH_SECRET
+    env (the standalone is production mode — the session-33 enforcement
+    refuses to sign tokens with the .env's empty AUTH_SECRET; the
+    session-52 boot convention documented in the battery header)
+
+===========================================================================
+FAMILY A — THE WEB MIDI / BADGE-API CENSUS (the session_122 dir (a))
+===========================================================================
+API-presence tier (9 routes × both sites, IDENTICAL shape):
+  navigator.requestMIDIAccess     live = function   clone = function
+  window.MIDIAccess               live = function   clone = function
+  window.MIDIMessageEvent         live = function   clone = function
+  navigator.setAppBadge           live = function   clone = function
+  navigator.clearAppBadge         live = function   clone = function
+instrumented call counters (overridden before load; 9 routes × both):
+  live : requestMIDIAccess = 0, setAppBadge = 0, clearAppBadge = 0
+  clone: requestMIDIAccess = 0, setAppBadge = 0, clearAppBadge = 0
+                                                      ALL ZERO
+listener census (the MIDI-statechange watched event): NONE both
+UI-label sweep (midi / badge): NONE both
+VERDICT: parity-clean — the MIDI hardware tier + the app-badge shelf
+  tier are ZERO surfaces on both sites. PINNED (the e2e census single +
+  the source zero-stance).
+
+===========================================================================
+FAMILY B — THE NAVIGATION-API CENSUS (the session_122 dir (b) — the
+SPA-vs-SSR router family's newest member)
+===========================================================================
+API-presence tier (9 routes × both sites + the two auth routes,
+IDENTICAL shape):
+  window.Navigation               live = function   clone = function
+  window.navigation               live = object     clone = object
+  window.NavigateEvent            live = function   clone = function
+  window.NavigationHistoryEntry   live = function   clone = function
+listener census (navigate / navigatesuccess / navigateerror /
+  currententrychange, the addEventListener override — app AND auth
+  routes): live = 0 registrations   clone = 0 registrations
+  (the live's SPA router AND the clone's Next.js App Router both leave
+   the Navigation API untouched; the classic popstate is the only
+   history event either registers — 2 listeners on both sites,
+   fully framework-internal, documented never pinned)
+entries census (identical growth under the sequential 9-route walk):
+  entries() length: 2→3→4→5→6→7→8→9→10 (identical on both sites)
+  currentEntry.index + currentEntry.url: track the walk identically
+  canGoBack / canGoForward / activation / transition-at-rest:
+    identical (true/false/object/null)
+  entry keys: per-session UUIDs — session-state noise, never compared
+  auth routes (/login, /reset-password): zero navigate-family
+    registrations on both sites (the platform auth shell matches)
+VERDICT: parity-clean — the API is present, ZERO listeners anywhere.
+  PINNED (the e2e census single — presence mirror + zero registrations +
+  the entries SHAPE, never the count + the source zero-stance).
+
+===========================================================================
+FAMILY C — THE LOCAL-FONT / EYEDROPPER / CONTACT-PICKER CENSUS
+(the session_122 dir (c) — the UI-tier picker family)
+===========================================================================
+API-presence tier (9 routes × both sites, IDENTICAL shape):
+  window.queryLocalFonts          live = function   clone = function
+  window.FontData                 live = function   clone = function
+  window.EyeDropper               live = function   clone = function
+  navigator.contacts              live = undefined  clone = undefined
+  window.ContactsManager          live = undefined  clone = undefined
+    (the gotcha-78 headless mirror — ABSENT on both, NEVER asserted)
+instrumented call counters (queryLocalFonts / EyeDropper.open /
+  contacts.select): ALL ZERO both
+DOM census (the picker-adjacent tier):
+  <input type="color">            live = 0    clone = 0
+  font-named select/input         live = 0    clone = 0
+UI-label sweep (local fonts / font picker / eyedropper / pick color /
+  contact picker): NONE both
+VERDICT: parity-clean — zero picker surface on both sites. PINNED (the
+  e2e census single + the source zero-stance).
+
+===========================================================================
+FAMILY D — THE GENUINE DISCOVERY: THE MOBILE-PANEL MOUNT-MODALITY TIER
+(gotcha 82 — extends the s22 one-line note into the systematic census)
+===========================================================================
+THE LIVE'S PANEL CONTENT IS MOUNT-ON-OPEN (all three paths verified):
+  fresh-375 CLOSED   nav a = 9, nav buttons = 2, panel members
+                     rendered = 0 (the panel content is NOT in the
+                     rendered tree — only the desktop row + the trigger)
+  desktop (1280)     nav a = 9, md:hidden elements = 1 (the trigger
+                     alone — CSS-gated, always in the DOM), panel = NOT
+                     IN THE DOM (button[aria-controls] does not exist;
+                     the live ships no aria attributes — the s24
+                     unhardened-reference family, so the census uses the
+                     battery's class-based selector)
+  resize 1280→375    panel members STILL 0 (the panel does NOT mount on
+                     resize — the mount decision is render-time)
+  click the trigger  the panel MOUNTS with the byte-identical 9 members
+                     at identical geometry (y81/129/177/225/273/321/369/
+                     417, h44/h36) — at fresh-375 AND at the resize path
+THE CLONE'S PANEL IS ALWAYS-MOUNTED (the documented design — gotcha 8's
+symmetric md:hidden approach):
+  fresh-375 CLOSED   nav a = 17 (logo + 8 desktop row + 8 panel), nav
+                     buttons = 3, panel members = 9 at REAL geometry
+                     (y80..y416) inside the collapsed track
+  panel container    display: grid, offsetHeight = 0, opacity = 0,
+                     grid-template-rows = 0px (the 0fr track), inner
+                     min-h-0 overflow-hidden (the clip)
+  desktop (1280)     trigger display:none + panel display:none (the CSS
+                     gate) — both always in the DOM
+  resize 1280→375    the trigger turns visible (block) + the panel
+                     container visible (grid) — resize-live, no reload
+                     needed; click opens the identical 405px panel
+  OPEN state         offsetHeight = 405, opacity = 1 — the standing
+                     battery pins the byte-identical open geometry
+EVERY OBSERVABLE SURFACE IS PARITY-CLEAN: open-panel geometry
+  byte-identical (the standing mobile battery), heights 18/18,
+  innerText 5/5, the resize path identical (both sites show the
+  CSS-gated trigger after resize; click → the same 9 members at the
+  same geometry on both sites).
+THE INERT DOM-CENSUS VARIANCE (the only difference, all inert):
+  closed-nav link census    live = 9    clone = 17 (+8 panel members,
+                            display:none/0fr-clipped, tabIndex -1)
+  desktop Contact-text
+  census (exact "Contact")  live = 2    clone = 3 total / 2 visible
+                            (nav row + footer visible on both; the
+                            clone's third is the display:none panel
+                            member — 0x0 rect, absent from the a11y
+                            tree, not tabbable)
+  the live's href-only /Contact census also counts its footer's "Help
+  Center" + "FAQ" links (4 total) vs the clone's 5 (the +1 = the panel
+  member) — the TEXT census is the containment's canonical form
+NO SOURCE CHANGE — the always-mounted design is the documented
+  deliberate approach (zero mount-flash, zero hydration risk,
+  resize-live on the highest-regression-risk chrome); the live's
+  mount-on-open is its platform's implementation shape, inert to every
+  observable surface (the s44–s52 precedent: pin the clone's own
+  design, document the platform's shape).
+PINNED: the e2e mount-modality census (the gotcha-82 guard — 17 links +
+  9 clipped members at 375, display:none at desktop, the 2-visible-
+  Contact containment) + DOCUMENTED (gotcha 82, AGENTS.md).
+
+===========================================================================
+ENV CONTRACT (re-verified)
+===========================================================================
+  .env == .env.example (byte-identical, diff clean)
+  DATABASE_URL="file:../db/custom.db" (the db/ folder at the repo root,
+    custom.db + e2e.db present)
+  skills/ excluded from all four tool configs (tsconfig exclude,
+    eslint ignores, vitest include, playwright testDir) — re-verified
+  vitest + playwright configs exercised green through the session's
+    pins (337 unit + 416 e2e) — no modification required by any finding
+
+===========================================================================
+SCREENSHOT MATRIX (the dev-server captures — the owner's standing ask)
+===========================================================================
+  13 captures under docs/screenshots/s53-dev-*:
+    landing/courses/course-detail/pricing/about/contact/
+    becomeinstructor/aiassistant/dashboard/login desktop (1920×1080)
+    + landing/dashboard mobile (375×667)
+    + THE OPEN MOBILE MENU (mobile, /, panel verified open —
+      BYTE-IDENTICAL to the s52 capture: 89796 bytes)
+  the canonical demo state (3 enrollments: seed-1/seed-3/seed-5 with
+    seed-5 at 1 lesson) re-restored via the REAL API (login → enroll ×3
+    → progress) BEFORE the captures; every context carrying the session
+    cookie (the s49 capture-cookie lesson).
+  the tracked dashboard pair re-shot from the STANDALONE production
+    server (the s48 qualification convention):
+    dashboard--desktop.png  0/6220800 RGB bytes differ (1920×1080,
+                           0/2073600 pixels)
+    dashboard--mobile.png   0/750375  RGB bytes differ (375×667,
+                           0/250125 pixels)
+    (decoded-pixel comparison — PIL numpy channel comparison)
+
+===========================================================================
+SESSION-53 CHANGES (the deliverable: pins only, NO source change)
+===========================================================================
+  tests/platform-surface-source.test.ts  +3 unit source pins (the s53
+    block: MIDI_BADGE_APIS / NAVIGATION_API_APIS /
+    LOCAL_FONT_EYEDROPPER_CONTACTS_APIS zero-stance sweeps over src/)
+  tests/e2e/nexuslearn.spec.ts           +4 e2e singles (the s53 block:
+    the MIDI/Badge census, the Navigation-API census, the Local-Font/
+    EyeDropper/Contacts census, and the mobile-panel mount-modality
+    census — the gotcha-82 guard — inserted before the s33 burst spec,
+    the position contract preserved)
+  docs/remediation-plan-session53.md     the plan (this session's
+    findings inventory + the pre-execution validation)
+  docs/screenshots/api-session-s53.txt   this proof matrix
+  docs/screenshots/s53-dev-*.png         the 13 dev-server captures
+  AGENTS.md / CLAUDE.md / README.md / Project_Architecture_Document.md /
+    nexuslearn-template_SKILL.md — the alignment pass (counts 337/416,
+    badge 753, gotcha 82, [S53] row, SKILL v3.41.0)
+  docs/session_123.md + docs/session_124.md + worklog.md — the session
+    logs (the house convention)

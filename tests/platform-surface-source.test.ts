@@ -253,6 +253,110 @@ const WEBGPU_LOCKS_APIS = [
   "GPUDevice",
 ] as const;
 
+/** The Web MIDI / Badge-API surface (the s53 family A census definition —
+ *  the session_122 direction (a): the MIDI hardware-access tier + the
+ *  app-badge shelf tier. All PRESENT in the shared headless context with
+ *  identical shape on both sites, all ZERO-use. `MIDIAccess` bare is
+ *  covered by the requestMIDIAccess substring.) */
+const MIDI_BADGE_APIS = [
+  "requestMIDIAccess",
+  "MIDIMessageEvent",
+  "setAppBadge",
+  "clearAppBadge",
+] as const;
+
+/** The Navigation-API surface (the s53 family B census definition — the
+ *  session_122 direction (b), the SPA-vs-SSR router family's newest
+ *  member): window.navigation + the navigate event family. The API object
+ *  is present on both sites while ZERO navigate-family listeners register
+ *  anywhere (app or auth routes). `popstate` is deliberately NOT here —
+ *  the classic-router event both frameworks register internally (2 on
+ *  both sites today; the React-19.3-drag-family precedent:
+ *  framework-internal listener counts are documented, never pinned). */
+const NAVIGATION_API_APIS = [
+  "navigation.addEventListener",
+  "window.navigation",
+  "NavigateEvent",
+  "NavigationHistoryEntry",
+  "currententrychange",
+  "navigatesuccess",
+  "navigateerror",
+] as const;
+
+/** The Local-Font-Access / EyeDropper / Contact-Picker surface (the s53
+ *  family C census definition — the session_122 direction (c), the
+ *  UI-tier picker family): queryLocalFonts / FontData / EyeDropper are
+ *  present on both sites; navigator.contacts / ContactsManager are
+ *  headless-ABSENT on both (the gotcha-78 mirror, never a pin string).
+ *  The bare word "contacts" is NOT pinned — the /Contact route family
+ *  makes it collision-prone; the precise compounds carry it.) */
+const LOCAL_FONT_EYEDROPPER_CONTACTS_APIS = [
+  "queryLocalFonts",
+  "FontData",
+  "EyeDropper",
+  "navigator.contacts",
+  "ContactsManager",
+  "contacts.select",
+] as const;
+
+describe("session-53: the platform-surface source census", () => {
+  it("ZERO Web MIDI / Badge-API references anywhere in src/ (the family A zero-stance)", () => {
+    // The pin: the clone ships no MIDI surface — no
+    // navigator.requestMIDIAccess call, no MIDIMessageEvent consumer —
+    // and no app-badge surface — no navigator.setAppBadge /
+    // clearAppBadge call. The probed parity: requestMIDIAccess +
+    // MIDIAccess + MIDIMessageEvent + setAppBadge + clearAppBadge all
+    // PRESENT with IDENTICAL shape on BOTH sites, but ZERO instrumented
+    // calls, ZERO midi/badge-labeled UI, ZERO MIDI-statechange
+    // registrations on either site.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of MIDI_BADGE_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("ZERO Navigation-API references anywhere in src/ (the family B zero-stance)", () => {
+    // The pin: the clone ships no Navigation-API consumer — no
+    // window.navigation access, no navigate / navigatesuccess /
+    // navigateerror / currententrychange registration, no
+    // NavigationHistoryEntry read. The probed parity: window.navigation
+    // (object) + Navigation / NavigateEvent / NavigationHistoryEntry
+    // (functions) PRESENT with IDENTICAL shape on BOTH sites, ZERO
+    // navigate-family listeners on all 9 app routes AND both auth routes
+    // on either site (the live's SPA router and the clone's Next.js App
+    // Router both leave the API untouched; popstate is the only history
+    // event either registers — 2 listeners on both, framework-internal).
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of NAVIGATION_API_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("ZERO Local-Font-Access / EyeDropper / Contact-Picker references anywhere in src/ (the family C zero-stance)", () => {
+    // The pin: the clone ships no local-font surface (no queryLocalFonts
+    // call, no FontData consumer), no eyedropper surface (no EyeDropper
+    // construction), and no contact-picker surface (no navigator.contacts
+    // access). The probed parity: queryLocalFonts + FontData + EyeDropper
+    // PRESENT with IDENTICAL shape on BOTH sites while navigator.contacts
+    // / ContactsManager are headless-ABSENT on both (the gotcha-78
+    // mirror); ZERO instrumented calls, ZERO color inputs, ZERO
+    // font-picker controls, ZERO picker-labeled UI on either site.
+    const offenders: string[] = [];
+    for (const { file, text } of ALL_SOURCE_TEXT) {
+      for (const api of LOCAL_FONT_EYEDROPPER_CONTACTS_APIS) {
+        if (text.includes(api)) offenders.push(`${file}: ${api}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("session-52: the platform-surface source census", () => {
   it("ZERO Speculation Rules / Prerender references anywhere in src/ (the family A zero-stance)", () => {
     // The pin: the clone ships no speculation-rules surface — no

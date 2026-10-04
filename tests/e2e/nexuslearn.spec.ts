@@ -8478,6 +8478,333 @@ test.describe("session-52 parity: the WebGPU / Web Locks census", () => {
 });
 
 
+test.describe("session-53 parity: the Web MIDI / Badge-API census", () => {
+  // The s53 Web MIDI / Badge-API census (the session_122 direction (a)):
+  // navigator.requestMIDIAccess + window.MIDIAccess + MIDIMessageEvent +
+  // navigator.setAppBadge/clearAppBadge are PRESENT with identical shape
+  // on both sites while the app surface is ZERO on BOTH: zero
+  // instrumented requestMIDIAccess/setAppBadge/clearAppBadge calls, zero
+  // midi/badge-labeled UI, zero MIDI-statechange registrations. The
+  // source tier is pinned by tests/platform-surface-source.test.ts (the
+  // s53 block).
+
+  test("no MIDI/badge surface: APIs present, zero calls, zero labeled UI", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s53mb: { calls: string[]; statechange: string[] } };
+      w.__s53mb = { calls: [], statechange: [] };
+      const nav = navigator as unknown as {
+        requestMIDIAccess?: (...a: unknown[]) => unknown;
+        setAppBadge?: (...a: unknown[]) => unknown;
+        clearAppBadge?: (...a: unknown[]) => unknown;
+      };
+      if (typeof nav.requestMIDIAccess === "function") {
+        const orig = nav.requestMIDIAccess.bind(navigator);
+        nav.requestMIDIAccess = (...a: unknown[]) => {
+          w.__s53mb.calls.push(`requestMIDIAccess@${location.pathname}`);
+          return orig(...a);
+        };
+      }
+      if (typeof nav.setAppBadge === "function") {
+        const orig = nav.setAppBadge.bind(navigator);
+        nav.setAppBadge = (...a: unknown[]) => {
+          w.__s53mb.calls.push(`setAppBadge@${location.pathname}`);
+          return orig(...a);
+        };
+      }
+      if (typeof nav.clearAppBadge === "function") {
+        const orig = nav.clearAppBadge.bind(navigator);
+        nav.clearAppBadge = (...a: unknown[]) => {
+          w.__s53mb.calls.push(`clearAppBadge@${location.pathname}`);
+          return orig(...a);
+        };
+      }
+      // the MIDI-statechange watched-event census (the listener override)
+      const origAdd = EventTarget.prototype.addEventListener;
+      EventTarget.prototype.addEventListener = function patchedAdd53mb(this: EventTarget, type: string, ...rest: unknown[]) {
+        if (type === "statechange") {
+          w.__s53mb.statechange.push(`statechange@${location.pathname}`);
+        }
+        return (origAdd as (this: EventTarget, t: string, ...r: unknown[]) => unknown).apply(this, [type, ...rest] as unknown as [string]);
+      };
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e headless-Chromium context — context-
+    // bound like every presence mirror, while the zero-CALL census stays
+    // the durable contract).
+    const api = await page.evaluate(() => {
+      const win = window as unknown as Record<string, unknown>;
+      const nav = navigator as unknown as Record<string, unknown>;
+      return {
+        requestMIDIAccess: typeof nav.requestMIDIAccess,
+        MIDIAccess: typeof win.MIDIAccess,
+        MIDIMessageEvent: typeof win.MIDIMessageEvent,
+        setAppBadge: typeof nav.setAppBadge,
+        clearAppBadge: typeof nav.clearAppBadge,
+      };
+    });
+    expect(api.requestMIDIAccess).toBe("function");
+    expect(api.MIDIAccess).toBe("function");
+    expect(api.MIDIMessageEvent).toBe("function");
+    expect(api.setAppBadge).toBe("function");
+    expect(api.clearAppBadge).toBe("function");
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s53mb?: { calls: string[]; statechange: string[] } };
+        const mbUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label], [title], h1, h2, h3, label"))) {
+          const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim().toLowerCase();
+          if (/\bmidi\b|\bbadge\b/.test(label)) mbUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        return { calls: w.__s53mb?.calls ?? [], statechange: w.__s53mb?.statechange ?? [], mbUi };
+      });
+      expect(census.calls, `${route} never calls the MIDI/badge APIs`).toEqual([]);
+      expect(census.statechange, `${route} registers no MIDI-statechange listeners`).toEqual([]);
+      expect(census.mbUi, `${route} ships no midi/badge-labeled UI`).toEqual([]);
+    }
+  });
+});
+
+
+test.describe("session-53 parity: the Navigation-API census", () => {
+  // The s53 Navigation-API census (the session_122 direction (b), the
+  // SPA-vs-SSR router family's newest member): window.Navigation /
+  // NavigateEvent / NavigationHistoryEntry (functions) + window.navigation
+  // (object) are PRESENT with identical shape on both sites while ZERO
+  // navigate-family listeners register anywhere — the live's SPA router
+  // AND the clone's Next.js App Router both leave the API untouched (the
+  // classic popstate is the only history event either registers — 2
+  // listeners on both, framework-internal, never pinned). The entries
+  // tier is session-state (per-session UUID keys) — the spec pins the
+  // SHAPE (array + numeric currentEntry.index), never the count. The
+  // source tier is pinned by tests/platform-surface-source.test.ts.
+
+  test("no Navigation-API surface: API present, zero navigate-family listeners, entries shape intact", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s53na: { listeners: string[] } };
+      w.__s53na = { listeners: [] };
+      const WATCHED = ["navigate", "navigatesuccess", "navigateerror", "currententrychange"];
+      const origAdd = EventTarget.prototype.addEventListener;
+      EventTarget.prototype.addEventListener = function patchedAdd53na(this: EventTarget, type: string, ...rest: unknown[]) {
+        if (WATCHED.includes(type)) {
+          w.__s53na.listeners.push(`${type}@${location.pathname}`);
+        }
+        return (origAdd as (this: EventTarget, t: string, ...r: unknown[]) => unknown).apply(this, [type, ...rest] as unknown as [string]);
+      };
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (the e2e headless-Chromium context — context-
+    // bound like every presence mirror; the zero-REGISTRATION census is
+    // the durable contract).
+    const api = await page.evaluate(() => {
+      const win = window as unknown as Record<string, unknown>;
+      const nav = win.navigation as unknown as { entries?: () => unknown[]; currentEntry?: { index?: number } } | undefined;
+      return {
+        Navigation: typeof win.Navigation,
+        navigation: typeof win.navigation,
+        NavigateEvent: typeof win.NavigateEvent,
+        NavigationHistoryEntry: typeof win.NavigationHistoryEntry,
+        entriesIsArray: nav?.entries ? Array.isArray(nav.entries()) : "absent",
+        currentEntryIndex: nav?.currentEntry ? typeof nav.currentEntry.index : "absent",
+      };
+    });
+    expect(api.Navigation).toBe("function");
+    expect(api.navigation).toBe("object");
+    expect(api.NavigateEvent).toBe("function");
+    expect(api.NavigationHistoryEntry).toBe("function");
+    expect(api.entriesIsArray).toBe(true);
+    expect(api.currentEntryIndex).toBe("number");
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s53na?: { listeners: string[] } };
+        const nav = (window as unknown as Record<string, unknown>).navigation as unknown as { entries?: () => unknown[]; currentEntry?: { index?: number } } | undefined;
+        return {
+          listeners: w.__s53na?.listeners ?? [],
+          entriesIsArray: nav?.entries ? Array.isArray(nav.entries()) : "absent",
+          currentEntryIndex: nav?.currentEntry ? typeof nav.currentEntry.index : "absent",
+        };
+      });
+      expect(census.listeners, `${route} registers zero navigate/navigatesuccess/navigateerror/currententrychange listeners`).toEqual([]);
+      expect(census.entriesIsArray, `${route} navigation.entries() stays an array`).toBe(true);
+      expect(census.currentEntryIndex, `${route} currentEntry.index stays numeric`).toBe("number");
+    }
+  });
+});
+
+
+test.describe("session-53 parity: the Local-Font / EyeDropper / Contact-Picker census", () => {
+  // The s53 Local-Font-Access + EyeDropper + Contact-Picker census (the
+  // session_122 direction (c), the UI-tier picker family):
+  // window.queryLocalFonts + FontData + EyeDropper are PRESENT with
+  // identical shape on both sites while navigator.contacts /
+  // ContactsManager are headless-ABSENT on both (the gotcha-78 mirror —
+  // NEVER asserted here); the app surface is ZERO on BOTH: zero
+  // instrumented queryLocalFonts / EyeDropper.open calls, zero
+  // <input type="color"> elements, zero picker-labeled UI. The source
+  // tier is pinned by tests/platform-surface-source.test.ts.
+
+  test("no picker surface: fonts/eyedropper APIs present, zero calls, zero color inputs, zero labeled UI", async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __s53fc: { calls: string[] } };
+      w.__s53fc = { calls: [] };
+      const win = window as unknown as {
+        queryLocalFonts?: (...a: unknown[]) => unknown;
+        EyeDropper?: new () => { open: (...a: unknown[]) => unknown };
+      };
+      if (typeof win.queryLocalFonts === "function") {
+        const orig = win.queryLocalFonts.bind(window);
+        win.queryLocalFonts = (...a: unknown[]) => {
+          w.__s53fc.calls.push(`queryLocalFonts@${location.pathname}`);
+          return orig(...a);
+        };
+      }
+      const edCtor = win.EyeDropper;
+      if (edCtor && typeof edCtor.prototype.open === "function") {
+        const orig = edCtor.prototype.open;
+        edCtor.prototype.open = function patchedOpen(this: unknown, ...a: unknown[]) {
+          w.__s53fc.calls.push(`eyeDropperOpen@${location.pathname}`);
+          return (orig as (this: unknown, ...r: unknown[]) => unknown).apply(this, a);
+        };
+      }
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    // The API-surface reads (context-bound like every presence mirror;
+    // contacts is the gotcha-78 mirror — absent in headless, never
+    // asserted).
+    const api = await page.evaluate(() => {
+      const win = window as unknown as Record<string, unknown>;
+      return {
+        queryLocalFonts: typeof win.queryLocalFonts,
+        FontData: typeof win.FontData,
+        EyeDropper: typeof win.EyeDropper,
+      };
+    });
+    expect(api.queryLocalFonts).toBe("function");
+    expect(api.FontData).toBe("function");
+    expect(api.EyeDropper).toBe("function");
+
+    for (const route of ["/", "/Courses", "/Pricing", "/About", "/Contact", "/BecomeInstructor", "/AIAssistant", "/login"]) {
+      await page.goto(route, { waitUntil: "networkidle" });
+      await page.waitForTimeout(500);
+      const census = await page.evaluate(() => {
+        const w = window as unknown as { __s53fc?: { calls: string[] } };
+        const pickerUi: string[] = [];
+        for (const el of Array.from(document.querySelectorAll("button, a, [role=button], [aria-label], [title], h1, h2, h3, label"))) {
+          const label = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim().toLowerCase();
+          if (/local\s?fonts?|font\s?picker|eyedropper|eye\s?dropper|pick\s?color|contact\s?picker/.test(label)) pickerUi.push(`${el.tagName}:${label.slice(0, 40)}`);
+        }
+        return {
+          calls: w.__s53fc?.calls ?? [],
+          colorInputs: document.querySelectorAll('input[type="color"]').length,
+          pickerUi,
+        };
+      });
+      expect(census.calls, `${route} never calls the fonts/eyedropper APIs`).toEqual([]);
+      expect(census.colorInputs, `${route} ships zero color inputs`).toBe(0);
+      expect(census.pickerUi, `${route} ships no picker-labeled UI`).toEqual([]);
+    }
+  });
+});
+
+
+test.describe("session-53 parity: the mobile-panel mount-modality census (the gotcha-82 guard)", () => {
+  // The s53 mount-modality tier (the session's genuine discovery —
+  // gotcha 82): the LIVE's mobile-menu panel content is MOUNT-ON-OPEN
+  // (its closed nav carries only the desktop row + the CSS-gated
+  // trigger — zero panel members in the rendered tree until the trigger
+  // is clicked; verified at fresh-375, desktop, and the resize path),
+  // while the CLONE's panel is ALWAYS-MOUNTED (the documented design —
+  // gotcha 8's symmetric md:hidden approach, zero mount-flash, zero
+  // hydration risk): the closed nav at 375 carries 17 links with the
+  // panel members laid out at real geometry inside the collapsed
+  // grid-template-rows 0fr track, and the container is display:none at
+  // desktop. Every OBSERVABLE surface is byte-identical (the standing
+  // mobile battery pins the open geometry). This guard pins the CLONE'S
+  // OWN always-mounted design — a future refactor that switches the
+  // panel to conditional mounting (or drops the CSS gating) fails here
+  // and must pass through the documentation gate.
+
+  test("always-mounted panel: 17 nav links + 9 clipped members at 375, display:none at desktop, 2 visible Contact links", async ({ page }) => {
+    // ---- desktop (the file's Desktop Chrome viewport): the panel is
+    // CSS-hidden, and the visible Contact census is 2 (nav row + footer
+    // — the live's count; the clone's third link is the inert hidden
+    // panel member).
+    await page.goto("/", { waitUntil: "networkidle" });
+    await page.waitForTimeout(600);
+    const desktop = await page.evaluate(() => {
+      const btn = document.querySelector('nav button[class*="md:hidden"]');
+      const panel = btn ? document.getElementById(btn.getAttribute("aria-controls") || "none") : null;
+      // the TEXT census (the probe methodology: exact "Contact" text — the
+      // href-only census would count the footer's Help Center / FAQ links
+      // that also target /Contact, muddying the containment).
+      const contactLinks = Array.from(document.querySelectorAll('a[href="/Contact"]')).filter((el) => (el.textContent || "").trim() === "Contact");
+      const visibleContact = contactLinks.filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      });
+      return {
+        triggerInDom: !!btn,
+        triggerDisplay: btn ? getComputedStyle(btn).display : null,
+        panelInDom: !!panel,
+        panelDisplay: panel ? getComputedStyle(panel).display : null,
+        contactTotal: contactLinks.length,
+        contactVisible: visibleContact.length,
+        contactVisibleWhere: visibleContact.map((el) => (el.closest("nav") ? "nav" : el.closest("footer") ? "footer" : "other")).join(","),
+      };
+    });
+    expect(desktop.triggerInDom).toBe(true);
+    expect(desktop.triggerDisplay).toBe("none");
+    expect(desktop.panelInDom).toBe(true);
+    expect(desktop.panelDisplay).toBe("none");
+    expect(desktop.contactTotal).toBe(3); // nav row + panel member + footer (always-mounted)
+    expect(desktop.contactVisible).toBe(2); // the live's desktop census: nav row + footer
+    expect(desktop.contactVisibleWhere).toBe("nav,footer");
+
+    // ---- mobile (375x667, the battery's viewport): the closed nav
+    // carries the FULL always-mounted panel — 17 links, 9 members at
+    // real geometry, the container collapsed (offsetHeight 0 + opacity
+    // 0, the grid 0fr track).
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.waitForTimeout(800);
+    const mobile = await page.evaluate(() => {
+      const btn = document.querySelector('nav button[aria-controls]');
+      const panel = btn ? document.getElementById(btn.getAttribute("aria-controls") || "none") : null;
+      const members = Array.from(document.querySelectorAll("nav a, nav button")).filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.y > 70 && r.width > 0;
+      });
+      return {
+        navLinks: document.querySelectorAll("nav a").length,
+        navButtons: document.querySelectorAll("nav button").length,
+        triggerDisplay: btn ? getComputedStyle(btn).display : null,
+        panelDisplay: panel ? getComputedStyle(panel).display : null,
+        panelOffsetHeight: panel ? (panel as HTMLElement).offsetHeight : null,
+        panelOpacity: panel ? getComputedStyle(panel).opacity : null,
+        panelGridTemplateRows: panel ? getComputedStyle(panel).gridTemplateRows : null,
+        memberCount: members.length,
+        memberTexts: members.map((el) => `${el.tagName}:${(el.textContent || "").trim().slice(0, 14)}`),
+      };
+    });
+    expect(mobile.navLinks).toBe(17); // logo + 8 desktop row + 8 panel (the live: 9 — mount-on-open)
+    expect(mobile.navButtons).toBe(3); // trigger + desktop CTA + panel CTA
+    expect(mobile.triggerDisplay).toBe("block");
+    expect(mobile.panelDisplay).toBe("grid");
+    expect(mobile.panelOffsetHeight).toBe(0); // collapsed: the 0fr grid track
+    expect(mobile.panelOpacity).toBe("0");
+    expect(mobile.panelGridTemplateRows).toBe("0px");
+    expect(mobile.memberCount).toBe(9);
+    expect(mobile.memberTexts).toEqual([
+      "A:Home", "A:Courses", "A:AI Assistant", "A:Pricing", "A:Teach", "A:About", "A:Contact", "A:My Dashboard", "BUTTON:My Dashboard",
+    ]);
+  });
+});
+
+
 test.describe("session-33 parity: the verify throttle (the burst spec — deliberately last)", () => {
   test("an 11x verify burst trips the 429 throttle", async ({ request }) => {
     // Pre-fix: 14 rapid requests all returned 200 — every one minting a
